@@ -1,0 +1,5 @@
+{
+  "name": "[22.00] GRU Neural EvoSim Season2: The Rise of Clans_히든16패치",
+  "description": "A complex evolutionary simulation where agents driven by neural networks evolve, form tribes, and engage in warfare across different eras.\n뇌 저주기화, 지형센서 및 지도그리기, 초식동물반격시스템 공동사냥분배 패치완료, surname 도입, 온도그리드화30, 온도습도 인풋반영, 홈화면+소프트모듈, 초식동물 새끼도입(13.3), 초식동물 arrival 반경축소, 경로 horizontalbias도입(13.3b) rally 도입예정(14)->취소 , ttl 직접적용(14) GRU floatarray(15) 15.1(commitment, 클랜모드 삭제추가-혈통기반) 15.3 슬라이더 패널, 핫키 15.3a 핫키fix 컨트롤/디버그 패널 15.4 설정화면UI15.5 홈허브플로우15.7 하트스플릿(콜리션정리) 15.8/15.9 opt패치(마커등보완) HSfinalNoUI..fix6hudstubsindex 15.91 safeset(수치안정화) 15.92 패널안정화(진행중) \n16.4리더십 17.4 농사드롭패치 18.3 rendersplit 18.4~7 GC최적화\n18.8 breath(arousal) 19.25, 사건타일 19.40 청각4채널 19.6 청각채널 보완(밸런싱, 센싱방식, UI) 시간선개편 및 계절도입 19.91, 농사인풋 crop패치 20.03, 맵추가+가이아패치(아틀라스도입시도 폐지) SOT 21.14, 히든16확장+NAT 맵크기 비례 22.00\n\n\n",
+  "requestFramePermissions": []
+}
