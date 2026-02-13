@@ -1709,7 +1709,6 @@ BUILDER_BLOCK: CSS_END === */
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
 <style id="cfg-patch-v4">
 /* v4: reduce card height & improve spacing */
 #config-overlay .cfg-grid{
@@ -9129,7 +9128,7 @@ try {
 document.getElementById('disp-era').textContent = "선사시대";
                 document.getElementById('disp-era').style.color = '#eee';
                 
-                logs.length = 0;
+                _clearLogs();
                 logContainer.innerHTML = '';
                 
                 camera.x = CFG.worldWidth / 2;
@@ -12000,10 +11999,37 @@ function updateHerbivorePacks(dtTicks = 1) {
         }
 
         const logs = [];
+        let _logsHead = 0;
+        let _logsSize = 0;
+
+        function _clearLogs() {
+            logs.length = 0;
+            _logsHead = 0;
+            _logsSize = 0;
+            _logsDirty = true;
+        }
+
+        function _logAt(i) {
+            if (i < 0 || i >= _logsSize) return null;
+            return logs[(_logsHead + i) % MAX_LOG_CAP];
+        }
+
+        function _logsToArray() {
+            const out = new Array(_logsSize);
+            for (let i = 0; i < _logsSize; i++) out[i] = _logAt(i);
+            return out;
+        }
+
         function logEvent(msg, type='normal') {
-            logs.push({msg, type, time: Date.now()});
-            if (logs.length > MAX_LOG_CAP) {
-                logs.splice(0, logs.length - MAX_LOG_CAP);
+            if (MAX_LOG_CAP <= 0) return;
+            const entry = {msg, type, time: Date.now()};
+            if (_logsSize < MAX_LOG_CAP) {
+                const idx = (_logsHead + _logsSize) % MAX_LOG_CAP;
+                logs[idx] = entry;
+                _logsSize++;
+            } else {
+                logs[_logsHead] = entry;
+                _logsHead = (_logsHead + 1) % MAX_LOG_CAP;
             }
             _logsDirty = true;
         }
@@ -12024,8 +12050,9 @@ if (logContainer && logContainer.getClientRects && logContainer.getClientRects()
 
             // Build HTML once; avoids per-log DOM work
             let html = '';
-            for (let i = 0; i < logs.length; i++) {
-                const l = logs[i];
+            for (let i = 0; i < _logsSize; i++) {
+                const l = _logAt(i);
+                if (!l) continue;
                 const line = `[G${GENERATION}] ${l.msg}`;
                 html += `<div class="log-entry ${l.type}" title="${_escapeHTML(line)}">${_escapeHTML(line)}</div>`;
             }
@@ -13527,7 +13554,7 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             }
 
             try {
-                const historyText = logs.map(l => `[${l.type}] ${l.msg}`).join('\n');
+                const historyText = _logsToArray().map(l => `[${l.type}] ${l.msg}`).join('\n');
                 const stats = `Generation: ${GENERATION}, Pop: ${agents.length}, Era: ${ERA}`;
                 
                 const prompt = `
@@ -13990,6 +14017,23 @@ function updateHistoryPanelUI(){
         let cachedFoodGrid = null;
         let cachedFoodGridTick = -1e15;
         const FOOD_GRID_REBUILD_PERIOD_TICKS = 5;
+        function _ensureFoodGridCurrent() {
+          const stale =
+            (!cachedFoodGrid) ||
+            (simulatedTicks < cachedFoodGridTick) ||
+            ((simulatedTicks - cachedFoodGridTick) >= FOOD_GRID_REBUILD_PERIOD_TICKS);
+          if (!stale) return cachedFoodGrid;
+          if (_mp_enabled) {
+            const __t = performance.now();
+            cachedFoodGrid = _buildFoodGrid();
+            cachedFoodGridTick = simulatedTicks;
+            _mp_grid += (performance.now() - __t);
+          } else {
+            cachedFoodGrid = _buildFoodGrid();
+            cachedFoodGridTick = simulatedTicks;
+          }
+          return cachedFoodGrid;
+        }
         let cachedAgentGrid = null;
         let cachedHerbGrid = null; // Patch D: Herbivore Grid Cache
         
@@ -14285,12 +14329,40 @@ if (ERA === 'ANCIENT' && CFG.mapType === 'SQUARE') {
                         ctx.strokeRect(0, 0, CFG.worldWidth, CFG.worldHeight);
                         ctx.lineWidth = 1;
 
-                        foods.forEach(f => f.draw(ctx));
-                        herbivores.forEach(h => h.draw(ctx, h === selectedHerbivore));
-                        agents.forEach(a => {
-                            if(!a.dead) a.draw(ctx, a === selectedAgent);
-                        });
-                        predators.forEach(p => p.draw(ctx, p === selectedPredator));
+                        const cullPad = 40;
+                        const cullMinX = visX - cullPad;
+                        const cullMinY = visY - cullPad;
+                        const cullMaxX = visX + visW + cullPad;
+                        const cullMaxY = visY + visH + cullPad;
+
+                        for (let i = 0; i < foods.length; i++) {
+                            const f = foods[i];
+                            if (!f) continue;
+                            const fp = f.pos;
+                            if (!fp || fp.x < cullMinX || fp.x > cullMaxX || fp.y < cullMinY || fp.y > cullMaxY) continue;
+                            f.draw(ctx);
+                        }
+                        for (let i = 0; i < herbivores.length; i++) {
+                            const h = herbivores[i];
+                            if (!h || h.dead) continue;
+                            const hp = h.pos;
+                            if (!hp || hp.x < cullMinX || hp.x > cullMaxX || hp.y < cullMinY || hp.y > cullMaxY) continue;
+                            h.draw(ctx, h === selectedHerbivore);
+                        }
+                        for (let i = 0; i < agents.length; i++) {
+                            const a = agents[i];
+                            if (!a || a.dead) continue;
+                            const ap = a.pos;
+                            if (!ap || ap.x < cullMinX || ap.x > cullMaxX || ap.y < cullMinY || ap.y > cullMaxY) continue;
+                            a.draw(ctx, a === selectedAgent);
+                        }
+                        for (let i = 0; i < predators.length; i++) {
+                            const p = predators[i];
+                            if (!p || p.dead) continue;
+                            const pp = p.pos;
+                            if (!pp || pp.x < cullMinX || pp.x > cullMaxX || pp.y < cullMinY || pp.y > cullMaxY) continue;
+                            p.draw(ctx, p === selectedPredator);
+                        }
 
                         
                         // [LDR UX] Role markers (Phase1: cheap, always-on)
@@ -14434,24 +14506,7 @@ try {
       }
 
       // ### PATCH B: Separate Food Grid for Think Phase
-      // Rebuild grid if cached version is too old OR if we rewound time (simulatedTicks < cachedTick)
-      const _foodGridStale1 =
-          (!cachedFoodGrid) ||
-          (simulatedTicks < cachedFoodGridTick) || // tick rewind guard
-          ((simulatedTicks - cachedFoodGridTick) >= FOOD_GRID_REBUILD_PERIOD_TICKS);
-    
-      if (_foodGridStale1) {
-          if (_mp_enabled) {
-              const __t = performance.now();
-              cachedFoodGrid = _buildFoodGrid();
-              cachedFoodGridTick = simulatedTicks;
-              _mp_grid += (performance.now() - __t);
-          } else {
-              cachedFoodGrid = _buildFoodGrid();
-              cachedFoodGridTick = simulatedTicks;
-          }
-      }
-      const foodGridForThink = cachedFoodGrid;
+      const foodGridForThink = _ensureFoodGridCurrent();
 
       let agentGridPre = cachedAgentGrid;
       if (!agentGridPre) {
@@ -14603,25 +14658,7 @@ try {
       }
 
       // ### PATCH B: Re-verify Food Grid for Collision Phase
-      // Compaction might have happened in other update steps or pending logic.
-      // Just ensuring we have a valid grid before checking collisions.
-      const _foodGridStale2 =
-          (!cachedFoodGrid) ||
-          (simulatedTicks < cachedFoodGridTick) || // tick rewind guard
-          ((simulatedTicks - cachedFoodGridTick) >= FOOD_GRID_REBUILD_PERIOD_TICKS);
-
-      if (_foodGridStale2) {
-          if (_mp_enabled) {
-              const __t = performance.now();
-              cachedFoodGrid = _buildFoodGrid();
-              cachedFoodGridTick = simulatedTicks;
-              _mp_grid += (performance.now() - __t);
-          } else {
-              cachedFoodGrid = _buildFoodGrid();
-              cachedFoodGridTick = simulatedTicks;
-          }
-      }
-      const foodGridForCollision = cachedFoodGrid;
+      const foodGridForCollision = _ensureFoodGridCurrent();
 
       if (_mp_enabled) { const __t = performance.now(); checkCollisions(foodGridForCollision, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForCollision, agentGridPost, herbGridPost); }
 
@@ -14827,7 +14864,7 @@ function __evoRafStop(){
             // Map buffers (Phase4: GAIA only; no legacy mask)
 
             // Logs (memory only; UI is optional)
-            try{ if (typeof logs !== 'undefined' && logs) logs.length = 0; }catch(e){}
+            try{ if (typeof _clearLogs === 'function') _clearLogs(); }catch(e){}
             try{ const lc = document.getElementById('log-container'); if (lc) lc.innerHTML = ''; }catch(e){}
 
             // Mark (debug)
@@ -16211,8 +16248,6 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 
 
 </script>
-<script type="module" src="/index.tsx"></script>
-
     <!-- HOME HUB FLOW (Step3): Exit Modal -->
     <div id="exit-modal" aria-hidden="true">
         <div class="exit-backdrop" data-exit-backdrop="1"></div>
