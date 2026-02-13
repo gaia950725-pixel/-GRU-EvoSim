@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    Q.00 Neural EvoSim: The Rise of Clans (Optimized)</title>
+    <title>22.00 hidden 16 natscale A — Neural EvoSim: The Rise of Clans (Optimized)</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1709,6 +1709,7 @@ BUILDER_BLOCK: CSS_END === */
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 <style id="cfg-patch-v4">
 /* v4: reduce card height & improve spacing */
 #config-overlay .cfg-grid{
@@ -1862,12 +1863,18 @@ BUILDER_BLOCK: CSS_END === */
 </select>
       </div>
     </div>
-
-    <div class="cfg-row">
-      <div class="cfg-field">
-        <div class="cfg-muted">맵 형태를 선택하세요.</div>
+<div class="cfg-row" style="margin-top:14px;">
+      <div class="cfg-field" style="width:100%;">
+        <label class="cfg-label">고정 토폴로지 <span class="val" style="color:#9aa0a6;">(세션 시작만)</span></label>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input id="cfg-seed-lock" type="checkbox" style="accent-color: var(--accent); transform: scale(1.05);" />
+          <input id="cfg-seed" type="number" min="0" step="1" value="12345" style="width:160px; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.25); color:#fff;" />
+          <div style="font-size:11px; color:#7b8087; margin-top:4px; line-height:1.2;">12345 + 고정 토폴로지 ON: 지구 토폴로지(템플릿) 적용 (현재: TSL XL만)</div>
+          <span style="opacity:0.7; font-size:12px;">체크 시 적용</span>
+        </div>
       </div>
     </div>
+
   </div>
 
   <div class="cfg-card">
@@ -1885,10 +1892,17 @@ BUILDER_BLOCK: CSS_END === */
 
     <div class="cfg-row" style="margin-top:12px;">
       <div class="cfg-field" style="width:100%;">
-        <label class="cfg-label">농경가능구역 비율 <span id="lbl-farm-pct" class="val" style="color:var(--herb)">18%</span></label>
-        <input id="cfg-farm-pct" type="range" min="10" max="28" value="18" step="1" style="accent-color: var(--herb);" />
+        <label class="cfg-label">강 수 (하구) <span id="lbl-river-count" class="val" style="color:var(--herb); font-weight:800;">3</span></label>
+        <input id="cfg-river-count" type="range" min="0" max="6" value="3" step="1" style="accent-color: var(--herb);" />
       </div>
     </div>
+
+    <div class="cfg-row" style="margin-top:10px;">
+      <div class="cfg-field" style="width:100%;">
+        <label class="cfg-label">농지비율 (자동) <span id="lbl-farm-pct" class="val" style="color:var(--herb)">18%</span><span class="cfg-muted" style="margin-left:8px; font-size:11px; opacity:0.65; font-weight:400;">= 36% × (강 수 / 맵별 최대 강 수)</span></label>
+      </div>
+    </div>
+
   </div>
 
   <div class="cfg-card">
@@ -1910,19 +1924,12 @@ BUILDER_BLOCK: CSS_END === */
         <input id="cfg-mtn-count" type="range" min="1" max="6" value="3" step="1" style="accent-color: var(--accent);" />
       </div>
     </div>
-
-    <div class="cfg-row" style="margin-top:14px;">
-      <div class="cfg-field" style="width:100%;">
-        <label class="cfg-label">프리셋 시드 고정 <span class="val" style="color:#9aa0a6;">(세션 시작만)</span></label>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <input id="cfg-seed-lock" type="checkbox" style="accent-color: var(--accent); transform: scale(1.05);" />
-          <input id="cfg-seed" type="number" min="0" step="1" value="12345" style="width:160px; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.25); color:#fff;" />
-          <span style="opacity:0.7; font-size:12px;">체크 시 적용</span>
-        </div>
-      </div>
-    </div>
   </div>
-</div></div><div class="config-section" id="cfg-sec-humanity" style="display:none;">
+</div>
+
+</div>
+
+<div class="config-section" id="cfg-sec-humanity" style="display:none;">
   <div class="section-title">👤 Humanity</div>
 
   <div class="cfg-grid">
@@ -3267,31 +3274,41 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
 
         WG.retryBtn.onclick = () => location.reload();
 
-        // 1. Climate Checkbox
+                // 1. Climate Checkbox
         const climateCheckbox = document.getElementById('cfg-climate');
         const climateStatus = document.getElementById('lbl-climate-status');
-        const farmSlider = document.getElementById('cfg-farm-pct');
+        const riverSlider = document.getElementById('cfg-river-count');
+        const riverLabel = document.getElementById('lbl-river-count');
         const farmLabel = document.getElementById('lbl-farm-pct');
+        const mapSel = document.getElementById('cfg-map');
 
-        if(climateCheckbox && climateStatus) {
-            climateCheckbox.addEventListener('change', (e) => {
-                const isChecked = e.target.checked;
-                climateStatus.textContent = isChecked ? "ON" : "OFF";
-                climateStatus.style.color = isChecked ? "#00ffcc" : "#aaa";
-                climateStatus.style.fontWeight = isChecked ? "bold" : "normal";
-                
-                if (farmSlider) {
-                    farmSlider.disabled = !isChecked;
-                    farmLabel.style.color = isChecked ? 'var(--herb)' : '#777';
-                }
-            });
+        function _riverMaxByMapType(mt){
+            return (mt === 'TSL_XL_7200x4800') ? 8 : 6;
         }
-        
-        if (farmSlider && farmLabel) {
-            farmSlider.addEventListener('input', (e) => {
-                farmLabel.textContent = e.target.value + "%";
-            });
+        function _mapDefaults(mt){
+            const isXL = (mt === 'TSL_XL_7200x4800');
+            return { max: isXL ? 8 : 6, mtn: isXL ? 4 : 3, river: isXL ? 4 : 3 };
         }
+        function _clampInt(v, a, b){
+            v = (v|0);
+            return v < a ? a : (v > b ? b : v);
+        }
+
+        let _uiTouchedRiver = false;
+        let _uiTouchedMtn = false;
+
+        function _syncClimateUI(){
+            const on = !!(climateCheckbox && climateCheckbox.checked);
+            if (climateStatus) {
+                climateStatus.textContent = on ? "ON" : "OFF";
+                climateStatus.style.color = on ? "#00ffcc" : "#aaa";
+                climateStatus.style.fontWeight = on ? "bold" : "normal";
+            }
+            if (riverSlider) riverSlider.disabled = !on;
+            if (riverLabel) riverLabel.style.color = on ? 'var(--herb)' : '#777';
+            if (farmLabel) farmLabel.style.color = on ? 'var(--herb)' : '#777';
+        }
+
         // 1.5 Altitude & Mountains (session-start only)
         const altCheckbox = document.getElementById('cfg-altitude');
         const altStatus = document.getElementById('lbl-altitude-status');
@@ -3311,10 +3328,44 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
                 mtnLabel.style.color = on ? 'var(--accent)' : '#777';
             }
         }
-        if (altCheckbox) altCheckbox.addEventListener('change', _syncAltUI);
-        if (mtnSlider) mtnSlider.addEventListener('input', _syncAltUI);
-        _syncAltUI();
 
+        function _syncMapDependentUI(){
+            const mt = mapSel ? mapSel.value : 'TSL_LARGE';
+            const def = _mapDefaults(mt);
+
+            // Mountain slider max/default
+            if (mtnSlider) {
+                mtnSlider.max = String(def.max);
+                if (!_uiTouchedMtn) mtnSlider.value = String(def.mtn);
+                else mtnSlider.value = String(_clampInt(parseInt(mtnSlider.value,10)||0, 1, def.max));
+            }
+
+            // River slider max/default
+            if (riverSlider) {
+                riverSlider.max = String(def.max);
+                if (!_uiTouchedRiver) riverSlider.value = String(def.river);
+                else riverSlider.value = String(_clampInt(parseInt(riverSlider.value,10)||0, 0, def.max));
+                if (riverLabel) riverLabel.textContent = String(riverSlider.value);
+            }
+
+            // Farm pct display
+            if (farmLabel && riverSlider) {
+                const rc = parseInt(riverSlider.value,10)||0;
+                const pct = 0.36 * (rc / def.max);
+                farmLabel.textContent = Math.round(pct * 100) + "%";
+            }
+
+            _syncAltUI();
+            _syncClimateUI();
+        }
+
+        if (climateCheckbox) climateCheckbox.addEventListener('change', _syncClimateUI);
+        if (altCheckbox) altCheckbox.addEventListener('change', _syncAltUI);
+        if (riverSlider) riverSlider.addEventListener('input', () => { _uiTouchedRiver = true; _syncMapDependentUI(); });
+        if (mtnSlider) mtnSlider.addEventListener('input', () => { _uiTouchedMtn = true; _syncMapDependentUI(); });
+        if (mapSel) mapSel.addEventListener('change', _syncMapDependentUI);
+
+        _syncMapDependentUI();
 
         // 2. Accordions
         document.querySelectorAll('.accordion-btn').forEach(btn => {
@@ -3622,7 +3673,7 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
             mutationRate: 0.10,
             // inputs/outputs will be overwritten by ENUM length below
             inputs: 10, 
-            hiddens: 14, // UPDATED to 14 for GRU
+            hiddens: 16, // UPDATED to 16 for GRU
             outputs: 4,
             nnPeriodTicks: 2, // NN/scan update period in simulatedTicks
             nnPhase: 1,       // run think when (simulatedTicks % nnPeriodTicks) == nnPhase
@@ -3677,6 +3728,7 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
             // --- Agriculture Config ---
             farmLandPct: 0.18, // 18% of land
             
+            riverCount: 3, // rivers (mouths)
             // --- Predator Config ---
             predatorSpecies: 'SABERTOOTH', // 'SABERTOOTH' | 'DIREWOLF'
             predInvulnTicks: 30,
@@ -4712,6 +4764,11 @@ function applyDamageResult(target, dmg) {
         function initAgro() {
             if (!CFG.climateEnabled) { AGRO = null; return; }
 
+// Phase 2: sub-seed for rivers (keeps rivers isolated from mountains)
+if (typeof GAIA !== 'undefined' && GAIA && GAIA._seedRiver != null){
+    GAIA.rand = _mulberry32(GAIA._seedRiver >>> 0);
+}
+
             const TILE = AGRO_TILE;
             const cols = Math.ceil(CFG.worldWidth / TILE);
             const rows = Math.ceil(CFG.worldHeight / TILE);
@@ -4762,17 +4819,133 @@ let isCoast = false;
 }
             }
             
-            const RIVER_COUNT = 3;
+            const _riverMax = (CFG.mapType === 'TSL_XL_7200x4800') ? 8 : 6;
+            const RIVER_COUNT = Math.max(0, Math.min(_riverMax, (CFG.riverCount|0)));
+            const _r01 = (GAIA && typeof GAIA.rand === 'function') ? GAIA.rand : Math.random;
             const chosenMouths = [];
             
-            for(let i=0; i<RIVER_COUNT; i++) {
+            
+// Phase 3 (earthTopo): template-driven rivers for this mapType (TSL XL authored first).
+const _topo = (typeof TOPO_TEMPLATES !== 'undefined' && GAIA && GAIA.earthTopo) ? (TOPO_TEMPLATES[CFG.mapType] || null) : null;
+
+function _clampi(v, lo, hi){ v = v|0; if(v<lo) return lo; if(v>hi) return hi; return v; }
+
+function _findLandTileNear(tx,ty){
+  if(inBounds(tx,ty)){
+    const ii = idxOf(tx,ty);
+    if (AGRO.landMask[ii]) return {x:tx,y:ty,idx:ii};
+  }
+  // small spiral search (worldgen-only)
+  for(let r=1;r<=6;r++){
+    for(let dy=-r; dy<=r; dy++){
+      for(let dx=-r; dx<=r; dx++){
+        if (Math.abs(dx)!==r && Math.abs(dy)!==r) continue;
+        const nx=tx+dx, ny=ty+dy;
+        if(!inBounds(nx,ny)) continue;
+        const ii = idxOf(nx,ny);
+        if (AGRO.landMask[ii]) return {x:nx,y:ny,idx:ii};
+      }
+    }
+  }
+  return null;
+}
+
+function _bresenhamTiles(x0,y0,x1,y1){
+  x0|=0; y0|=0; x1|=0; y1|=0;
+  const out=[];
+  let dx=Math.abs(x1-x0), sx=x0<x1?1:-1;
+  let dy=-Math.abs(y1-y0), sy=y0<y1?1:-1;
+  let err=dx+dy;
+  while(true){
+    out.push([x0,y0]);
+    if(x0===x1 && y0===y1) break;
+    const e2=2*err;
+    if(e2>=dy){ err+=dy; x0+=sx; }
+    if(e2<=dx){ err+=dx; y0+=sy; }
+    if(out.length > (cols+rows)*4) break;
+  }
+  return out;
+}
+
+function _goalWalkTiles(sx,sy,ex,ey,maxSteps){
+  const vis = new Uint8Array(cols*rows);
+  const path=[];
+  let cx=sx|0, cy=sy|0;
+  for(let step=0; step<maxSteps; step++){
+    path.push([cx,cy]);
+    if(cx===ex && cy===ey) return path;
+    vis[idxOf(cx,cy)] = 1;
+
+    let best=null, bestScore=1e30;
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+    for(let di=0; di<4; di++){
+      const nx=cx+dirs[di][0], ny=cy+dirs[di][1];
+      if(!inBounds(nx,ny)) continue;
+      const ii=idxOf(nx,ny);
+      if(!AGRO.landMask[ii]) continue;
+      if(vis[ii]) continue;
+      if(AGRO.riverMask[ii]) continue;
+      const ddx=ex-nx, ddy=ey-ny;
+      let score = ddx*ddx + ddy*ddy;
+      score += (_r01()*0.25); // tiny jitter
+      if(score < bestScore){ bestScore=score; best={x:nx,y:ny,idx:ii}; }
+    }
+    if(!best) return null;
+    cx=best.x; cy=best.y;
+  }
+  return null;
+}
+
+if (_topo && _topo.rivers && _topo.rivers.length){
+  const wantTopo = Math.min(RIVER_COUNT, _topo.rivers.length);
+  for(let i=0; i<wantTopo; i++){
+    const def = _topo.rivers[i];
+
+    const ax = (def.a[0] * CFG.worldWidth)|0;
+    const ay = (def.a[1] * CFG.worldHeight)|0;
+    const bx = (def.b[0] * CFG.worldWidth)|0;
+    const by = (def.b[1] * CFG.worldHeight)|0;
+
+    const stx = _clampi((ax / TILE)|0, 0, cols-1);
+    const sty = _clampi((ay / TILE)|0, 0, rows-1);
+    const edx = _clampi((bx / TILE)|0, 0, cols-1);
+    const edy = _clampi((by / TILE)|0, 0, rows-1);
+
+    const S = _findLandTileNear(stx,sty);
+    const E = _findLandTileNear(edx,edy);
+    if(!S || !E) continue;
+
+    let tiles = _goalWalkTiles(S.x,S.y,E.x,E.y, Math.max(160, cols+rows));
+    if(!tiles){
+      // straight-line fallback (policy)
+      tiles = _bresenhamTiles(S.x,S.y,E.x,E.y);
+    }
+
+    const path = [];
+    for(let t=0;t<tiles.length;t++){
+      const tx=tiles[t][0], ty=tiles[t][1];
+      if(!inBounds(tx,ty)) continue;
+      const ii=idxOf(tx,ty);
+      if(!AGRO.landMask[ii]) continue;
+      AGRO.riverMask[ii] = 1;
+      path.push(new Vec2((tx+0.5)*TILE, (ty+0.5)*TILE));
+    }
+    // enforce end anchor if land (policy: end anchor fixed)
+    if (AGRO.landMask[E.idx]){
+      AGRO.riverMask[E.idx] = 1;
+      path.push(new Vec2((E.x+0.5)*TILE, (E.y+0.5)*TILE));
+    }
+    if (path.length > 2) AGRO.riverPolylines.push(path);
+  }
+} else {
+for(let i=0; i<RIVER_COUNT; i++) {
                 if(coastIndices.length === 0) break;
                 
                 let bestCand = null;
                 let maxMinDist = -1;
                 
                 for(let k=0; k<20; k++) {
-                    const cand = coastIndices[Math.floor(Math.random() * coastIndices.length)];
+                    const cand = coastIndices[(coastIndices.length * _r01())|0];
                     let minDist = Infinity;
                     if (chosenMouths.length === 0) minDist = Infinity;
                     else {
@@ -4797,7 +4970,7 @@ let isCoast = false;
                     localVisited[bestCand.idx] = 1;
                     const centerX = cols / 2;
                     const centerY = rows / 2;
-                    const steps = 30 + Math.floor(Math.random() * 15);
+                    const steps = 30 + ((15 * _r01())|0);
                     for(let s=0; s<steps; s++) {
                         let validNext = null;
                         for(let attempt=0; attempt<8; attempt++) {
@@ -4805,11 +4978,11 @@ let isCoast = false;
                             if (attempt === 0) {
                                 dx = (centerX - cx) > 0 ? 1 : -1;
                                 dy = (centerY - cy) > 0 ? 1 : -1;
-                                if (Math.random() < 0.3) dx = (Math.random() < 0.5 ? 1 : -1);
-                                if (Math.random() < 0.3) dy = (Math.random() < 0.5 ? 1 : -1);
+                                if (_r01() < 0.3) dx = (_r01() < 0.5 ? 1 : -1);
+                                if (_r01() < 0.3) dy = (_r01() < 0.5 ? 1 : -1);
                             } else {
                                 const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-                                const d = dirs[Math.floor(Math.random()*dirs.length)];
+                                const d = dirs[((dirs.length * _r01())|0)];
                                 dx = d[0]; dy = d[1];
                             }
                             const nx = cx + dx;
@@ -4836,6 +5009,8 @@ let isCoast = false;
                 }
             }
             
+} // end earthTopo template override
+
             const queue = [];
             const distMap = new Int32Array(cols * rows).fill(-1);
             
@@ -4846,7 +5021,7 @@ let isCoast = false;
                 }
             }
             if (queue.length === 0 && landIndices.length > 0) {
-                 const rnd = landIndices[Math.floor(Math.random()*landIndices.length)].idx;
+                 const rnd = landIndices[((landIndices.length * _r01())|0)].idx;
                  distMap[rnd] = 0;
                  queue.push(rnd);
             }
@@ -5134,35 +5309,7 @@ AGRO.repLastSeedTick.fill(-1);
             /* === BUILDER_BLOCK: HS_INITAGRO_FARMSUIT_BLOCKS_END === */
         }
 
-        function _tempNormAtLegacy(x, y) {
-            if (!CFG.climateEnabled || !CLIMATE) return 0.5;
-            const lat = (CFG.worldHeight > 0) ? (y / CFG.worldHeight) : 0.5;
-            let t = _tempFromLat(lat);
-
-            const amp = CLIMATE.amp;
-            if (amp > 0) {
-                const cell = CLIMATE.cell;
-                const seed = CLIMATE.seed;
-                const gx = x / cell;
-                const gy = y / cell;
-                const ix = Math.floor(gx);
-                const iy = Math.floor(gy);
-                const fx = gx - ix;
-                const fy = gy - iy;
-                const u = _smoothstep(_clamp01(fx));
-                const v = _smoothstep(_clamp01(fy));
-                const n00 = _hash2D(ix,     iy,     seed);
-                const n10 = _hash2D(ix + 1, iy,     seed);
-                const n01 = _hash2D(ix,     iy + 1, seed);
-                const n11 = _hash2D(ix + 1, iy + 1, seed);
-                const nx0 = _lerp(n00, n10, u);
-                const nx1 = _lerp(n01, n11, u);
-                const n   = _lerp(nx0, nx1, v);
-                const centered = (n - 0.5) * 2;
-                t = _clamp01(t + centered * amp);
-            }
-            return t;
-        }
+        
 
 // === GAIA Phase2: 30px grid lookup APIs (tile is the 1st-class truth) =========
 function gaiaTileAtXY(x, y){
@@ -5179,9 +5326,15 @@ function altitude01At(x, y){
 }
 function temp01At(x, y){
   if (GAIA && GAIA.tempGrid){
-    return GAIA.tempGrid[gaiaTileAtXY(x, y)] || 0;
+    const v = GAIA.tempGrid[gaiaTileAtXY(x, y)];
+    return (typeof v === 'number' && Number.isFinite(v)) ? v : 0.5;
   }
-  return (typeof _tempNormAtLegacy === 'function') ? _tempNormAtLegacy(x, y) : 0;
+  // climate OFF => uniform 0.5; climate ON but missing grid => surface bug (warn once)
+  if (CFG && CFG.climateEnabled && !temp01At._warnedNoTempGrid){
+    console.warn('[GAIA] temp01At: climateEnabled=true but GAIA.tempGrid is missing; returning 0.5 (uniform).');
+    temp01At._warnedNoTempGrid = true;
+  }
+  return 0.5;
 }
 // Back-compat: existing code may call tempNormAt; make it grid-first.
 function tempNormAt(x, y){ return temp01At(x, y); }
@@ -5207,13 +5360,53 @@ function gaiaBuildTempGrid(){
   const N = cols * rows;
   GAIA.tempGrid = new Float32Array(N);
 
+  // NOTE: We intentionally avoid pixel/lat fallbacks during rendering.
+  // Temperature is authored here at 30px-tile resolution (single source of truth).
+  if (!CLIMATE){
+    GAIA.tempGrid.fill(0.5);
+    if (!gaiaBuildTempGrid._warnedNoClimate){
+      console.warn('[GAIA] gaiaBuildTempGrid: CFG.climateEnabled=true but CLIMATE is missing; filling tempGrid with 0.5 (uniform).');
+      gaiaBuildTempGrid._warnedNoClimate = true;
+    }
+    return;
+  }
+
+  const amp  = (typeof CLIMATE.amp  === 'number') ? CLIMATE.amp  : 0;
+  const cell = (typeof CLIMATE.cell === 'number' && CLIMATE.cell > 0) ? CLIMATE.cell : 160;
+  const seed = (typeof CLIMATE.seed === 'number') ? CLIMATE.seed : 1;
+
   const coolK = 0.2; // altitude cooling rate (policy)
   for (let cy = 0; cy < rows; cy++){
     for (let cx = 0; cx < cols; cx++){
       const p = gaiaTileCenter(cx, cy);
       const ti = gaiaTileIndex(cx, cy);
 
-      let t = _tempNormAtLegacy(p.x, p.y);
+      // Base: lat profile
+      const lat = (CFG.worldHeight > 0) ? (p.y / CFG.worldHeight) : 0.5;
+      let t = _tempFromLat(lat);
+
+      // Add: coherent noise (same as prior implementation)
+      if (amp > 0){
+        const gx = p.x / cell;
+        const gy = p.y / cell;
+        const ix = Math.floor(gx);
+        const iy = Math.floor(gy);
+        const fx = gx - ix;
+        const fy = gy - iy;
+        const u  = _smoothstep(_clamp01(fx));
+        const v  = _smoothstep(_clamp01(fy));
+        const n00 = _hash2D(ix,     iy,     seed);
+        const n10 = _hash2D(ix + 1, iy,     seed);
+        const n01 = _hash2D(ix,     iy + 1, seed);
+        const n11 = _hash2D(ix + 1, iy + 1, seed);
+        const nx0 = _lerp(n00, n10, u);
+        const nx1 = _lerp(n01, n11, u);
+        const n   = _lerp(nx0, nx1, v);
+        const centered = (n - 0.5) * 2;
+        t = _clamp01(t + centered * amp);
+      }
+
+      // Apply: altitude cooling
       const alt = GAIA.altitudeGrid ? (GAIA.altitudeGrid[ti] || 0) : 0;
       t = t - coolK * alt;
       GAIA.tempGrid[ti] = _clamp01(t);
@@ -5310,15 +5503,16 @@ const MAP_PRESETS = {
       { type:'superellipse', x:2350, y:1180, rx:2050, ry:720, rot: 0.03, n:2.7 }, // Europe+West/Central Asia
       { type:'superellipse', x:2600, y: 620, rx:2150, ry:430, rot: 0.02, n:2.8 }, // North Asia arc
       { type:'egg',         x:3450, y:1550, rx:1150, ry:820, rot: 0.18, k:0.28 }, // East Asia bulge
-      { type:'egg',         x:3150, y:2350, rx: 460, ry:720, rot: 0.18, k:-0.20 },// India
+      { type:'egg',         x:3390, y:2350, rx: 460, ry:720, rot: 0.18, k:-0.20 },// India
+      { type:'egg',         x:2500, y:2340, rx: 250, ry:220, rot:-0.464, k:0.20 }, // Arabia
       { type:'egg',         x:3900, y:2150, rx: 620, ry:500, rot: 0.22, k:0.35 }, // SE Asia
 
       // Indochina (circle)
       { type:'ellipse',     x:4370, y:2630, rx: 240, ry: 240, rot: 0.00 }, // Indochina
       // === AFRICA (left-bottom) ===
     // NW Africa (egg: narrow-right via rot=1.57, k<0)
-    { type:'egg',         x:1230, y:2550, rx:572, ry:616, rot: 1.57, k:-0.35 },
-      { type:'egg',         x:1910, y:3410, rx: 780, ry:1305, rot: 0.02, k:-0.30 },
+    { type:'egg',         x:930, y:2550, rx:572, ry:616, rot: 1.57, k:-0.35 },
+      { type:'egg',         x:1610, y:3410, rx: 780, ry:1305, rot: 0.02, k:-0.30 },
 
       // === AMERICAS (right) ===
       { type:'superellipse',x:6020, y:1400, rx:1050, ry:860, rot:-0.20, n:2.6 }, // North America
@@ -5336,7 +5530,7 @@ const MAP_PRESETS = {
     // (두께축을 100~110px로 잡아 30px 타일 샘플링에서도 끊김 방지)
     connectors: [
       { type:'superellipse', x:4800, y: 820, rx:600, ry:55, rot:-0.05, n:2.2 }, // Bering (Eurasia <-> Alaska)
-      { type:'superellipse', x:2850, y:2220, rx:780, ry:165, rot: 0.35, n:2.2 }, // Sinai  (Africa <-> Eurasia)
+      { type:'superellipse', x:2370, y:2080, rx:780, ry:165, rot: 0.35, n:2.2 }, // Sinai  (Africa <-> Eurasia)
       { type:'superellipse', x:1650, y:1780, rx:240, ry:60, rot: 0.15, n:2.2 }, // Gibraltar (Europe South <-> NW Africa)
       { type:'superellipse', x:4450, y:2890, rx:55,  ry:280, rot: 0.05, n:2.2 }, // Indonesia corridor (Eurasia <-> Oceania)
     ],
@@ -5501,10 +5695,7 @@ function gaiaBuildLandBitsOnly(){
   // Square: whole world is landmass (mountains/inland seas may be applied in later steps)
   if (CFG.mapType === 'SQUARE'){
     _gaiaFillAllOnes(GAIA.land, nBits);
-    GAIA.pass = GAIA.land.slice();
-    setGaiaStage(1,"land+pass valid");
-    setGaiaStage(2,"square no mountains");
-    GAIA.ready = true;
+    // NOTE: pass/mountains/ready are handled by the common pipeline.
     return;
   }
 
@@ -5796,6 +5987,52 @@ const GAIA_MTN_POLICY = {
 /* === BUILDER_BLOCK: GAIA_MTN_POLICY_END === */
 
 
+/* ============================================================================
+   Phase 3 (earthTopo) — Topology templates (normalized anchors)
+   - Coordinates are normalized (0..1) and scaled by worldWidth/worldHeight.
+   - For now, only TSL_XL_7200x4800 is authored; others can be added later.
+   - Ordering matters: when user selects N, we take first N.
+============================================================================ */
+const TOPO_TEMPLATES = {
+  TSL_XL_7200x4800: {
+        mountains: [
+      // Order matters: first N are used when CFG.mountainCount = N.
+      // These spines are authored (fixed) to match the "TSL XL Earth" reading:
+      // left=Eurasia/Africa, center=India/Oceania, right=Americas.
+      { name:"ZAGROS", spine:[[0.395,0.385],[0.410,0.420],[0.425,0.455],[0.440,0.500],[0.455,0.535]] },
+      { name:"URALS_ALTAI", spine:[[0.515,0.085],[0.535,0.140],[0.545,0.205],[0.535,0.260],[0.555,0.335]] },
+      { name:"ROCKIES", spine:[[0.850,0.175],[0.840,0.240],[0.845,0.310],[0.860,0.380]] },
+      { name:"ALPS", spine:[[0.295,0.245],[0.330,0.255],[0.365,0.265],[0.405,0.275]] },
+      { name:"ANDES", spine:[[0.835,0.550],[0.825,0.650],[0.835,0.760],[0.850,0.865],[0.855,0.920]] },
+      { name:"ETHIOPIAN", spine:[[0.235,0.525],[0.245,0.570],[0.255,0.610],[0.250,0.655]] },
+      { name:"CAUCASUS", spine:[[0.430,0.335],[0.455,0.345],[0.480,0.360],[0.505,0.370]] },
+      { name:"HIMALAYA", spine:[[0.450,0.465],[0.500,0.455],[0.550,0.470],[0.600,0.500]] },
+    ],
+    rivers: [
+      // Euphrates, Yellow, Nile, Ganges, Mississippi, Danube, Liao, Indus (TSL XL earthTopo)
+      // NOTE: a=source-ish, b=mouth-ish (goal is visual/geographic resemblance; goal-walk may deviate)
+      { name: "EUPHRATES",   a:[0.3620,0.3992], b:[0.3787,0.4934], jitter01:0.012 },
+      { name: "YELLOW",      a:[0.4929,0.3104], b:[0.6422,0.3379], jitter01:0.012 },
+      { name: "NILE",        a:[0.2569,0.6464], b:[0.2492,0.4440], jitter01:0.012 },
+      { name: "GANGES",      a:[0.4903,0.5187], b:[0.5380,0.5462], jitter01:0.012 },
+
+      // [swap-in] North America spread (reduce West Asia / East Asia density)
+      // Mississippi (approx) — inland north -> Gulf-ish coast
+      { name: "MISSISSIPPI", a:[0.9420,0.2525], b:[0.9650,0.4650], jitter01:0.012 },
+
+      { name: "DANUBE",      a:[0.1866,0.2849], b:[0.2844,0.3752], jitter01:0.012 },
+
+      // Liao (Liaodong) — NE Asia short river
+      { name: "LIAO",        a:[0.5650,0.1350], b:[0.6200,0.2550], jitter01:0.012 },
+
+      { name: "INDUS",       a:[0.4826,0.4558], b:[0.4144,0.5187], jitter01:0.012 },
+],
+  },
+};
+
+
+
+
 function gaiaDiag(){ return Math.hypot(GAIA.w, GAIA.h); }
 function _mulberry32(seed){
   let t = seed >>> 0;
@@ -5806,6 +6043,22 @@ function _mulberry32(seed){
     return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
   };
 }
+
+function mix32(x){
+  x |= 0;
+  x ^= x >>> 16;
+  x = Math.imul(x, 0x7feb352d);
+  x ^= x >>> 15;
+  x = Math.imul(x, 0x846ca68b);
+  x ^= x >>> 16;
+  return x | 0;
+}
+function hash32(seed, salt){
+  return mix32((seed|0) ^ (salt|0));
+}
+const SALT_MTN = 0x006d746e; // "mtn"
+const SALT_RIV = 0x00726976; // "riv"
+
 function gaiaRand01(){
   return (GAIA && typeof GAIA.rand === 'function') ? GAIA.rand() : Math.random();
 }
@@ -5949,11 +6202,17 @@ function gaiaConnectivityOk(){
   return count >= total;
 }
 
+
 function gaiaBuildMountains(){
   const want = (CFG.mountainCount|0);
   GAIA.mountain = _bsAlloc(GAIA.w*GAIA.h);
 
   if (!CFG.altitudeEnabled || want <= 0) return;
+
+  // Phase 2: sub-seed for mountains (keeps mountains isolated from rivers)
+  if (GAIA && GAIA._seedMtn != null){
+    GAIA.rand = _mulberry32(GAIA._seedMtn >>> 0);
+  }
 
   const spines = [];
   const baseR = GAIA_MTN_POLICY.baseR; // base radius, R(u) clamps to max Rmax
@@ -5961,7 +6220,6 @@ function gaiaBuildMountains(){
   const maxTries = GAIA_MTN_POLICY.tries;
   const epochs = 2;
   let triesTotal = 0;
-
 
   // Keep critical land-bridges open: reject mountain spines too close to connectors.
   // (Policy) connectors are narrow chokepoints (e.g., Bering/Sinai/Panama/Indonesia) and must not be blocked by mountains.
@@ -5979,33 +6237,143 @@ function gaiaBuildMountains(){
     return false;
   }
 
-  for (let ep = 0; ep < epochs && spines.length === 0 && want > 0; ep++) {
-    if (ep > 0 && typeof GAIA._reseedForMountains === 'function') {
-      GAIA._reseedForMountains(ep);
+  function _clampi(v, lo, hi){ v = v|0; if(v<lo) return lo; if(v>hi) return hi; return v; }
+
+  function _findNearestLand(px, py, maxR){
+    px = _clampi(px, 0, GAIA.w-1); py = _clampi(py, 0, GAIA.h-1);
+    if (gaiaLandAt(px,py)) return {x:px,y:py};
+    const R = (maxR|0) || 120;
+    for(let r=12; r<=R; r+=12){
+      for(let k=0;k<8;k++){
+        const ang = (k*Math.PI*2)/8;
+        const nx = _clampi((px + Math.cos(ang)*r)|0, 0, GAIA.w-1);
+        const ny = _clampi((py + Math.sin(ang)*r)|0, 0, GAIA.h-1);
+        if (gaiaLandAt(nx,ny)) return {x:nx,y:ny};
+      }
     }
-    let tries = 0;
-    while (spines.length < want && tries++ < maxTries) {
-      triesTotal++;
-    const s = gaiaMakeSpine();
-    if(!s) continue;
+    return {x:px,y:py};
+  }
+
+  function _makeLineSpine(ax,ay,bx,by,steps){
+    const s=[];
+    steps = Math.max(16, Math.min(160, steps|0));
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      const x = (ax + (bx-ax)*t)|0;
+      const y = (ay + (by-ay)*t)|0;
+      s.push({x:_clampi(x,0,GAIA.w-1), y:_clampi(y,0,GAIA.h-1)});
+    }
+    s[s.length-1] = {x:_clampi(bx|0,0,GAIA.w-1), y:_clampi(by|0,0,GAIA.h-1)}; // enforce B
+    return s;
+  }
+
+  function _makeAnchoredSpine(def, useJitter){
+    const ax0 = (def.a[0]*GAIA.w)|0, ay0 = (def.a[1]*GAIA.h)|0;
+    const bx0 = (def.b[0]*GAIA.w)|0, by0 = (def.b[1]*GAIA.h)|0;
+    const A = _findNearestLand(ax0, ay0, 180);
+    const B = _findNearestLand(bx0, by0, 180);
+    const dx = (B.x - A.x), dy = (B.y - A.y);
+    const dist = Math.hypot(dx,dy) || 1;
+    const steps = Math.max(28, Math.min(120, (dist/60)|0));
+    let jitterPx = 0;
+    if (useJitter){
+      if (typeof def.jitter01 === 'number') jitterPx = Math.max(8, Math.min(120, def.jitter01 * dist));
+      else jitterPx = Math.max(8, Math.min(120, 0.04 * dist));
+    }
+    const nx = (-dy)/dist, ny = (dx)/dist;
+
+    const s=[];
+    for(let i=0;i<=steps;i++){
+      const t = i/steps;
+      let x = A.x + dx*t;
+      let y = A.y + dy*t;
+
+      if (useJitter && jitterPx > 0 && i>0 && i<steps){
+        const w = Math.sin(Math.PI*t); // 0 at ends, 1 mid
+        const j = (GAIA.rand()*2 - 1) * jitterPx * w;
+        x += nx*j;
+        y += ny*j;
+      }
+
+      x = _clampi(x|0, 0, GAIA.w-1);
+      y = _clampi(y|0, 0, GAIA.h-1);
+
+      if (i>0 && i<steps && !gaiaLandAt(x,y)){
+        const snap = _findNearestLand(x,y,72);
+        x = snap.x; y = snap.y;
+      }
+
+      s.push({x,y});
+    }
+    s[s.length-1] = {x:B.x|0, y:B.y|0}; // enforce B (policy: end anchor fixed)
+    return s;
+  }
+
+
+  function _makeTemplateSpine(def){
+    const pts = def && def.spine;
+    if (!Array.isArray(pts) || pts.length < 2) return null;
+
+    const s = [];
+    const w = GAIA.w, h = GAIA.h;
+
+    for (let i = 0; i < pts.length - 1; i++){
+      const a = pts[i], b = pts[i+1];
+      let ax = a[0] * w, ay = a[1] * h;
+      let bx = b[0] * w, by = b[1] * h;
+
+      const dx = bx - ax, dy = by - ay;
+      const dist = Math.hypot(dx, dy) || 1;
+      const steps = Math.max(2, Math.floor(dist / 120));
+
+      for (let si = 0; si < steps; si++){
+        const t = si / steps;
+        let x = ax + dx * t;
+        let y = ay + dy * t;
+
+        x = _clampi(x|0, 0, GAIA.w-1);
+        y = _clampi(y|0, 0, GAIA.h-1);
+
+        if (si>0 && si<steps && !gaiaLandAt(x,y)){
+          const snap = _findNearestLand(x,y,72);
+          x = snap.x; y = snap.y;
+        }
+
+        s.push({x,y});
+      }
+    }
+
+    // Final endpoint (kept; snap only if it's off-land).
+    const last = pts[pts.length - 1];
+    let lx = _clampi((last[0] * w)|0, 0, GAIA.w-1);
+    let ly = _clampi((last[1] * h)|0, 0, GAIA.h-1);
+    if (!gaiaLandAt(lx,ly)){
+      const snap = _findNearestLand(lx,ly,220);
+      lx = snap.x; ly = snap.y;
+    }
+    s.push({x:lx, y:ly});
+
+    // First endpoint land snap (rare but protects against authoring mistakes).
+    if (s.length && !gaiaLandAt(s[0].x, s[0].y)){
+      const snap = _findNearestLand(s[0].x, s[0].y,220);
+      s[0] = {x:snap.x, y:snap.y};
+    }
+
+    return s;
+  }  function _tryCommitSpine(s){
+    if(!s || !s.length) return false;
 
     // Reject spines that would choke land-bridges (simple center-proximity guard).
-    if (_nearConnector) {
-      let bad = false;
-      for (let pi = 0; pi < s.length; pi++) {
-        const p = s[pi];
-        if (_nearConnector(p.x, p.y)) { bad = true; break; }
-      }
-      if (bad) continue;
+    for (let pi = 0; pi < s.length; pi++) {
+      const p = s[pi];
+      if (_nearConnector(p.x, p.y)) return false;
     }
 
     // simple min distance against previous ranges: compare startpoint distances
-    let ok=true;
     for(let i=0;i<spines.length;i++){
       const a=spines[i][0], b=s[0];
-      if (Math.hypot(a.x - b.x, a.y - b.y) < minDistPx) { ok=false; break; }
+      if (Math.hypot(a.x - b.x, a.y - b.y) < minDistPx) return false;
     }
-    if(!ok) continue;
 
     const passBackup = GAIA.pass.slice();
     const mtnBackup  = GAIA.mountain.slice();
@@ -6016,21 +6384,57 @@ function gaiaBuildMountains(){
     if (!gaiaConnectivityOk()){
       GAIA.pass = passBackup;
       GAIA.mountain = mtnBackup;
-      continue;
+      return false;
     }
 
     spines.push(s);
+    return true;
+  }
+
+  // Phase 3 (earthTopo): template-driven mountains (TSL XL only for now)
+  const topo = (typeof TOPO_TEMPLATES !== 'undefined' && GAIA && GAIA.earthTopo) ? (TOPO_TEMPLATES[CFG.mapType] || null) : null;
+  if (topo && topo.mountains && topo.mountains.length){
+    const wantTopo = Math.min(want, topo.mountains.length);
+    for(let i=0;i<wantTopo && spines.length < want;i++){
+      const def = topo.mountains[i];
+      // attempt jittered, then straight fallback (policy)
+      let s = def.spine ? _makeTemplateSpine(def) : _makeAnchoredSpine(def, true);
+      if (!_tryCommitSpine(s)){
+        const a01 = def.spine ? def.spine[0] : def.a;
+        const b01 = def.spine ? def.spine[def.spine.length-1] : def.b;
+        const ax = (a01[0]*GAIA.w)|0, ay=(a01[1]*GAIA.h)|0;
+        const bx = (b01[0]*GAIA.w)|0, by=(b01[1]*GAIA.h)|0;
+        const A = _findNearestLand(ax,ay,180);
+        const B = _findNearestLand(bx,by,180);
+        const dist = Math.hypot(B.x-A.x, B.y-A.y) || 1;
+        s = _makeLineSpine(A.x,A.y,B.x,B.y, (dist/60)|0);
+        _tryCommitSpine(s);
+      }
     }
   }
 
+  // Fill any remainder (or fully random when no template) using existing policy
+  for (let ep = 0; ep < epochs && spines.length < want && want > 0; ep++) {
+    if (ep > 0 && typeof GAIA._reseedForMountains === 'function') {
+      GAIA._reseedForMountains(ep);
+    }
+    let tries = 0;
+    while (spines.length < want && tries++ < maxTries) {
+      triesTotal++;
+      const s = gaiaMakeSpine();
+      if(!s) continue;
+      _tryCommitSpine(s);
+    }
+  }
 
   GAIA.spec = GAIA.spec || {};
   GAIA.spec.mountains = spines;
 
   if (window.DEV && window.DEV.flags && window.DEV.flags.logWorldgen){
-    console.log("[GAIA] mountains built", { want, got: spines.length, tries: triesTotal });
+    console.log("[GAIA] mountains built", { want, got: spines.length, tries: triesTotal, earthTopo: !!(GAIA && GAIA.earthTopo) });
   }
 }
+
 /* === BUILDER_BLOCK: GAIA_MOUNTAINS_END ==================================== */
 
 /* === BUILDER_BLOCK: GAIA_ENV30_START =========================================
@@ -6539,6 +6943,19 @@ function isLand(x,y){ return isPassable(x,y); }
         // [MODIFIED] Increased spawn rates for stability (0.07 -> 0.15, etc.)
         // [BALANCE PATCH] 1.2배 생성 속도 상향: 0.08->0.096, 0.15->0.18, 0.25->0.30, 0.40->0.48, 0.60->0.72
         const FOOD_MAP = [0, 0.0048, 0.0084, 0.012, 0.0168, 0.024];
+// NAT respawn probability scales with map area (cap), so large maps don't starve.
+// Baseline area: 3600x3600. Scale = (worldArea / baselineArea), capped.
+const NAT_AREA_BASE = 3600 * 3600;
+const NAT_AREA_SCALE_CAP = 6.0;
+function _natAreaScale() {
+    const w = (CFG && typeof CFG.worldWidth === 'number') ? (CFG.worldWidth|0) : 0;
+    const h = (CFG && typeof CFG.worldHeight === 'number') ? (CFG.worldHeight|0) : 0;
+    const area = (w > 0 && h > 0) ? (w * h) : NAT_AREA_BASE;
+    let s = area / NAT_AREA_BASE;
+    if (!isFinite(s) || s <= 0) s = 1;
+    if (s > NAT_AREA_SCALE_CAP) s = NAT_AREA_SCALE_CAP;
+    return s;
+}
         const FOOD_LABELS = [null, "매우 적음", "적음", "보통", "많음", "풍족"];
         // CAL_TICKS_PER_YR is defined in TIME NARRATIVE (19.71) block.
         function _fmtYrFromTicks(t){ return Math.floor(t / CAL_TICKS_PER_YR) + "yr"; }
@@ -8993,13 +9410,27 @@ async function guardedStart() {
                 CFG.herbivoreThreatLevel = parseFloat(document.getElementById('cfg-herb-threat').value);
                 
                 CFG.climateEnabled = document.getElementById('cfg-climate')?.checked === true;
-                const fp = document.getElementById('cfg-farm-pct');
-                CFG.farmLandPct = fp ? parseInt(fp.value)/100 : 0.18;
+                const rs = document.getElementById('cfg-river-count');
+                const _mt = CFG.mapType;
+                const _riverMax = (_mt === 'TSL_XL_7200x4800') ? 8 : 6;
+                CFG.riverCount = rs ? (parseInt(rs.value, 10) || 0) : 3;
+                if (CFG.riverCount < 0) CFG.riverCount = 0;
+                if (CFG.riverCount > _riverMax) CFG.riverCount = _riverMax;
+                CFG.farmLandPct = 0.36 * (CFG.riverCount / _riverMax);
                 
                 
                 CFG.altitudeEnabled = document.getElementById('cfg-altitude')?.checked === true;
                 const ms = document.getElementById('cfg-mtn-count');
-                CFG.mountainCount = CFG.altitudeEnabled ? (ms ? parseInt(ms.value) : 0) : 0;
+                const _mt2 = CFG.mapType;
+                const _mtnMax = (_mt2 === 'TSL_XL_7200x4800') ? 8 : 6;
+                let _mc = ms ? (parseInt(ms.value, 10) || 0) : 0;
+                if (!CFG.altitudeEnabled) _mc = 0;
+                else {
+                    if (_mc < 1) _mc = 1;
+                    if (_mc > _mtnMax) _mc = _mtnMax;
+                }
+                CFG.mountainCount = _mc;
+                if (ms) ms.value = String(_mc);
                 
                 refreshVisionCache();
 
@@ -9027,6 +9458,10 @@ async function guardedStart() {
   const _seedEl = document.getElementById('cfg-seed');
   CFG.presetSeed = _seedEl ? (parseInt(_seedEl.value, 10) || 0) : 0;
 
+  // Phase 3 (earthTopo): enabled only when preset seed is ON and seed==12345 and a template exists for this mapType.
+  // (Policy) Do NOT special-case 12345 unless presetSeedEnabled is ON.
+  GAIA.earthTopo = (CFG.presetSeedEnabled && ((CFG.presetSeed|0) === 12345) && (typeof TOPO_TEMPLATES !== 'undefined') && !!TOPO_TEMPLATES[CFG.mapType]);
+
   GAIA.rand = Math.random;
   let _seed = null;
   if (CFG.presetSeedEnabled && (CFG.presetSeed|0) > 0) _seed = (CFG.presetSeed|0);
@@ -9034,13 +9469,22 @@ async function guardedStart() {
 
   if (_seed !== null) {
     GAIA._seedBase = _seed >>> 0;
+    GAIA._seedMtn = (hash32(GAIA._seedBase, SALT_MTN) >>> 0);
+    GAIA._seedRiver = (hash32(GAIA._seedBase, SALT_RIV) >>> 0);
+
+    // Keep legacy semantics for non-mountain/non-river randomness:
     GAIA.rand = _mulberry32(GAIA._seedBase);
+
+    // Mountain epochs reseed from the mountain sub-seed (keeps mountains isolated from rivers).
     GAIA._reseedForMountains = function(epoch){
       const e = (epoch|0) + 1;
-      GAIA.rand = _mulberry32((GAIA._seedBase + (e * 0x9E3779B9)) >>> 0);
+      const base = (GAIA._seedMtn >>> 0);
+      GAIA.rand = _mulberry32((base + (e * 0x9E3779B9)) >>> 0);
     };
   } else {
     GAIA._seedBase = null;
+    GAIA._seedMtn = null;
+    GAIA._seedRiver = null;
     GAIA._reseedForMountains = null;
   }
                 setWorldGenState('generating', 'base-map', 'Resetting world & climate...', 0.15);
@@ -9146,17 +9590,10 @@ document.getElementById('disp-era').textContent = "선사시대";
                 setWorldGenState('generating', 'mountains', 'Carving mountains...', 0.28);
                 await nextFrame();
                 try {
-                    if (CFG.mapType !== 'SQUARE'){
-                        if (typeof gaiaBuildPassFromLand === 'function') gaiaBuildPassFromLand();
-                        if (typeof gaiaApplyMountainsToPass === 'function') gaiaApplyMountainsToPass();
-                        else if (typeof gaiaBuildMountains === 'function') gaiaBuildMountains();
-                        if (GAIA) GAIA.ready = true;
-                    } else {
-                        // Preserve legacy semantics: SQUARE has no mountains carve.
-                        if (typeof gaiaBuildPassFromLand === 'function') gaiaBuildPassFromLand();
-                        try { if (typeof setGaiaStage === 'function') setGaiaStage(2,"square no mountains"); } catch(_){}
-                        if (GAIA) GAIA.ready = true;
-                    }
+                    if (typeof gaiaBuildPassFromLand === 'function') gaiaBuildPassFromLand();
+                    if (typeof gaiaApplyMountainsToPass === 'function') gaiaApplyMountainsToPass();
+                    else if (typeof gaiaBuildMountains === 'function') gaiaBuildMountains();
+                    if (GAIA) GAIA.ready = true;
                 } catch(e){ console.warn("GAIA mountains failed", e); }
 
                 setWorldGenState('generating', 'altitude', 'Building altitude grid...', 0.34);
@@ -11108,17 +11545,24 @@ bgCtx.fillStyle = (CFG.mapType.includes('TSL')) ? '#051126' : '#0a0a0f';
                                     continue;
                                 }
                 
-                                // Land base color: 30px temperature banding (or latitude fallback)
+                                // Land base color: 30px temperature banding (single source: GAIA.tempGrid)
                                 const tcx = (x / T) | 0;
                                 const ti = (tcy * cols30 + tcx) | 0;
                                 let t01 = 0.5;
-                                if (CFG.climateEnabled && GAIA.tempGrid) {
-                                    t01 = GAIA.tempGrid[ti] || 0;
-                                } else if (typeof _tempFromLat === 'function') {
-                                    const lat01 = ((tcy + 0.5) * T) / h;
-                                    t01 = _tempFromLat(lat01);
+                                if (CFG.climateEnabled) {
+                                    if (GAIA.tempGrid) {
+                                        const v = GAIA.tempGrid[ti];
+                                        t01 = (typeof v === 'number' && Number.isFinite(v)) ? v : 0.5;
+                                    } else {
+                                        // Fail-soft but loud: climate is enabled yet tempGrid is missing => uniform banding.
+                                        if (!renderStaticMap._warnedNoTempGrid) {
+                                            console.warn('[GAIA] climateEnabled=true but GAIA.tempGrid is missing during renderStaticMap(); using t01=0.5 (uniform).');
+                                            renderStaticMap._warnedNoTempGrid = true;
+                                        }
+                                    }
                                 }
-                                let lr = 0x1a, lg = 0x1a, lb = 0x24;
+
+let lr = 0x1a, lg = 0x1a, lb = 0x24;
                                 if (t01 > 0.65) { lr = 0x0b; lg = 0x0b; lb = 0x10; }
                                 else if (t01 < 0.35) { lr = 0x2c; lg = 0x2c; lb = 0x36; }
                 
@@ -11180,13 +11624,22 @@ bgCtx.fillStyle = (CFG.mapType.includes('TSL')) ? '#051126' : '#0a0a0f';
                             const py = (cy + 0.5) * T;
                             if (!isLandmass(px, py)) continue;
                             let fill = '#1a1a24';
-                            if (CFG.climateEnabled && typeof _tempFromLat === 'function') {
-                                const lat01 = py / h;
-                                const t = _tempFromLat(lat01);
-                                if (t > 0.65) fill = '#0b0b10';
-                                else if (t < 0.35) fill = '#2c2c36';
+                            if (CFG.climateEnabled) {
+                                if (GAIA && GAIA.tempGrid) {
+                                    const ti = (cy * cols + cx) | 0;
+                                    const v = GAIA.tempGrid[ti];
+                                    const t = (typeof v === 'number' && Number.isFinite(v)) ? v : 0.5;
+                                    if (t > 0.65) fill = '#0b0b10';
+                                    else if (t < 0.35) fill = '#2c2c36';
+                                } else {
+                                    if (!renderStaticMap._warnedNoTempGrid) {
+                                        console.warn('[GAIA] climateEnabled=true but GAIA.tempGrid is missing during renderStaticMap() fallback path; using uniform fill.');
+                                        renderStaticMap._warnedNoTempGrid = true;
+                                    }
+                                }
                             }
-                            bgCtx.fillStyle = fill;
+
+bgCtx.fillStyle = fill;
                             bgCtx.fillRect(cx * T, cy * T, T, T);
                         }
                     }
@@ -12866,7 +13319,10 @@ child.energy = Math.min(2000, Math.max(600, (2 * CFG.reproCost - 100)));
                     });
                 }
 
-                if (Math.random() < FOOD_MAP[foodRegenIndex]) generateFood(12, null, {staggerCluster:true});
+                /* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_START === */
+const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
+if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
+/* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_END === */
             }
             function _hs3_layerHunt(ctx, a) {
                     if (Pred.shouldTryHunt(a)) {
@@ -16210,6 +16666,8 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 
 
 </script>
+<script type="module" src="/index.tsx"></script>
+
     <!-- HOME HUB FLOW (Step3): Exit Modal -->
     <div id="exit-modal" aria-hidden="true">
         <div class="exit-backdrop" data-exit-backdrop="1"></div>
