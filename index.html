@@ -10137,7 +10137,7 @@ document.getElementById('disp-era').textContent = "구석기";
                     markDirty('agent', 'guardedStart', simulatedTicks, 'Finalize');
                     markDirty('herb', 'guardedStart', simulatedTicks, 'Finalize');
                     markDirty('pred', 'guardedStart', simulatedTicks, 'Finalize');
-                    flushRebuild(['agent','herb','pred'], 'Finalize');
+                    flushRebuild(['agent','herb','pred'], 'Finalize', 'guardedStart');
                 } catch (e) {
                     console.error('E2I init failed', e);
                     throw e;
@@ -15666,14 +15666,14 @@ try {
 
       // [B2.5] E2I barrier (post World.Pre compaction/대량정리)
       // World.Pre에서 dirty가 발생했다면 Ecology.Pre 전에 즉시 일괄 rebuild한다.
-      try { flushRebuild(['agent','herb','pred'], 'post-world-pre'); }
+      try { flushRebuild(['agent','herb','pred'], 'post-world-pre', 'world_pre_barrier'); }
       catch(e){ console.error(e); throw e; }
 
       // [B2.6] E2I barrier (pre Ecology.Pre resolve 보장)
       // Ecology.Pre 진입 전 실제 dirty kind만 선별해 누락 rebuild를 보충한다.
       const _e2iDirtyBeforeEcology = _getDirtyKinds(['agent','herb','pred']);
       if (_e2iDirtyBeforeEcology.length > 0) {
-          try { flushRebuild(_e2iDirtyBeforeEcology, 'pre-ecology-pre'); }
+          try { flushRebuild(_e2iDirtyBeforeEcology, 'pre-ecology-pre', 'ecology_pre_barrier'); }
           catch(e){ console.error(e); throw e; }
       }
 
@@ -15971,7 +15971,7 @@ try {
       // agentGridPost 빌드 직후 Interaction 진입 전 E2I clean 상태를 재검증한다.
       const _e2iDirtyBeforeInteraction = _getDirtyKinds(['agent','herb','pred']);
       if (_e2iDirtyBeforeInteraction.length > 0) {
-          try { flushRebuild(_e2iDirtyBeforeInteraction, 'pre-interaction'); }
+          try { flushRebuild(_e2iDirtyBeforeInteraction, 'pre-interaction', 'interaction_barrier'); }
           catch(e){ console.error(e); throw e; }
       }
 
@@ -16323,8 +16323,49 @@ const _e2iRebuilders = {
   pred: _rebuildPredE2I,
 };
 
+const E2I_MODE = { agent: true, herb: true, pred: true };
+const _e2iCutoverOrder = ['agent', 'herb', 'pred'];
+const _e2iDirtyExceptions = { agent: 0, herb: 0, pred: 0 };
+
+function _isE2IKindEnabled(kind) {
+  if (!Object.prototype.hasOwnProperty.call(E2I_MODE, kind)) {
+    throw new Error('[E2I] unknown kind: ' + kind);
+  }
+  return E2I_MODE[kind] === true;
+}
+
+function setE2IMode(kind, enabled, reason) {
+  if (!Object.prototype.hasOwnProperty.call(E2I_MODE, kind)) {
+    throw new Error('[E2I] setE2IMode unknown kind: ' + kind);
+  }
+  const nextEnabled = enabled === true;
+  if (nextEnabled) {
+    const at = _e2iCutoverOrder.indexOf(kind);
+    for (let i = 0; i < at; i++) {
+      const prevKind = _e2iCutoverOrder[i];
+      if (!_isE2IKindEnabled(prevKind)) {
+        throw new Error(`[E2I] cutover blocked tick=${simulatedTicks|0} kind=${kind} reason=${reason || 'manual'} prev_disabled=${prevKind}`);
+      }
+      if ((_e2iDirtyExceptions[prevKind]|0) !== 0) {
+        throw new Error(`[E2I] cutover blocked tick=${simulatedTicks|0} kind=${kind} reason=${reason || 'manual'} prev_dirty_exceptions=${prevKind}:${_e2iDirtyExceptions[prevKind]|0}`);
+      }
+    }
+  }
+  E2I_MODE[kind] = nextEnabled;
+  console.info(`[E2I][mode] tick=${simulatedTicks|0} kind=${kind} enabled=${nextEnabled ? 1 : 0} reason=${reason || 'manual'}`);
+}
+
+function _e2iAssertKindEnabled(kind, phase, reason) {
+  if (_isE2IKindEnabled(kind)) return;
+  throw new Error(`[E2I] mode blocked tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'disabled_kind'}`);
+}
+
 function markDirty(kind, reason, tick, phase) {
   if (!_e2iRebuilders[kind]) throw new Error('[E2I] markDirty unknown kind: ' + kind);
+  if (!_isE2IKindEnabled(kind)) {
+    console.warn(`[E2I][markDirty] tick=${tick|0} phase=${phase || 'unknown'} kind=${kind} reason=${reason || 'n/a'} action=skip_disabled`);
+    return;
+  }
   _setE2IDirty(kind, true);
 }
 
@@ -16347,7 +16388,7 @@ function _assertE2IClean(requiredKinds, phase, reason) {
   }
 }
 
-function flushRebuild(requiredKinds, phase) {
+function flushRebuild(requiredKinds, phase, reason) {
   if (phase !== 'World.Pre' && phase !== 'post-world-pre' && phase !== 'pre-ecology-pre' && phase !== 'pre-interaction' && phase !== 'Body.Scan' && phase !== 'Body.PredSense' && phase !== 'Collision.Hunt' && phase !== 'Collision.AgentAgent' && phase !== 'Collision.Predators' && phase !== 'Finalize') {
     throw new Error('[E2I] flushRebuild phase not allowed: ' + phase);
   }
@@ -16356,22 +16397,36 @@ function flushRebuild(requiredKinds, phase) {
     const kind = kinds[i];
     const rebuild = _e2iRebuilders[kind];
     if (!rebuild) throw new Error('[E2I] flushRebuild unknown kind: ' + kind);
-    if (_e2iDirtyRefs[kind]()) rebuild(phase);
+    if (!_isE2IKindEnabled(kind)) {
+      console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=skip_disabled`);
+      continue;
+    }
+    if (_e2iDirtyRefs[kind]()) {
+      rebuild(phase);
+      console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=rebuild`);
+    } else {
+      console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=skip_clean`);
+    }
   }
 }
 
 function _e2iDirtyFail(kind, phase, reason) {
+  if (Object.prototype.hasOwnProperty.call(_e2iDirtyExceptions, kind)) {
+    _e2iDirtyExceptions[kind] = (_e2iDirtyExceptions[kind] | 0) + 1;
+  }
   throw new Error(`[E2I] resolve fail-fast tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason}`);
 }
 
 function _ensureResolveReady(requiredKinds, phase, reason) {
-  flushRebuild(requiredKinds, phase);
+  const reasonBase = reason || 'resolve_ready';
+  flushRebuild(requiredKinds, phase, reasonBase);
   const kinds = Array.isArray(requiredKinds) ? requiredKinds : [requiredKinds];
   for (let i = 0; i < kinds.length; i++) {
     const kind = kinds[i];
+    _e2iAssertKindEnabled(kind, phase, `${reasonBase}:disabled_kind`);
     const isDirty = _e2iDirtyRefs[kind];
-    if (!isDirty) _e2iDirtyFail(kind, phase, `${reason}:unknown_kind`);
-    if (isDirty()) _e2iDirtyFail(kind, phase, `${reason}:dirty_after_flush`);
+    if (!isDirty) _e2iDirtyFail(kind, phase, `${reasonBase}:unknown_kind`);
+    if (isDirty()) _e2iDirtyFail(kind, phase, `${reasonBase}:dirty_after_flush`);
   }
 }
 
