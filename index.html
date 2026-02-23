@@ -13561,8 +13561,21 @@ function _influxPeriodicGroupV2(agentGrid) {
 }
 
 
+/**
+ * Collision pass uses Snapshot.Pre grids as authoritative inputs.
+ * - Snapshot.Pre authoritative: caller must provide valid food/agent/herbivore grids.
+ * - Missing inputs are a sim-loop wiring bug and must fail-fast in development.
+ */
 function checkCollisions(foodGrid, agentGrid, herbivoreGrid) {
-            if (!foodGrid) foodGrid = _buildFoodGrid();
+            if (!foodGrid) {
+                throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Pre foodGrid (authoritative).');
+            }
+            if (!agentGrid) {
+                throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Pre agentGrid (authoritative).');
+            }
+            if (!herbivoreGrid) {
+                throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Pre herbivoreGrid (authoritative).');
+            }
 
             // === HS-4.1: snapshot update (NO behavior change; no per-tick allocation) ===
             try{
@@ -15648,8 +15661,8 @@ try {
           }
       }
 
-      // ### PATCH B: Separate Food Grid for Think Phase
-      const foodGridForThink = _ensureFoodGridCurrent();
+      // Snapshot.Pre authoritative grids for this tick (shared by think + collision).
+      const foodGridPre = _ensureFoodGridCurrent();
 
       let agentGridPre = cachedAgentGrid;
       if (!agentGridPre) {
@@ -15723,7 +15736,7 @@ try {
                   if (!a || a.dead) continue;
                   __alive++;
                   if (i === __sampleI) a.__mpSample = simulatedTicks;
-                  a.think(foodGridForThink, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
+                  a.think(foodGridPre, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
                   if (i === __sampleI) a.__mpSample = 0;
               }
           } else {
@@ -15802,7 +15815,7 @@ try {
               for (let i = 0; i < agents.length; i++) {
                   const a = agents[i];
                   if (!a || a.dead) continue;
-                  a.think(foodGridForThink, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
+                  a.think(foodGridPre, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
               }
           }
 
@@ -15858,12 +15871,12 @@ try {
 if (_mp_enabled) {
           const __t = performance.now();
           for(let h of herbivores) {
-          h.update(foodGridForThink);
+          h.update(foodGridPre);
       }
           _mp_anim += (performance.now() - __t);
       } else {
           for(let h of herbivores) {
-          h.update(foodGridForThink);
+          h.update(foodGridPre);
       }
       }
 
@@ -15922,11 +15935,8 @@ if (_mp_enabled) {
           console.warn("[PopInflux] error", e);
       }
 
-      // ### PATCH B: Re-verify Food Grid for Collision Phase
-      const foodGridForCollision = _ensureFoodGridCurrent();
-
       if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
-      checkCollisions(foodGridForCollision, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForCollision, agentGridPost, herbGridPost); }
+      checkCollisions(foodGridPre, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridPre, agentGridPost, herbGridPost); }
       // === SS: SolitaryAction Sweep ===
       for (let i = 0; i < agents.length; i++) {
         const a = agents[i];
