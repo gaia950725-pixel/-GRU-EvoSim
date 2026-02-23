@@ -15158,21 +15158,44 @@ function updateHistoryPanelUI(){
           }
         }
 
+        const _TICK_DIAG_SUMMARY_MS = 1000;
+        let _tickDiagLastSummaryAt = 0;
+
+        function _isTickDiagVerboseEnabled() {
+          return !!(window.DEV && window.DEV.flags && window.DEV.flags.tickDiagVerbose);
+        }
+
         function _reportTickFinalizeDiagnostics() {
           try {
-            const gridState = [
-              `agent=${cachedAgentGrid ? "ready" : "dirty"}`,
-              `herb=${cachedHerbGrid ? "ready" : "dirty"}`,
-              `pred=${cachedPredGrid ? "ready" : "dirty"}`
-            ].join(' ');
-            console.debug(`[TickDiag][GridCache] tick=${simulatedTicks|0} ${gridState}`);
+            const tick = simulatedTicks|0;
+            const gridDirtyKinds = [];
+            if (!cachedAgentGrid) gridDirtyKinds.push('agent');
+            if (!cachedHerbGrid) gridDirtyKinds.push('herb');
+            if (!cachedPredGrid) gridDirtyKinds.push('pred');
+            const e2iDirtyKinds = _getDirtyKinds(['agent', 'herb', 'pred']);
 
-            const e2iState = [
-              `agent=${_agentE2I_dirty ? "dirty" : "clean"}`,
-              `herb=${_herbE2I_dirty ? "dirty" : "clean"}`,
-              `pred=${_predE2I_dirty ? "dirty" : "clean"}`
-            ].join(' ');
-            console.debug(`[TickDiag][E2I] tick=${simulatedTicks|0} ${e2iState}`);
+            if (_isTickDiagVerboseEnabled()) {
+              const gridState = [
+                `agent=${cachedAgentGrid ? "ready" : "dirty"}`,
+                `herb=${cachedHerbGrid ? "ready" : "dirty"}`,
+                `pred=${cachedPredGrid ? "ready" : "dirty"}`
+              ].join(' ');
+              const e2iState = [
+                `agent=${_agentE2I_dirty ? "dirty" : "clean"}`,
+                `herb=${_herbE2I_dirty ? "dirty" : "clean"}`,
+                `pred=${_predE2I_dirty ? "dirty" : "clean"}`
+              ].join(' ');
+              console.debug(`[TickDiag][GridCache] tick=${tick} ${gridState}`);
+              console.debug(`[TickDiag][E2I] tick=${tick} ${e2iState}`);
+              return;
+            }
+
+            // default mode: per-tick spam 제거, dirty 상태에 한해 저주기 요약만 출력
+            if (gridDirtyKinds.length === 0 && e2iDirtyKinds.length === 0) return;
+            const now = (typeof performance !== 'undefined' && performance && typeof performance.now === 'function') ? performance.now() : Date.now();
+            if (now - _tickDiagLastSummaryAt < _TICK_DIAG_SUMMARY_MS) return;
+            _tickDiagLastSummaryAt = now;
+            console.info(`[TickDiag][summary] tick=${tick} gridDirty=${gridDirtyKinds.length ? gridDirtyKinds.join(',') : '-'} e2iDirty=${e2iDirtyKinds.length ? e2iDirtyKinds.join(',') : '-'}`);
           } catch(_) {}
         }
 
@@ -16291,30 +16314,36 @@ const _e2iDirtyRefs = {
   pred:  () => _predE2I_dirty,
 };
 
-function _setE2IDirty(kind, value) {
-  if (kind === 'agent') _agentE2I_dirty = !!value;
-  else if (kind === 'herb') _herbE2I_dirty = !!value;
-  else if (kind === 'pred') _predE2I_dirty = !!value;
+function _setE2IDirty(kind, value, reason, phase) {
+  const next = !!value;
+  let prev;
+  if (kind === 'agent') { prev = _agentE2I_dirty; _agentE2I_dirty = next; }
+  else if (kind === 'herb') { prev = _herbE2I_dirty; _herbE2I_dirty = next; }
+  else if (kind === 'pred') { prev = _predE2I_dirty; _predE2I_dirty = next; }
   else throw new Error('[E2I] unknown kind: ' + kind);
+
+  if (prev !== next) {
+    _e2iLog('INFO', `[E2I][state] tick=${simulatedTicks|0} phase=${phase || 'unknown'} kind=${kind} ${prev ? 'dirty' : 'clean'}->${next ? 'dirty' : 'clean'} reason=${reason || 'n/a'}`);
+  }
 }
 
-function _rebuildAgentE2I(reason) {
+function _rebuildAgentE2I(reason, phase) {
   // Rebuilding: 완료 전까지 resolve 재허용 금지
   _agentE2I.clear();
   for (let i=0;i<agents.length;i++){ const a=agents[i]; if(a) _agentE2I.set(a.uid|0, i|0); }
-  _agentE2I_dirty = false;
+  _setE2IDirty('agent', false, reason || 'rebuild', phase || 'rebuild');
 }
-function _rebuildHerbE2I(reason) {
+function _rebuildHerbE2I(reason, phase) {
   // Rebuilding: 완료 전까지 resolve 재허용 금지
   _herbE2I.clear();
   for (let i=0;i<herbivores.length;i++){ const h=herbivores[i]; const hid=(h&&h.hid)?(h.hid|0):0; if(hid>0) _herbE2I.set(hid, i|0); }
-  _herbE2I_dirty = false;
+  _setE2IDirty('herb', false, reason || 'rebuild', phase || 'rebuild');
 }
-function _rebuildPredE2I(reason) {
+function _rebuildPredE2I(reason, phase) {
   // Rebuilding: 완료 전까지 resolve 재허용 금지
   _predE2I.clear();
   for (let i=0;i<predators.length;i++){ const p=predators[i]; if(p) _predE2I.set(p.pid|0, i|0); }
-  _predE2I_dirty = false;
+  _setE2IDirty('pred', false, reason || 'rebuild', phase || 'rebuild');
 }
 
 const _e2iRebuilders = {
@@ -16394,7 +16423,7 @@ function markDirty(kind, reason, tick, phase) {
     _e2iLog('VERBOSE', `[E2I][markDirty] tick=${tick|0} phase=${phase || 'unknown'} kind=${kind} reason=${reason || 'n/a'} action=skip_disabled`);
     return;
   }
-  _setE2IDirty(kind, true);
+  _setE2IDirty(kind, true, reason || 'markDirty', phase || 'unknown');
 }
 
 function _getDirtyKinds(requiredKinds) {
@@ -16417,7 +16446,7 @@ function _assertE2IClean(requiredKinds, phase, reason) {
 }
 
 function _shouldLogFlushRebuild(action) {
-  if (action === 'rebuild') return _isE2ILogEnabled('INFO');
+  if (action === 'rebuild') return true;
   if (action === 'skip_clean' || action === 'skip_disabled') return _isE2ILogEnabled('VERBOSE');
   return false;
 }
@@ -16442,7 +16471,7 @@ function flushRebuild(requiredKinds, phase, reason) {
       continue;
     }
     if (_e2iDirtyRefs[kind]()) {
-      rebuild(phase);
+      rebuild(reason, phase);
       _logFlushRebuild(phase, kind, reason, 'rebuild');
     } else {
       _logFlushRebuild(phase, kind, reason, 'skip_clean');
@@ -16924,6 +16953,7 @@ window.DEV.flags = window.DEV.flags || {};
 if (typeof window.DEV._benchAutoEnabled === "undefined") window.DEV._benchAutoEnabled = true;
 if (typeof window.DEV._benchAutoSeconds === "undefined") window.DEV._benchAutoSeconds = 30;
 if (typeof window.DEV._benchAutoDone === "undefined") window.DEV._benchAutoDone = false;
+if (typeof window.DEV.flags.tickDiagVerbose === "undefined") window.DEV.flags.tickDiagVerbose = false;
 
 
 window.DEV.help = function() {
@@ -16934,6 +16964,7 @@ window.DEV.help = function() {
     "DEV.validateOnce() -> hsValidateTick 1x call",
     "DEV.masks(on?) -> GAIA mask overlay toggle/set (Phase1)",
     "DEV.worldgenLog(on?) -> worldgen console log toggle/set (Phase1)",
+    "DEV.tickDiagVerbose(on?) -> TickDiag per-tick verbose toggle (default off)",
     "DEV.gaia() -> GAIA stage/bitset stats",
     "DEV.smoke(opts?) -> GAIA smoke (pass⇒land + connectivity)",
     "DEV.smokeAll({rebuild:true,...}) -> iterate mapTypes (rebuilds GAIA)"
@@ -17057,6 +17088,14 @@ window.DEV.worldgenLog = function(on) {
   else window.DEV.flags.logWorldgen = !window.DEV.flags.logWorldgen;
   console.log("DEV.flags.logWorldgen =", window.DEV.flags.logWorldgen);
   return window.DEV.flags.logWorldgen;
+};
+
+
+window.DEV.tickDiagVerbose = function(on) {
+  if (typeof on === "boolean") window.DEV.flags.tickDiagVerbose = on;
+  else window.DEV.flags.tickDiagVerbose = !window.DEV.flags.tickDiagVerbose;
+  console.log("DEV.flags.tickDiagVerbose =", window.DEV.flags.tickDiagVerbose);
+  return window.DEV.flags.tickDiagVerbose;
 };
 
 
