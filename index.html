@@ -11293,10 +11293,10 @@ let canSense = (!confusion);
                                 candidates.push({ obj, d2, type });
                             };
 
-                            // Agent candidate scan (AGENTGRID required; fail-fast)
+                            // Agent candidate scan (Body 단계 agentGrid required; fail-fast)
 
                             if (!agentGrid) {
-                                throw new Error("[AgentGrid] agentGrid missing in Predator.update (sim loop wiring). Expect agentGridPost to be built and passed into Predator.update every tick.");
+                                throw new Error("[AgentGrid] agentGrid missing in Predator.update (sim loop wiring). Expect Body 단계 agentGrid to be built and passed into Predator.update every tick.");
                             }
 
                             _forAgentCellsInRadius(this.pos.x, this.pos.y, this.territoryRadius, (key) => {
@@ -15677,6 +15677,23 @@ try {
         }
       }
 
+      // Ecology.Pre: Predator Body uses the Body-stage agent grid snapshot.
+      if (_mp_enabled) {
+          const __t = performance.now();
+          for (let pi = 0; pi < predators.length; pi++) {
+              const p = predators[pi];
+              if (!p || p.dead) continue;
+              p.update(agents, agentGridPre);
+          }
+          _mp_anim += (performance.now() - __t);
+      } else {
+          for (let pi = 0; pi < predators.length; pi++) {
+              const p = predators[pi];
+              if (!p || p.dead) continue;
+              p.update(agents, agentGridPre);
+          }
+      }
+
 
 
       // === LDR-P5: refresh leadership & anchors (low-frequency; no behavior change yet) ===
@@ -15878,22 +15895,7 @@ if (_mp_enabled) {
           agentGridPost = _buildAgentGrid(agents);
           herbGridPost = _buildHerbivoreGrid(herbivores);
       }
-      if (_mp_enabled) {
-          const __t = performance.now();
-          for (let pi = 0; pi < predators.length; pi++) {
-              const p = predators[pi];
-              if (!p || p.dead) continue;
-              p.update(agents, agentGridPost);
-          }
-          _mp_anim += (performance.now() - __t);
-      } else {
-          for (let pi = 0; pi < predators.length; pi++) {
-              const p = predators[pi];
-              if (!p || p.dead) continue;
-              p.update(agents, agentGridPost);
-          }
-      }
-    
+
       if (
           predatorRespawnQueue.length > 0 &&
           predatorRespawnQueue[0].tick <= simulatedTicks &&
