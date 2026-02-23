@@ -10660,6 +10660,8 @@ return;
                     throw new Error("[AgentGrid] agentGrid missing (sim loop wiring). Expect agentGridPre to be built and passed into Agent.think every tick.");
 
                 }
+                    // Phase: Body.Scan -> kind: agent resolve
+                    _ensureResolveReady(['agent'], 'Body.Scan', 'Agent.think.scan.agent');
                     _forAgentCellsInRadius(ax, ay, viewR, (key) => {
                         const arr = agentGrid.get(key);
                         if (!arr) return;
@@ -10691,6 +10693,8 @@ return;
                 if (!predatorGrid) {
                     throw new Error("[PredGrid] predatorGrid missing (sim loop wiring). Expect predGridPre to be built and passed into Agent.think every tick.");
                 }
+                // Phase: Body.Scan -> kind: pred resolve
+                _ensureResolveReady(['pred'], 'Body.Scan', 'Agent.think.scan.pred');
                 _forPredCellsInRadius(ax, ay, viewR, (cellId) => {
                         const arr = predatorGrid.get(cellId);
                         if (!arr) return;
@@ -10733,6 +10737,8 @@ return;
                     throw new Error("[HerbGrid] herbivoreGrid missing (sim loop wiring). Expect herbGridPre to be built and passed into Agent.think every tick.");
                 }
 
+                // Phase: Body.Scan -> kind: herb resolve
+                _ensureResolveReady(['herb'], 'Body.Scan', 'Agent.think.scan.herb');
                 _forHerbCellsInRadius(ax, ay, viewR, (key) => {
                     const arr = herbivoreGrid.get(key);
                     if (!arr) return;
@@ -11302,6 +11308,8 @@ let canSense = (!confusion);
                                 throw new Error("[AgentGrid] agentGrid missing in Predator.update (sim loop wiring). Expect Body 단계 agentGrid to be built and passed into Predator.update every tick.");
                             }
 
+                            // Phase: Body.PredSense -> kind: agent resolve
+                            _ensureResolveReady(['agent'], 'Body.PredSense', 'Predator.update.sense.agent');
                             _forAgentCellsInRadius(this.pos.x, this.pos.y, this.territoryRadius, (key) => {
                                 const arr = agentGrid.get(key);
                                 if (!arr) return;
@@ -13907,6 +13915,8 @@ return true; // Early break on hit
                             return false;
                         };
 
+                        // Phase: Collision.Hunt -> kind: herb resolve
+                        _ensureResolveReady(['herb'], 'Collision.Hunt', '_hs3_layerHunt.herb');
                         EvoSim.query.forEachHerbCell(herbivoreGrid, a.pos.x, a.pos.y, (arr) => {
                             for (let k = 0; k < arr.length; k++) {
                                 const __v = arr[k] | 0;
@@ -13927,6 +13937,8 @@ return true; // Early break on hit
                     if (!interactionGrid) {
                         throw new Error('[CollisionWiring] _hs3_layerAgentAgent requires ctx.agentGridPost (interaction input grid).');
                     }
+                    // Phase: Collision.AgentAgent -> kind: agent resolve
+                    _ensureResolveReady(['agent'], 'Collision.AgentAgent', '_hs3_layerAgentAgent.agent');
                     EvoSim.query.forEachAgentCell(interactionGrid, a.pos.x, a.pos.y, (arr) => {
                         for (let k = 0; k < arr.length; k++) {
                             const uid = arr[k] | 0;
@@ -14057,6 +14069,8 @@ if (d2 < COLLIDE_R2) {
                 if (!interactionGrid) {
                     throw new Error('[CollisionWiring] _hs3_layerPredators requires ctx.agentGridPost (interaction input grid).');
                 }
+                // Phase: Collision.Predators -> kind: agent resolve
+                _ensureResolveReady(['agent'], 'Collision.Predators', '_hs3_layerPredators.agent');
 
                 const biteR = (PRED2_CONSTS.biteDist + 7);
                 const biteR2 = biteR * biteR;
@@ -16259,7 +16273,7 @@ function markDirty(kind, reason, tick, phase) {
 }
 
 function flushRebuild(requiredKinds, phase) {
-  if (phase !== 'World.Pre' && phase !== 'Finalize') {
+  if (phase !== 'World.Pre' && phase !== 'Body.Scan' && phase !== 'Body.PredSense' && phase !== 'Collision.Hunt' && phase !== 'Collision.AgentAgent' && phase !== 'Collision.Predators' && phase !== 'Finalize') {
     throw new Error('[E2I] flushRebuild phase not allowed: ' + phase);
   }
   const kinds = Array.isArray(requiredKinds) ? requiredKinds : [requiredKinds];
@@ -16271,6 +16285,21 @@ function flushRebuild(requiredKinds, phase) {
   }
 }
 
+function _e2iDirtyFail(kind, phase, reason) {
+  throw new Error(`[E2I] resolve fail-fast tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason}`);
+}
+
+function _ensureResolveReady(requiredKinds, phase, reason) {
+  flushRebuild(requiredKinds, phase);
+  const kinds = Array.isArray(requiredKinds) ? requiredKinds : [requiredKinds];
+  for (let i = 0; i < kinds.length; i++) {
+    const kind = kinds[i];
+    const isDirty = _e2iDirtyRefs[kind];
+    if (!isDirty) _e2iDirtyFail(kind, phase, `${reason}:unknown_kind`);
+    if (isDirty()) _e2iDirtyFail(kind, phase, `${reason}:dirty_after_flush`);
+  }
+}
+
 /**
  * Phase3-3A: Resolve a cell value to an array index.
  * - Current grid still stores idx => fast path return v.
@@ -16279,24 +16308,30 @@ function flushRebuild(requiredKinds, phase) {
  */
 function _resolveAgentCellValToIdx(v) {
   v |= 0;
+  if (_agentE2I_dirty) _e2iDirtyFail('agent', 'Resolve.Agent', 'dirty_before_resolve');
   if (v < 0) return -1;
   if (v < agents.length) return v;
-  if (_agentE2I_dirty) throw new Error("[AgentE2I] dirty map used (wiring).");
-  return _agentE2I.get(v);
+  const idx = _agentE2I.get(v);
+  if (idx == null) _e2iDirtyFail('agent', 'Resolve.Agent', `unmapped_cell_value:${v}`);
+  return idx;
 }
 function _resolveHerbCellValToIdx(v) {
   v |= 0;
+  if (_herbE2I_dirty) _e2iDirtyFail('herb', 'Resolve.Herb', 'dirty_before_resolve');
   if (v < 0) return -1;
   if (v < herbivores.length) return v;
-  if (_herbE2I_dirty) throw new Error("[HerbE2I] dirty map used (wiring).");
-  return _herbE2I.get(v);
+  const idx = _herbE2I.get(v);
+  if (idx == null) _e2iDirtyFail('herb', 'Resolve.Herb', `unmapped_cell_value:${v}`);
+  return idx;
 }
 function _resolvePredCellValToIdx(v) {
   v |= 0;
+  if (_predE2I_dirty) _e2iDirtyFail('pred', 'Resolve.Pred', 'dirty_before_resolve');
   if (v < 0) return -1;
   if (v < predators.length) return v;
-  if (_predE2I_dirty) throw new Error("[PredE2I] dirty map used (wiring).");
-  return _predE2I.get(v);
+  const idx = _predE2I.get(v);
+  if (idx == null) _e2iDirtyFail('pred', 'Resolve.Pred', `unmapped_cell_value:${v}`);
+  return idx;
 }
 // === /Phase3-3A ===
 
