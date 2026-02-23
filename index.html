@@ -15501,6 +15501,9 @@ function _simStepWhileAccumulated(dt, time) {
   while (simAccMs >= SIM_STEP_MS && steps < MAX_STEPS_PER_FRAME) {
       simAccMs -= SIM_STEP_MS;
       steps++;
+
+      // [B0] Tick Bootstrap
+      // 여기서만 하는 일: 틱 카운터/플래그를 초기화하고 이번 tick 루프를 시작한다.
     
       simulatedTicks++;
       // Phase1: reset per-tick death flags (no allocation)
@@ -15538,6 +15541,9 @@ try {
         }
       } catch (_) {}
       /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_END === */ 
+
+      // [B1] Tick Housekeeping
+      // 여기서만 하는 일: 저주기 갱신/큐 처리/프레스티지 갱신을 수행한다.
       _processFoodSpawnQueue(simulatedTicks);
     
       // Prestige update: every 120 ticks (low frequency)
@@ -15551,6 +15557,8 @@ try {
           }
       }
     
+      // [B2] Compaction & Pack Maintenance
+      // 여기서만 하는 일: 엔티티 압축/팩 유지보수/food 구조 정리를 수행한다.
             if (simulatedTicks % ENTITY_COMPACTION_PERIOD_TICKS === 0) {
         // --- agents in-place compaction ---
         const aBefore = agents.length;
@@ -15649,8 +15657,10 @@ try {
       // 규약: drop은 push만, grid 반영은 next tick.
       _compactFoodsIfNeeded();
 
+      // [B3] Pre-Snapshot Build
+      // 여기서만 하는 일: think/collision 공유용 Pre 스냅샷 그리드를 확정한다.
       // Snapshot.Pre authoritative grids for this tick (shared by think + collision).
-      const foodGridPre = _ensureFoodGridCurrent();
+      const foodGridForTick = _ensureFoodGridCurrent();
 
       let agentGridPre = cachedAgentGrid;
       if (!agentGridPre) {
@@ -15677,6 +15687,8 @@ try {
         }
       }
 
+      // [B4] Predator/Leadership Pre-Body
+      // 여기서만 하는 일: predator body 선처리와 리더십/앵커 리프레시를 수행한다.
       // Ecology.Pre: Predator Body uses the Body-stage agent grid snapshot.
       if (_mp_enabled) {
           const __t = performance.now();
@@ -15708,7 +15720,8 @@ try {
           }
       }
 
-    
+      // [B5] Agent Think/Signal/Body
+      // 여기서만 하는 일: 에이전트 think/signal/body 스윕을 수행한다.
       // --- NN low-frequency gate (K=2) ---
       const _nnK = (CFG.nnPeriodTicks | 0) > 0 ? (CFG.nnPeriodTicks | 0) : 1;
       const _nnPhase = ((CFG.nnPhase | 0) % _nnK + _nnK) % _nnK; // safe mod
@@ -15741,7 +15754,7 @@ try {
                   if (!a || a.dead) continue;
                   __alive++;
                   if (i === __sampleI) a.__mpSample = simulatedTicks;
-                  a.think(foodGridPre, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
+                  a.think(foodGridForTick, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
                   if (i === __sampleI) a.__mpSample = 0;
               }
           } else {
@@ -15820,7 +15833,7 @@ try {
               for (let i = 0; i < agents.length; i++) {
                   const a = agents[i];
                   if (!a || a.dead) continue;
-                  a.think(foodGridPre, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
+                  a.think(foodGridForTick, foods, agents, predators, agentGridPre, herbGridPre, predGridPre);
               }
           }
 
@@ -15873,15 +15886,17 @@ try {
           }
       }
 
+      // [B6] Herbivore Body & Post-Snapshot Build
+      // 여기서만 하는 일: herbivore body 스윕 후 Post 스냅샷(agentGridPost/herbGridPost)을 생성한다.
 if (_mp_enabled) {
           const __t = performance.now();
           for(let h of herbivores) {
-          h.update(foodGridPre);
+          h.update(foodGridForTick);
       }
           _mp_anim += (performance.now() - __t);
       } else {
           for(let h of herbivores) {
-          h.update(foodGridPre);
+          h.update(foodGridForTick);
       }
       }
 
@@ -15896,6 +15911,8 @@ if (_mp_enabled) {
           herbGridPost = _buildHerbivoreGrid(herbivores);
       }
 
+      // [B7] Spawn/Influx Events
+      // 여기서만 하는 일: 포식자 리스폰과 인구 유입 이벤트를 처리한다.
       if (
           predatorRespawnQueue.length > 0 &&
           predatorRespawnQueue[0].tick <= simulatedTicks &&
@@ -15925,8 +15942,10 @@ if (_mp_enabled) {
           console.warn("[PopInflux] error", e);
       }
 
+      // [B8] Interaction Resolution
+      // 여기서만 하는 일: 충돌/상호작용 해석과 solitary action 스윕을 수행한다.
       if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
-      checkCollisions(foodGridPre, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridPre, agentGridPost, herbGridPost); }
+      checkCollisions(foodGridForTick, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForTick, agentGridPost, herbGridPost); }
       // === SS: SolitaryAction Sweep ===
       for (let i = 0; i < agents.length; i++) {
         const a = agents[i];
@@ -15934,6 +15953,8 @@ if (_mp_enabled) {
         _ss_applySolitaryActions(a, simulatedTicks);
       }
 
+      // [B9] Tick Finalize & Cache Commit
+      // 여기서만 하는 일: 다음 tick용 캐시/맵 후처리를 커밋한다.
       // Phase1: finalize NEXT-TICK grid caches AFTER collisions (post-collision snapshot)
       // If deaths happened during this tick, invalidate caches to force rebuild on next tick.
       cachedAgentGrid = _tickDeathFlags.agent ? null : agentGridPost;
