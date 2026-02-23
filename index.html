@@ -15539,16 +15539,6 @@ try {
         }
       } catch (_) {}
       /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_END === */
-      /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_START === */
-      try {
-        if (CFG && CFG.clanMode === 'SURNAME_AUTO') {
-          if (window.EvoAutoClan && typeof window.EvoAutoClan.onSimTick === 'function') {
-            window.EvoAutoClan.onSimTick(simulatedTicks);
-          }
-        }
-      } catch (_) {}
-      /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_END === */ 
-
       // [B2] World.Pre 저주기 정리
       // 여기서만 하는 일: compaction/pack/prestige 저주기 정리를 수행한다.
     
@@ -15705,8 +15695,17 @@ try {
               p.update(agents, agentGridPre);
           }
       }
-
-
+      // [B4-2] Social.Pre
+      // 여기서만 하는 일: clan/social tick 순서를 고정한다.
+      /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_START === */
+      try {
+        if (CFG && CFG.clanMode === 'SURNAME_AUTO') {
+          if (window.EvoAutoClan && typeof window.EvoAutoClan.onSimTick === 'function') {
+            window.EvoAutoClan.onSimTick(simulatedTicks);
+          }
+        }
+      } catch (_) {}
+      /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_END === */
 
       // === LDR-P5: refresh leadership & anchors (low-frequency; no behavior change yet) ===
       if (CFG && CFG.leaderMode !== 'OFF') {
@@ -15714,7 +15713,7 @@ try {
           if (ERA === 'NEOLITHIC' && (simulatedTicks % LEADER_REFRESH_TICKS === 0 || simulatedTicks - _ldr_lastRefreshTick > LEADER_REFRESH_TICKS * 2)) {
               refreshClanLeadership(simulatedTicks);
           }
-          // anchors always refresh on schedule (uses agentGridPre)
+          // anchors always refresh on schedule (depends on Snapshot.Pre agentGridPre)
           if (simulatedTicks % ANCHOR_REFRESH_TICKS === 0) {
               refreshAnchors(agentGridPre, simulatedTicks);
           }
