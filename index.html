@@ -13096,37 +13096,6 @@ if (logContainer && logContainer.getClientRects && logContainer.getClientRects()
   _forCellsInRadiusCore(ax, ay, radius, FOOD_CELL, cols, rows, fn);
 }
 
-        // ### PATCH A: Compact Foods Fix
-                function _compactFoodsIfNeeded() {
-          if (simulatedTicks % 30 !== 0) return;
-
-          const before = foods.length;
-          const now = simulatedTicks;
-
-          let w = 0;
-          for (let i = 0; i < before; i++) {
-            const f = foods[i];
-            if (!f) continue;
-            if (f.active === false) continue;
-
-            if (now > f.expiryTick) {
-              // [PATCH B] Record ONLY NAT foods that expired by TTL (NOT consumed removals)
-              if (f.source === FOOD_SRC_NAT && f.pos) {
-                _foodExpPush(f.pos.x, f.pos.y);
-              }
-              continue;
-            }
-
-            foods[w++] = f;
-          }
-
-          if (w !== before) {
-            foods.length = w;
-            cachedFoodGrid = null;
-            cachedFoodGridTick = -1e15;
-          }
-        }
-
         function _inFront180_fromAngle(ax, ay, angle, tx, ty) {
         const fx = Math.cos(angle), fy = Math.sin(angle);
         const dx = tx - ax, dy = ty - ay;
@@ -14076,7 +14045,10 @@ if (d2 < COLLIDE_R2) {
 
             }
             function _hs3_layerPredators(ctx) {
-                const agentGrid = (ctx && (ctx.agentGridPost || ctx.agentGrid)) || agentGrid;
+                const interactionGrid = ctx && ctx.agentGridPost;
+                if (!interactionGrid) {
+                    throw new Error('[CollisionWiring] _hs3_layerPredators requires ctx.agentGridPost (interaction input grid).');
+                }
 
                 const biteR = (PRED2_CONSTS.biteDist + 7);
                 const biteR2 = biteR * biteR;
@@ -14085,7 +14057,7 @@ if (d2 < COLLIDE_R2) {
                     let p = predators[i];
                     if (!p || p.dead) continue;
 
-                    EvoSim.query.forEachAgentCell(agentGrid, p.pos.x, p.pos.y, (arr) => {
+                    EvoSim.query.forEachAgentCell(interactionGrid, p.pos.x, p.pos.y, (arr) => {
                         for (let k = 0; k < arr.length; k++) {
                             const uid = arr[k] | 0;
                             const j = _resolveAgentCellValToIdx(uid);
@@ -15092,13 +15064,8 @@ function updateHistoryPanelUI(){
         const ENTITY_COMPACTION_PERIOD_TICKS = 30;
         let cachedFoodGrid = null;
         let cachedFoodGridTick = -1e15;
-        const FOOD_GRID_REBUILD_PERIOD_TICKS = 5;
         function _ensureFoodGridCurrent() {
-          const stale =
-            (!cachedFoodGrid) ||
-            (simulatedTicks < cachedFoodGridTick) ||
-            ((simulatedTicks - cachedFoodGridTick) >= FOOD_GRID_REBUILD_PERIOD_TICKS);
-          if (!stale) return cachedFoodGrid;
+          if (cachedFoodGrid && simulatedTicks >= cachedFoodGridTick) return cachedFoodGrid;
           if (_mp_enabled) {
             const __t = performance.now();
             cachedFoodGrid = _buildFoodGrid();
@@ -15515,14 +15482,7 @@ try {
 } catch(_) {}
 /* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_END === */
 
-      // World.Pre: foods 구조 변경(압축)은 여기 단일 경로에서만 수행.
-      // 규약: drop은 push만, grid 반영은 next tick.
-      _compactFoodsIfNeeded();
-
       _processFoodSpawnQueue(simulatedTicks);
-
-      const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
-      if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
 
       /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_START === */
       // World.Pre substep: Selected tile lazy touch 보정 고정
