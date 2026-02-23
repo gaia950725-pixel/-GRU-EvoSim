@@ -15525,8 +15525,9 @@ try {
         if (agentsChanged) {
           agents.length = aw;
           try{ EvoSim.modules?.POP?.syncFromArrayLen && EvoSim.modules.POP.syncFromArrayLen("agent_compaction"); }catch(_){ }
-          cachedAgentGrid = null;
-          cachedHerbGrid = null;
+          // Finalize에서만 cached*Grid를 커밋/무효화한다.
+          _tickDeathFlags.agent = true;
+          _tickDeathFlags.herb  = true;
 
           // Phase3-3A: agents compaction reindexes agents[]
           _agentE2I_dirty = true;
@@ -15547,8 +15548,8 @@ try {
         const herbChanged = (hw !== hBefore);
         if (herbChanged) {
           herbivores.length = hw;
-          // agents compaction이 이미 캐시를 날렸다면 중복 무해
-          cachedHerbGrid = null;
+          // Finalize에서만 cached*Grid를 커밋/무효화한다.
+          _tickDeathFlags.herb = true;
 
           // Phase3-3A: herbivores compaction reindexes herbivores[]
           _herbE2I_dirty = true;
@@ -15564,7 +15565,7 @@ try {
         const predChanged = (pw !== pBefore);
         if (predChanged) {
           predators.length = pw;
-          // Phase2.5: compaction reindexes predators[]; invalidate NEXT-TICK pred snapshot cache
+          // Finalize에서만 cached*Grid를 커밋/무효화한다.
           _tickDeathFlags.pred = true;
           // Phase3-3A: predators compaction reindexes predators[]
           _predE2I_dirty = true;
@@ -15574,13 +15575,6 @@ try {
         try { _predPackHardeningTick(simulatedTicks); }
         catch (e) { console.error("Pred pack hardening failed", e); }
 
-        // Phase3-3B: compaction can reindex arrays => eid->idx maps become dirty.
-        // Rebuild immediately so same-tick systems (hunt/collisions) never read a dirty map.
-        try {
-          if (_agentE2I_dirty) _rebuildAgentE2I("compaction");
-          if (_herbE2I_dirty)  _rebuildHerbE2I("compaction");
-          if (_predE2I_dirty)  _rebuildPredE2I("compaction");
-        } catch (e) { console.error("E2I rebuild after compaction failed", e); throw e; }
       }
 
       const dtPack = simulatedTicks - lastHerbPackUpdateTick;
@@ -15907,7 +15901,9 @@ try {
           herbGridPost = _buildHerbivoreGrid(herbivores);
       }
 
-      // If deaths happened during this tick, invalidate caches to force rebuild on next tick.
+      // Finalize 단일 정책:
+      // - cached*Grid 갱신/무효화는 이 블록에서만 수행.
+      // - _tickDeathFlags.* === true 이면 next tick에서 재빌드하도록 null 커밋.
       cachedAgentGrid = _tickDeathFlags.agent ? null : agentGridPost;
       cachedHerbGrid  = _tickDeathFlags.herb  ? null : herbGridPost;
 
@@ -15922,10 +15918,12 @@ try {
         predGridPost = _buildPredatorGrid(predators);
       }
       cachedPredGrid = _tickDeathFlags.pred ? null : predGridPost;
-      // Phase3-3A: rebuild eid->index maps after collisions (only when dirty)
-      if (_agentE2I_dirty) { try{ _rebuildAgentE2I("post_collision"); } catch(e){ console.error(e); throw e; } }
-      if (_herbE2I_dirty)  { try{ _rebuildHerbE2I ("post_collision"); } catch(e){ console.error(e); throw e; } }
-      if (_predE2I_dirty)  { try{ _rebuildPredE2I ("post_collision"); } catch(e){ console.error(e); throw e; } }
+      // Phase3-3A 단일 rebuild 지점 (Finalize):
+      // - *_dirty=true 는 compaction/death 등으로 배열 index 정합성이 깨졌음을 의미.
+      // - dirty인 동안 _e2i_on*Added는 증분 갱신을 건너뛰고, 여기서 1회 full rebuild로 수습.
+      if (_agentE2I_dirty) { try{ _rebuildAgentE2I("finalize"); } catch(e){ console.error(e); throw e; } }
+      if (_herbE2I_dirty)  { try{ _rebuildHerbE2I ("finalize"); } catch(e){ console.error(e); throw e; } }
+      if (_predE2I_dirty)  { try{ _rebuildPredE2I ("finalize"); } catch(e){ console.error(e); throw e; } }
 
 
       // [Stabilization v1] legacy emergency influx removed (handled by crisis queue)
