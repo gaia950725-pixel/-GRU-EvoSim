@@ -16326,6 +16326,34 @@ const _e2iRebuilders = {
 const E2I_MODE = { agent: true, herb: true, pred: true };
 const _e2iCutoverOrder = ['agent', 'herb', 'pred'];
 const _e2iDirtyExceptions = { agent: 0, herb: 0, pred: 0 };
+const _E2I_LOG_LEVEL = { OFF: 0, ERROR: 1, INFO: 2, VERBOSE: 3 };
+
+function _normalizeE2ILogLevelName(level) {
+  const s = (level == null ? '' : String(level)).trim().toUpperCase();
+  return Object.prototype.hasOwnProperty.call(_E2I_LOG_LEVEL, s) ? s : 'ERROR';
+}
+
+function _getConfiguredE2ILogLevelName() {
+  const cfgLevel = (typeof CFG !== 'undefined' && CFG) ? CFG.devE2ILogLevel : undefined;
+  const globalLevel = (typeof window !== 'undefined') ? window.DEV_E2I_LOG_LEVEL : undefined;
+  const devVerbose = !!(typeof window !== 'undefined' && window.DEV && window.DEV.flags && window.DEV.flags.e2iVerbose);
+  if (devVerbose) return 'VERBOSE';
+  if (cfgLevel != null && String(cfgLevel).trim() !== '') return _normalizeE2ILogLevelName(cfgLevel);
+  if (globalLevel != null && String(globalLevel).trim() !== '') return _normalizeE2ILogLevelName(globalLevel);
+  return 'ERROR';
+}
+
+function _isE2ILogEnabled(levelName) {
+  const configured = _E2I_LOG_LEVEL[_getConfiguredE2ILogLevelName()];
+  const requested = _E2I_LOG_LEVEL[_normalizeE2ILogLevelName(levelName)];
+  return configured >= requested;
+}
+
+function _e2iLog(levelName, message) {
+  if (!_isE2ILogEnabled(levelName)) return;
+  if (levelName === 'ERROR') console.error(message);
+  else console.info(message);
+}
 
 function _isE2IKindEnabled(kind) {
   if (!Object.prototype.hasOwnProperty.call(E2I_MODE, kind)) {
@@ -16352,7 +16380,7 @@ function setE2IMode(kind, enabled, reason) {
     }
   }
   E2I_MODE[kind] = nextEnabled;
-  console.info(`[E2I][mode] tick=${simulatedTicks|0} kind=${kind} enabled=${nextEnabled ? 1 : 0} reason=${reason || 'manual'}`);
+  _e2iLog('INFO', `[E2I][cutover] tick=${simulatedTicks|0} kind=${kind} enabled=${nextEnabled ? 1 : 0} reason=${reason || 'manual'}`);
 }
 
 function _e2iAssertKindEnabled(kind, phase, reason) {
@@ -16363,7 +16391,7 @@ function _e2iAssertKindEnabled(kind, phase, reason) {
 function markDirty(kind, reason, tick, phase) {
   if (!_e2iRebuilders[kind]) throw new Error('[E2I] markDirty unknown kind: ' + kind);
   if (!_isE2IKindEnabled(kind)) {
-    console.warn(`[E2I][markDirty] tick=${tick|0} phase=${phase || 'unknown'} kind=${kind} reason=${reason || 'n/a'} action=skip_disabled`);
+    _e2iLog('VERBOSE', `[E2I][markDirty] tick=${tick|0} phase=${phase || 'unknown'} kind=${kind} reason=${reason || 'n/a'} action=skip_disabled`);
     return;
   }
   _setE2IDirty(kind, true);
@@ -16388,25 +16416,16 @@ function _assertE2IClean(requiredKinds, phase, reason) {
   }
 }
 
-function _isE2IVerboseLogEnabled() {
-  return !!(window.DEV && window.DEV.flags && window.DEV.flags.e2iVerbose);
-}
-
-function _isE2IHighFrequencyPhase(phase) {
-  return phase === 'Body.Scan' || phase === 'Collision.Hunt' || phase === 'Collision.AgentAgent' || phase === 'Collision.Predators';
-}
-
-function _shouldLogFlushRebuild(phase, action) {
-  const verbose = _isE2IVerboseLogEnabled();
-  if (action === 'skip_clean') return false;
-  if (action === 'skip_disabled') return verbose;
-  if (_isE2IHighFrequencyPhase(phase)) return verbose;
-  return action === 'rebuild';
+function _shouldLogFlushRebuild(action) {
+  if (action === 'rebuild') return _isE2ILogEnabled('INFO');
+  if (action === 'skip_clean' || action === 'skip_disabled') return _isE2ILogEnabled('VERBOSE');
+  return false;
 }
 
 function _logFlushRebuild(phase, kind, reason, action) {
-  if (!_shouldLogFlushRebuild(phase, action)) return;
-  console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=${action}`);
+  if (!_shouldLogFlushRebuild(action)) return;
+  const level = action === 'rebuild' ? 'INFO' : 'VERBOSE';
+  _e2iLog(level, `[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=${action}`);
 }
 
 function flushRebuild(requiredKinds, phase, reason) {
@@ -16435,6 +16454,7 @@ function _e2iDirtyFail(kind, phase, reason) {
   if (Object.prototype.hasOwnProperty.call(_e2iDirtyExceptions, kind)) {
     _e2iDirtyExceptions[kind] = (_e2iDirtyExceptions[kind] | 0) + 1;
   }
+  _e2iLog('ERROR', `[E2I][dirtyFail] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason}`);
   throw new Error(`[E2I] resolve fail-fast tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason}`);
 }
 
