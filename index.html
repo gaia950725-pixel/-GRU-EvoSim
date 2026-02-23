@@ -15913,8 +15913,8 @@ try {
           }
       }
 
-      // [B6] Herbivore Body & Post-Snapshot Build
-      // 여기서만 하는 일: herbivore body 스윕 후 Post 스냅샷(agentGridPost/herbGridPost)을 생성한다.
+      // [B6] Herbivore Body
+      // 여기서만 하는 일: herbivore body 스윕을 수행한다.
 if (_mp_enabled) {
           const __t = performance.now();
           for(let h of herbivores) {
@@ -15927,6 +15927,20 @@ if (_mp_enabled) {
       }
       }
 
+      // [B7] Interaction Resolution
+      // 여기서만 하는 일: 충돌/상호작용 해석과 solitary action 스윕을 수행한다.
+      if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
+      checkCollisions(foodGridForTick, agentGridPre, herbGridPre); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForTick, agentGridPre, herbGridPre); }
+      // === SS: SolitaryAction Sweep ===
+      for (let i = 0; i < agents.length; i++) {
+        const a = agents[i];
+        if (!a || a.dead) continue;
+        _ss_applySolitaryActions(a, simulatedTicks);
+      }
+
+      // [B8] Tick Finalize & Cache Commit
+      // 여기서만 하는 일: 다음 tick용 캐시/맵 후처리를 커밋한다.
+      // Phase1: finalize NEXT-TICK grid caches AFTER collisions (post-collision snapshot)
       let agentGridPost, herbGridPost;
       if (_mp_enabled) {
           const __t = performance.now();
@@ -15938,20 +15952,6 @@ if (_mp_enabled) {
           herbGridPost = _buildHerbivoreGrid(herbivores);
       }
 
-      // [B7] Interaction Resolution
-      // 여기서만 하는 일: 충돌/상호작용 해석과 solitary action 스윕을 수행한다.
-      if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
-      checkCollisions(foodGridForTick, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForTick, agentGridPost, herbGridPost); }
-      // === SS: SolitaryAction Sweep ===
-      for (let i = 0; i < agents.length; i++) {
-        const a = agents[i];
-        if (!a || a.dead) continue;
-        _ss_applySolitaryActions(a, simulatedTicks);
-      }
-
-      // [B8] Tick Finalize & Cache Commit
-      // 여기서만 하는 일: 다음 tick용 캐시/맵 후처리를 커밋한다.
-      // Phase1: finalize NEXT-TICK grid caches AFTER collisions (post-collision snapshot)
       // If deaths happened during this tick, invalidate caches to force rebuild on next tick.
       cachedAgentGrid = _tickDeathFlags.agent ? null : agentGridPost;
       cachedHerbGrid  = _tickDeathFlags.herb  ? null : herbGridPost;
