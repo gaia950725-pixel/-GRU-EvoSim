@@ -13529,16 +13529,17 @@ function _influxPeriodicGroupV2(agentGrid) {
 
 
 /**
- * Collision pass uses Snapshot.Pre grids as authoritative inputs.
- * - Snapshot.Pre authoritative: caller must provide valid food/agent/herbivore grids.
+ * Collision pass wiring contract:
+ * - foodGrid/herbivoreGrid: Snapshot.Pre authoritative inputs.
+ * - agentGridPost: Snapshot.Post authoritative input for Interaction(Agent-Agent/Predator bite).
  * - Missing inputs are a sim-loop wiring bug and must fail-fast in development.
  */
-function checkCollisions(foodGrid, agentGrid, herbivoreGrid) {
+function checkCollisions(foodGrid, agentGridPost, herbivoreGrid) {
             if (!foodGrid) {
                 throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Pre foodGrid (authoritative).');
             }
-            if (!agentGrid) {
-                throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Pre agentGrid (authoritative).');
+            if (!agentGridPost) {
+                throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Post agentGridPost (interaction authoritative).');
             }
             if (!herbivoreGrid) {
                 throw new Error('[CollisionWiring] checkCollisions requires Snapshot.Pre herbivoreGrid (authoritative).');
@@ -13550,7 +13551,7 @@ function checkCollisions(foodGrid, agentGrid, herbivoreGrid) {
                 if (HS && typeof HS.updateSnap === 'function'){
                     const m = HS._snapMeta || (HS._snapMeta = { foodGrid:null, agentGrid:null, herbivoreGrid:null, notes:null });
                     m.foodGrid = foodGrid;
-                    m.agentGrid = agentGrid;
+                    m.agentGrid = agentGridPost;
                     m.herbivoreGrid = herbivoreGrid;
                     m.notes = null;
                     HS.updateSnap(m);
@@ -13921,7 +13922,11 @@ return true; // Early break on hit
             }
             function _hs3_layerAgentAgent(ctx, a, i, n0, newborns) {
                     // FINAL-NC2 규약(의미변동 금지): (1) Exclusive push 먼저 (2) 충돌반경에서 전투판정이 번식판정보다 선행 (3) wantsFight면 동일 tick에 번식평가 금지 (4) 임계치/랜덤/쿨다운/부수효과 위치 변경 금지
-                    EvoSim.query.forEachAgentCell(agentGrid, a.pos.x, a.pos.y, (arr) => {
+                    const interactionGrid = ctx && ctx.agentGridPost;
+                    if (!interactionGrid) {
+                        throw new Error('[CollisionWiring] _hs3_layerAgentAgent requires ctx.agentGridPost (interaction input grid).');
+                    }
+                    EvoSim.query.forEachAgentCell(interactionGrid, a.pos.x, a.pos.y, (arr) => {
                         for (let k = 0; k < arr.length; k++) {
                             const uid = arr[k] | 0;
                             const j = _resolveAgentCellValToIdx(uid);
@@ -14089,7 +14094,7 @@ if (d2 < COLLIDE_R2) {
 
             }
 
-            const ctx = { ERA, CFG, tickCount: simulatedTicks, agents, foodGrid, agentGridPost: agentGrid, herbivoreGrid };
+            const ctx = { ERA, CFG, tickCount: simulatedTicks, agents, foodGrid, agentGridPost, herbivoreGrid };
             try{ EvoSim.debug && EvoSim.debug.hsValidateTick && EvoSim.debug.hsValidateTick(ctx); }catch(_){ }
             try{ EvoSim.debug?.rgTick && EvoSim.debug.rgTick(ctx); }catch(_){ }
 
@@ -14113,7 +14118,7 @@ if (d2 < COLLIDE_R2) {
                 _hs3_layerAgentAgent(ctx, a, i, n0, newborns);
 }
 
-                        _hs3_commitNewborns(ctx, newborns, agentGrid);
+                        _hs3_commitNewborns(ctx, newborns, agentGridPost);
 
             _hs3_layerPredators(ctx);
 }/* === BUILDER_BLOCK: HS_COLLISION_LOOP_END === */
@@ -15639,6 +15644,8 @@ try {
           }
       }
 
+      // Body 단계 고정 규약: Predator.update는 Snapshot.Pre agentGridPre만 입력으로 사용한다.
+      // Interaction 단계용 Snapshot.Post agentGridPost와 혼용 금지(배선 오류 시 fail-fast).
       if (_mp_enabled) {
           const __t = performance.now();
           for (let pi = 0; pi < predators.length; pi++) {
@@ -15887,8 +15894,23 @@ try {
 
       // [B7] Interaction Resolution
       // 여기서만 하는 일: 충돌/상호작용 해석과 solitary action 스윕을 수행한다.
-      if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
-      checkCollisions(foodGridForTick, agentGridPre, herbGridPre); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForTick, agentGridPre, herbGridPre); }
+      // Interaction 단계 고정 규약: checkCollisions는 Snapshot.Post agentGridPost를 입력으로 사용한다.
+      // Body 단계용 Snapshot.Pre agentGridPre와 혼용 금지(배선 오류 시 fail-fast).
+      let agentGridPostForInteraction;
+      if (_mp_enabled) {
+          const __t = performance.now();
+          agentGridPostForInteraction = _buildAgentGrid(agents);
+          _mp_grid += (performance.now() - __t);
+      } else {
+          agentGridPostForInteraction = _buildAgentGrid(agents);
+      }
+      if (_mp_enabled) {
+          const __t = performance.now(); // === SS: Interaction Sweep ===
+          checkCollisions(foodGridForTick, agentGridPostForInteraction, herbGridPre);
+          _mp_coll += (performance.now() - __t);
+      } else {
+          checkCollisions(foodGridForTick, agentGridPostForInteraction, herbGridPre);
+      }
       // === SS: SolitaryAction Sweep ===
       for (let i = 0; i < agents.length; i++) {
         const a = agents[i];
@@ -15899,14 +15921,13 @@ try {
       // [B8] Tick Finalize & Cache Commit
       // 여기서만 하는 일: 다음 tick용 캐시/맵 후처리를 커밋한다.
       // Phase1: finalize NEXT-TICK grid caches AFTER collisions (post-collision snapshot)
-      let agentGridPost, herbGridPost;
+      const agentGridPost = agentGridPostForInteraction;
+      let herbGridPost;
       if (_mp_enabled) {
           const __t = performance.now();
-          agentGridPost = _buildAgentGrid(agents);
           herbGridPost = _buildHerbivoreGrid(herbivores);
           _mp_grid += (performance.now() - __t);
       } else {
-          agentGridPost = _buildAgentGrid(agents);
           herbGridPost = _buildHerbivoreGrid(herbivores);
       }
 
