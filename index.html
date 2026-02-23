@@ -15099,6 +15099,8 @@ function updateHistoryPanelUI(){
           }
           return cachedFoodGrid;
         }
+        // Grid cache responsibility: "spatial query snapshot" only.
+        // (uid/eid -> idx resolution is handled by E2I and must be managed independently)
         let cachedAgentGrid = null;
         let cachedHerbGrid = null; // Patch D: Herbivore Grid Cache
         let cachedPredGrid = null; // Patch PREDGRID: Predator Grid Cache
@@ -15145,6 +15147,34 @@ function updateHistoryPanelUI(){
 
         // --- SS: Tick Snapshot Buffers (reused; grown only when needed) ---
         let _ss_tickExt = null;
+        function _setGridCacheDirtyKinds(kinds) {
+          for (let i = 0; i < kinds.length; i++) {
+            const kind = kinds[i];
+            if (kind === "agent") cachedAgentGrid = null;
+            else if (kind === "herb") cachedHerbGrid = null;
+            else if (kind === "pred") cachedPredGrid = null;
+            else throw new Error(`[GridCache] unknown kind: ${kind}`);
+          }
+        }
+
+        function _reportTickFinalizeDiagnostics() {
+          try {
+            const gridState = [
+              `agent=${cachedAgentGrid ? "ready" : "dirty"}`,
+              `herb=${cachedHerbGrid ? "ready" : "dirty"}`,
+              `pred=${cachedPredGrid ? "ready" : "dirty"}`
+            ].join(' ');
+            console.debug(`[TickDiag][GridCache] tick=${simulatedTicks|0} ${gridState}`);
+
+            const e2iState = [
+              `agent=${_agentE2I_dirty ? "dirty" : "clean"}`,
+              `herb=${_herbE2I_dirty ? "dirty" : "clean"}`,
+              `pred=${_predE2I_dirty ? "dirty" : "clean"}`
+            ].join(' ');
+            console.debug(`[TickDiag][E2I] tick=${simulatedTicks|0} ${e2iState}`);
+          } catch(_) {}
+        }
+
         function _ssEnsureTickExt(n){
           if (!_ss_tickExt || _ss_tickExt.length < n) {
             _ss_tickExt = new Float32Array(n);
@@ -15547,9 +15577,11 @@ try {
         if (agentsChanged) {
           agents.length = aw;
           try{ EvoSim.modules?.POP?.syncFromArrayLen && EvoSim.modules.POP.syncFromArrayLen("agent_compaction"); }catch(_){ }
-          // Finalize에서만 cached*Grid를 커밋/무효화한다.
+          // Compaction event: grid snapshot invalidate + E2I dirty set are triggered together.
+          // Recovery is independent: grid rebuild and E2I rebuild run on their own procedures.
           _tickDeathFlags.agent = true;
           _tickDeathFlags.herb  = true;
+          _setGridCacheDirtyKinds(['agent','herb']);
 
           // Phase3-3A: agents compaction reindexes agents[]
           markDirty('agent', 'compaction', simulatedTicks, 'World.Pre');
@@ -15574,8 +15606,10 @@ try {
         const herbChanged = (hw !== hBefore);
         if (herbChanged) {
           herbivores.length = hw;
-          // Finalize에서만 cached*Grid를 커밋/무효화한다.
+          // Compaction event: grid snapshot invalidate + E2I dirty set are triggered together.
+          // Recovery is independent: grid rebuild and E2I rebuild run on their own procedures.
           _tickDeathFlags.herb = true;
+          _setGridCacheDirtyKinds(['herb']);
 
           // Phase3-3A: herbivores compaction reindexes herbivores[]
           markDirty('herb', 'compaction', simulatedTicks, 'World.Pre');
@@ -15591,8 +15625,10 @@ try {
         const predChanged = (pw !== pBefore);
         if (predChanged) {
           predators.length = pw;
-          // Finalize에서만 cached*Grid를 커밋/무효화한다.
+          // Compaction event: grid snapshot invalidate + E2I dirty set are triggered together.
+          // Recovery is independent: grid rebuild and E2I rebuild run on their own procedures.
           _tickDeathFlags.pred = true;
+          _setGridCacheDirtyKinds(['pred']);
           // Phase3-3A: predators compaction reindexes predators[]
           markDirty('pred', 'compaction', simulatedTicks, 'World.Pre');
         }
@@ -15982,10 +16018,12 @@ try {
         predGridPost = _buildPredatorGrid(predators);
       }
       cachedPredGrid = _tickDeathFlags.pred ? null : predGridPost;
+      // IMPORTANT: grid rebuild/cache commit does NOT guarantee E2I clean state.
+      // Grid cache and E2I recovery must remain independently validated.
       // Finalize E2I barrier:
       // - dirty가 남아 있으면 오류를 던져 "다음 tick으로 오염 이월"을 금지한다.
       _assertE2IClean(['agent','herb','pred'], 'Finalize', 'dirty_carryover_forbidden');
-
+      _reportTickFinalizeDiagnostics();
 
       // [Stabilization v1] legacy emergency influx removed (handled by crisis queue)
   }
@@ -16214,6 +16252,11 @@ let _predE2I  = new FastIdMap(512);
 
 /**
  * E2I 공통 상태 모델 (Agent/Herb/Pred 동일 적용)
+ *
+ * 책임 분리 원칙:
+ * - Grid cache(cachedAgentGrid/cachedHerbGrid/cachedPredGrid): 공간 질의용 스냅샷 책임.
+ * - E2I: uid/eid -> idx 해석 책임.
+ * 두 시스템은 같은 이벤트에서 함께 dirty 될 수 있지만, rebuild/복구 절차는 독립적으로 실행/검증한다.
  *
  * [상태 정의]
  * - Clean:
