@@ -16388,6 +16388,27 @@ function _assertE2IClean(requiredKinds, phase, reason) {
   }
 }
 
+function _isE2IVerboseLogEnabled() {
+  return !!(window.DEV && window.DEV.flags && window.DEV.flags.e2iVerbose);
+}
+
+function _isE2IHighFrequencyPhase(phase) {
+  return phase === 'Body.Scan' || phase === 'Collision.Hunt' || phase === 'Collision.AgentAgent' || phase === 'Collision.Predators';
+}
+
+function _shouldLogFlushRebuild(phase, action) {
+  const verbose = _isE2IVerboseLogEnabled();
+  if (action === 'skip_clean') return false;
+  if (action === 'skip_disabled') return verbose;
+  if (_isE2IHighFrequencyPhase(phase)) return verbose;
+  return action === 'rebuild';
+}
+
+function _logFlushRebuild(phase, kind, reason, action) {
+  if (!_shouldLogFlushRebuild(phase, action)) return;
+  console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=${action}`);
+}
+
 function flushRebuild(requiredKinds, phase, reason) {
   if (phase !== 'World.Pre' && phase !== 'post-world-pre' && phase !== 'pre-ecology-pre' && phase !== 'pre-interaction' && phase !== 'Body.Scan' && phase !== 'Body.PredSense' && phase !== 'Collision.Hunt' && phase !== 'Collision.AgentAgent' && phase !== 'Collision.Predators' && phase !== 'Finalize') {
     throw new Error('[E2I] flushRebuild phase not allowed: ' + phase);
@@ -16398,14 +16419,14 @@ function flushRebuild(requiredKinds, phase, reason) {
     const rebuild = _e2iRebuilders[kind];
     if (!rebuild) throw new Error('[E2I] flushRebuild unknown kind: ' + kind);
     if (!_isE2IKindEnabled(kind)) {
-      console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=skip_disabled`);
+      _logFlushRebuild(phase, kind, reason, 'skip_disabled');
       continue;
     }
     if (_e2iDirtyRefs[kind]()) {
       rebuild(phase);
-      console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=rebuild`);
+      _logFlushRebuild(phase, kind, reason, 'rebuild');
     } else {
-      console.info(`[E2I][flushRebuild] tick=${simulatedTicks|0} phase=${phase} kind=${kind} reason=${reason || 'n/a'} action=skip_clean`);
+      _logFlushRebuild(phase, kind, reason, 'skip_clean');
     }
   }
 }
