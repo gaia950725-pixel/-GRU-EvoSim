@@ -4503,8 +4503,6 @@ function agroHarvestTileIfReady(idx) {
     function pushAndIndexFarmFood(x, y) {
         foods.push(new Food(x, y, FOOD_SRC_FARM));
         window._foodDirtyNextTick = true;
-    }arr.push(foods.length - 1);
-        }
     }
 
     function randDropXY() {
@@ -15905,13 +15903,6 @@ let agentGridPost;
           agentGridPost = _buildAgentGrid(agents);}
       // v25: predators updated in Ecology.Pre (before Think) using agentGridPre
       // v25: predator respawn moved to World.Pre
-else {
-              let p = getRandomLandPoint();
-              predators.push(new Predator(p.x, p.y, { kind: 'SABERTOOTH' }));
-              _e2i_onPredAdded(predators.length-1);
-              logEvent("검치호 출현", "event");
-          }
-      }
       // v25: population influx moved to World.Pre
 // v25: foodGrid is built once per tick (Snapshot.Pre)
       if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
