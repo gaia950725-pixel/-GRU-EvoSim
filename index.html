@@ -15559,9 +15559,6 @@ try {
           // Agent grid cell value is uid-based.
           // Contract: compaction 이후 resolve 전에 E2I rebuild 완료가 선행되어야 한다.
           // (dirty AgentE2I 상태로 Predator.update/Collision 진입 금지, fallback 금지/fail-fast 유지)
-          // Rebuild immediately in same tick (before any _resolveAgentCellValToIdx calls).
-          try { flushRebuild(['agent','herb','pred'], 'World.Pre'); }
-          catch(e){ console.error(e); throw e; }
 
           // Phase8: compaction reindexes agents[]; reset+refresh anchor caches immediately
           try { _ldrAfterAgentCompaction(simulatedTicks); } catch(_) {}
@@ -15582,8 +15579,6 @@ try {
 
           // Phase3-3A: herbivores compaction reindexes herbivores[]
           markDirty('herb', 'compaction', simulatedTicks, 'World.Pre');
-          try { flushRebuild(['herb'], 'World.Pre'); }
-          catch(e){ console.error(e); throw e; }
         }
 
         // --- predators in-place compaction (Phase2 Step2) ---
@@ -15600,8 +15595,6 @@ try {
           _tickDeathFlags.pred = true;
           // Phase3-3A: predators compaction reindexes predators[]
           markDirty('pred', 'compaction', simulatedTicks, 'World.Pre');
-          try { flushRebuild(['pred'], 'World.Pre'); }
-          catch(e){ console.error(e); throw e; }
         }
 
         // pack hardening (low-frequency; MUST NOT elect leader early)
@@ -15632,6 +15625,19 @@ try {
               }
               lastHerbPackUpdateTick = simulatedTicks;
           }
+      }
+
+      // [B2.5] E2I barrier (post World.Pre compaction/대량정리)
+      // World.Pre에서 dirty가 발생했다면 Ecology.Pre 전에 즉시 일괄 rebuild한다.
+      try { flushRebuild(['agent','herb','pred'], 'post-world-pre'); }
+      catch(e){ console.error(e); throw e; }
+
+      // [B2.6] E2I barrier (pre Ecology.Pre resolve 보장)
+      // Ecology.Pre 진입 전 실제 dirty kind만 선별해 누락 rebuild를 보충한다.
+      const _e2iDirtyBeforeEcology = _getDirtyKinds(['agent','herb','pred']);
+      if (_e2iDirtyBeforeEcology.length > 0) {
+          try { flushRebuild(_e2iDirtyBeforeEcology, 'pre-ecology-pre'); }
+          catch(e){ console.error(e); throw e; }
       }
 
       // [B3] Pre-Snapshot Build
@@ -15923,6 +15929,15 @@ try {
       } else {
           agentGridPostForInteraction = _buildAgentGrid(agents);
       }
+
+      // [B7.1] E2I barrier (pre Interaction)
+      // agentGridPost 빌드 직후 Interaction 진입 전 E2I clean 상태를 재검증한다.
+      const _e2iDirtyBeforeInteraction = _getDirtyKinds(['agent','herb','pred']);
+      if (_e2iDirtyBeforeInteraction.length > 0) {
+          try { flushRebuild(_e2iDirtyBeforeInteraction, 'pre-interaction'); }
+          catch(e){ console.error(e); throw e; }
+      }
+
       if (_mp_enabled) {
           const __t = performance.now(); // === SS: Interaction Sweep ===
           checkCollisions(foodGridForTick, agentGridPostForInteraction, herbGridPre);
@@ -15967,12 +15982,9 @@ try {
         predGridPost = _buildPredatorGrid(predators);
       }
       cachedPredGrid = _tickDeathFlags.pred ? null : predGridPost;
-      // Phase3-3A finalize rebuild/fallback:
-      // - *_dirty=true 는 compaction/death 등으로 배열 index 정합성이 깨졌음을 의미.
-      // - AgentE2I는 compaction 시점에 선재빌드하지만, finalize에서 안전망으로 한번 더 수습 가능.
-      // - dirty인 동안 _e2i_on*Added는 증분 갱신을 건너뛴다.
-      try { flushRebuild(['agent','herb','pred'], 'Finalize'); }
-      catch(e){ console.error(e); throw e; }
+      // Finalize E2I barrier:
+      // - dirty가 남아 있으면 오류를 던져 "다음 tick으로 오염 이월"을 금지한다.
+      _assertE2IClean(['agent','herb','pred'], 'Finalize', 'dirty_carryover_forbidden');
 
 
       // [Stabilization v1] legacy emergency influx removed (handled by crisis queue)
@@ -16272,8 +16284,27 @@ function markDirty(kind, reason, tick, phase) {
   _setE2IDirty(kind, true);
 }
 
+function _getDirtyKinds(requiredKinds) {
+  const kinds = Array.isArray(requiredKinds) ? requiredKinds : [requiredKinds];
+  const dirtyKinds = [];
+  for (let i = 0; i < kinds.length; i++) {
+    const kind = kinds[i];
+    const isDirty = _e2iDirtyRefs[kind];
+    if (!isDirty) throw new Error('[E2I] unknown kind: ' + kind);
+    if (isDirty()) dirtyKinds.push(kind);
+  }
+  return dirtyKinds;
+}
+
+function _assertE2IClean(requiredKinds, phase, reason) {
+  const dirtyKinds = _getDirtyKinds(requiredKinds);
+  if (dirtyKinds.length > 0) {
+    throw new Error(`[E2I] ${reason} tick=${simulatedTicks|0} phase=${phase} dirty=${dirtyKinds.join(',')} (다음 tick으로 오염 이월 금지)`);
+  }
+}
+
 function flushRebuild(requiredKinds, phase) {
-  if (phase !== 'World.Pre' && phase !== 'Body.Scan' && phase !== 'Body.PredSense' && phase !== 'Collision.Hunt' && phase !== 'Collision.AgentAgent' && phase !== 'Collision.Predators' && phase !== 'Finalize') {
+  if (phase !== 'World.Pre' && phase !== 'post-world-pre' && phase !== 'pre-ecology-pre' && phase !== 'pre-interaction' && phase !== 'Body.Scan' && phase !== 'Body.PredSense' && phase !== 'Collision.Hunt' && phase !== 'Collision.AgentAgent' && phase !== 'Collision.Predators' && phase !== 'Finalize') {
     throw new Error('[E2I] flushRebuild phase not allowed: ' + phase);
   }
   const kinds = Array.isArray(requiredKinds) ? requiredKinds : [requiredKinds];
