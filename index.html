@@ -4494,20 +4494,15 @@ function agroHarvestTileIfReady(idx) {
 
                 /* === BUILDER_BLOCK: HS_AGRO_HARVEST_FARMDROP_START === */
 // Phase 5: drop FARM foods on successful harvest (after direct payout)
-// v2b: base=2 + farmsuit chance(+1) + seed bonus(+1 fixed +1 chance), and instant cachedFoodGrid indexing.
+// v2b: base=2 + farmsuit chance(+1) + seed bonus(+1 fixed +1 chance).
+// 규약: drop은 push만, grid 반영은 next tick (World.Pre 스냅샷에서 처리).
 {
     const repX = idx % AGRO.cols;
     const repY = (idx / AGRO.cols) | 0;
     const jitter = AGRO_TILE * 0.15;
 
-    function pushAndIndexFarmFood(x, y) {
+    function pushFarmFood(x, y) {
         foods.push(new Food(x, y, FOOD_SRC_FARM));
-        if (cachedFoodGrid) {
-            const id = _foodCellId(x, y);
-            let arr = cachedFoodGrid.get(id);
-            if (!arr) { arr = []; cachedFoodGrid.set(id, arr); }
-            arr.push(foods.length - 1);
-        }
     }
 
     function randDropXY() {
@@ -4519,7 +4514,7 @@ function agroHarvestTileIfReady(idx) {
     // Base drops: always 2
     for (let k = 0; k < 2; k++) {
         const [x, y] = randDropXY();
-        pushAndIndexFarmFood(x, y);
+        pushFarmFood(x, y);
     }
 
     // farmsuit proportional chance drop (+1)
@@ -4528,7 +4523,7 @@ function agroHarvestTileIfReady(idx) {
         const pSuit = _clamp01(suit * 0.6);
         if (Math.random() < pSuit) {
             const [x, y] = randDropXY();
-            pushAndIndexFarmFood(x, y);
+            pushFarmFood(x, y);
         }
     }
 
@@ -4539,13 +4534,13 @@ function agroHarvestTileIfReady(idx) {
             // fixed +1 (seed food was consumed)
             {
                 const [x, y] = randDropXY();
-                pushAndIndexFarmFood(x, y);
+                pushFarmFood(x, y);
             }
             // chance +1
             const pSeed = (sm === 2) ? 0.6 : 0.3;
             if (Math.random() < pSeed) {
                 const [x, y] = randDropXY();
-                pushAndIndexFarmFood(x, y);
+                pushFarmFood(x, y);
             }
             // reset seed mode after harvest
             if (AGRO.repSeedMode) AGRO.repSeedMode[idx] = 0;
@@ -12766,6 +12761,7 @@ if (ribbons.length){
 
 
         function generateFood(n, pos = null, opt = null) {
+            // 규약: drop은 push만, grid 반영은 next tick (World.Pre 스냅샷에서 처리).
 
             const src = (opt && opt.source) ? opt.source : FOOD_SRC_NAT;
 
@@ -14121,18 +14117,6 @@ if (d2 < COLLIDE_R2) {
                     });
                 }
 
-                const __foodsLenBefore = foods.length;
-
-                _compactFoodsIfNeeded();
-
-                if (foods.length !== __foodsLenBefore) {
-
-                    foodGrid = _buildFoodGrid();
-
-                    try { const HS = (EvoSim && EvoSim.modules) ? EvoSim.modules.HS : null; const m = HS && HS._snapMeta; if (m) m.foodGrid = foodGrid; } catch(_){ }
-                    try{ if (typeof cachedFoodGrid !== "undefined") cachedFoodGrid = foodGrid; if (typeof cachedFoodGridTick !== "undefined") cachedFoodGridTick = simulatedTicks; }catch(_){ }
-
-                }
             }
 
             const ctx = { ERA, CFG, tickCount: simulatedTicks, agents, foodGrid, agentGridPost: agentGrid, herbivoreGrid };
@@ -15661,6 +15645,10 @@ try {
           }
       }
 
+      // World.Pre: foods 구조 변경(압축)은 여기 단일 경로에서만 수행.
+      // 규약: drop은 push만, grid 반영은 next tick.
+      _compactFoodsIfNeeded();
+
       // Snapshot.Pre authoritative grids for this tick (shared by think + collision).
       const foodGridPre = _ensureFoodGridCurrent();
 
@@ -16334,7 +16322,6 @@ function __evoRafStop(){
 
             // Clear main entity collections
             try{ if (agents && agents.length) agents.length = 0; }catch(e){}
-            try{ if (foods && foods.length) foods.length = 0; }catch(e){}
             try{ if (predators && predators.length) predators.length = 0; }catch(e){}
             try{ if (herbivores && herbivores.length) herbivores.length = 0; }catch(e){}
 
