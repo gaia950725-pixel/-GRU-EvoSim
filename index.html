@@ -7687,8 +7687,7 @@ function _clamorMaybeShout(agent, nowTick) {
               if (p01 > bSco[id]) { bSco[id] = p01; bIdx[id] = i; }
             };
 
-            // Contract: Agent grid cell value는 "agent uid"를 저장한다(배열 idx 아님).
-            // 이후 소비자는 _resolveAgentCellValToIdx(...)를 통해 uid->idx 해석을 수행해야 한다.
+            // Cell value contract: grid cell value is always entity id(uid/hid/pid), never array idx; resolve must use E2I map lookup only.
             _placeListIntoGridCells_Pos(
               agents, AGENT_CELL, cols, rows,
               (a)=>!a || a.dead,
@@ -8804,7 +8803,8 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
           }
           touched.length = 0;
 
-                    // place herbivores (Phase3-1 core)
+          // Cell value contract: grid cell value is always entity id(uid/hid/pid), never array idx; resolve must use E2I map lookup only.
+          // place herbivores (Phase3-1 core)
           _placeListIntoGridCells_Pos(
             list, HERB_CELL, cols, rows,
             (h)=>!h || h.dead,
@@ -8931,6 +8931,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
               grid.touchedA[grid.touchedN++] = id | 0;
             };
 
+            // Cell value contract: grid cell value is always entity id(uid/hid/pid), never array idx; resolve must use E2I map lookup only.
             _placeListIntoGridCells_Pos(
               list, PRED_CELL, cols, rows,
               (p)=>!p || p.dead,
@@ -16375,36 +16376,31 @@ function _ensureResolveReady(requiredKinds, phase, reason) {
 }
 
 /**
- * Phase3-3A: Resolve a cell value to an array index.
- * - Current grid still stores idx => fast path return v.
- * - Later (Phase3-3B) grid will store eid => map path.
- * - Contract: dirty 상태에서는 절대 호출되면 안 됨(fail-fast 유지).
+ * Cell value contract: grid cell value is always entity id(uid/hid/pid), never array idx; resolve must use E2I map lookup only.
+ * Contract: dirty 상태에서는 절대 호출되면 안 됨(fail-fast 유지).
  */
 function _resolveAgentCellValToIdx(v) {
   v |= 0;
   if (_agentE2I_dirty) _e2iDirtyFail('agent', 'Resolve.Agent', 'dirty_before_resolve');
   if (v < 0) return -1;
-  if (v < agents.length) return v;
   const idx = _agentE2I.get(v);
-  if (idx == null) _e2iDirtyFail('agent', 'Resolve.Agent', `unmapped_cell_value:${v}`);
+  if (idx == null) _e2iDirtyFail('agent', 'Resolve.Agent', `unmapped_cell_value kind=agent id=${v} tick=${simulatedTicks|0} phase=Resolve.Agent`);
   return idx;
 }
 function _resolveHerbCellValToIdx(v) {
   v |= 0;
   if (_herbE2I_dirty) _e2iDirtyFail('herb', 'Resolve.Herb', 'dirty_before_resolve');
   if (v < 0) return -1;
-  if (v < herbivores.length) return v;
   const idx = _herbE2I.get(v);
-  if (idx == null) _e2iDirtyFail('herb', 'Resolve.Herb', `unmapped_cell_value:${v}`);
+  if (idx == null) _e2iDirtyFail('herb', 'Resolve.Herb', `unmapped_cell_value kind=herb id=${v} tick=${simulatedTicks|0} phase=Resolve.Herb`);
   return idx;
 }
 function _resolvePredCellValToIdx(v) {
   v |= 0;
   if (_predE2I_dirty) _e2iDirtyFail('pred', 'Resolve.Pred', 'dirty_before_resolve');
   if (v < 0) return -1;
-  if (v < predators.length) return v;
   const idx = _predE2I.get(v);
-  if (idx == null) _e2iDirtyFail('pred', 'Resolve.Pred', `unmapped_cell_value:${v}`);
+  if (idx == null) _e2iDirtyFail('pred', 'Resolve.Pred', `unmapped_cell_value kind=pred id=${v} tick=${simulatedTicks|0} phase=Resolve.Pred`);
   return idx;
 }
 // === /Phase3-3A ===
