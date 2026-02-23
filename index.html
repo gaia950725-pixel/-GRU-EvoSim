@@ -7687,6 +7687,8 @@ function _clamorMaybeShout(agent, nowTick) {
               if (p01 > bSco[id]) { bSco[id] = p01; bIdx[id] = i; }
             };
 
+            // Contract: Agent grid cell value는 "agent uid"를 저장한다(배열 idx 아님).
+            // 이후 소비자는 _resolveAgentCellValToIdx(...)를 통해 uid->idx 해석을 수행해야 한다.
             _placeListIntoGridCells_Pos(
               agents, AGENT_CELL, cols, rows,
               (a)=>!a || a.dead,
@@ -15535,7 +15537,8 @@ try {
           _predE2I_dirty  = true;
 
           // Agent grid cell value is uid-based.
-          // Compaction tick must not reach Predator.update/Collision with dirty AgentE2I.
+          // Contract: compaction 이후 resolve 전에 E2I rebuild 완료가 선행되어야 한다.
+          // (dirty AgentE2I 상태로 Predator.update/Collision 진입 금지, fallback 금지/fail-fast 유지)
           // Rebuild immediately in same tick (before any _resolveAgentCellValToIdx calls).
           try { _rebuildAgentE2I("compaction"); }
           catch(e){ console.error(e); throw e; }
@@ -16182,6 +16185,7 @@ function _rebuildPredE2I(reason) {
  * Phase3-3A: Resolve a cell value to an array index.
  * - Current grid still stores idx => fast path return v.
  * - Later (Phase3-3B) grid will store eid => map path.
+ * - Contract: dirty 상태에서는 절대 호출되면 안 됨(fail-fast 유지).
  */
 function _resolveAgentCellValToIdx(v) {
   v |= 0;
