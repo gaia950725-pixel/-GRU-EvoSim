@@ -17476,7 +17476,9 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
     function closeAll(){
       body.classList.remove('drawer-left-open','drawer-right-open','drawer-dev-open');
       saveLegacyApprox();
-  
+      updateOverlay();
+    }
+
     /* --- PNREV P1b: detail fold init (Rev31 only) --- */
     try{
       const __rev2 = parseInt(localStorage.getItem('hs_ui_layoutRev')||'31',10);
@@ -17580,9 +17582,6 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
       }
     }catch(_){}
     /* --- PNREV P1b end --- */
-
-    updateOverlay();
-    }
 
     // Bind top-bar buttons (Rev31 only)
     if(btnL) btnL.addEventListener('click', (ev)=>{ try{ ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); }catch(_){ } toggleLeft(); }, {passive:false});
@@ -17708,7 +17707,7 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 
 /* --- End SoftMod --- */
 
-
+}
 </script>
     <!-- HOME HUB FLOW (Step3): Exit Modal -->
     <div id="exit-modal" aria-hidden="true">
