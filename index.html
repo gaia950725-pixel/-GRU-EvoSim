@@ -16182,21 +16182,49 @@ let _agentE2I = new FastIdMap(8192);
 let _herbE2I  = new FastIdMap(4096);
 let _predE2I  = new FastIdMap(512);
 
+/**
+ * E2I 공통 상태 모델 (Agent/Herb/Pred 동일 적용)
+ *
+ * [상태 정의]
+ * - Clean:
+ *   uid/eid -> idx 맵이 현재 배열 인덱스와 일치하며 resolve 허용.
+ * - Dirty:
+ *   맵 정합성이 깨졌거나 깨질 수 있는 구간. resolve "경고"가 아니라 "금지" 상태.
+ *   (_resolve* 는 dirty에서 fail-fast throw 유지)
+ * - Rebuilding:
+ *   rebuild 루틴이 실행 중인 과도 상태. 완료 시에만 Clean으로 전이.
+ *
+ * [Dirty 유발 이벤트 공통 분류]
+ * 1) 배열 compaction/재배열
+ * 2) 엔티티 대량 삭제/사망 flush
+ * 3) uid<->idx 대응이 깨지는 구조 변경
+ *
+ * [Tick phase 전이 규칙]
+ * - Dirty 표식: 위 이벤트가 발생한 phase 즉시 Dirty로 전환.
+ * - Rebuild 실행: tick finalize(또는 compaction 직후 안전 구간)에서 rebuild 시작.
+ * - Clean 복귀: rebuild 완료 후 dirty=false 기록 시점부터 resolve 재허용.
+ *
+ * 즉, Dirty -> Rebuilding -> Clean 순서를 고정하고,
+ * Dirty 동안 _e2i_on*Added 는 증분 반영을 건너뛰고 finalize rebuild 결과를 따른다.
+ */
 let _agentE2I_dirty = true;
 let _herbE2I_dirty  = true;
 let _predE2I_dirty  = true;
 
 function _rebuildAgentE2I(reason) {
+  // Rebuilding: 완료 전까지 resolve 재허용 금지
   _agentE2I.clear();
   for (let i=0;i<agents.length;i++){ const a=agents[i]; if(a) _agentE2I.set(a.uid|0, i|0); }
   _agentE2I_dirty = false;
 }
 function _rebuildHerbE2I(reason) {
+  // Rebuilding: 완료 전까지 resolve 재허용 금지
   _herbE2I.clear();
   for (let i=0;i<herbivores.length;i++){ const h=herbivores[i]; const hid=(h&&h.hid)?(h.hid|0):0; if(hid>0) _herbE2I.set(hid, i|0); }
   _herbE2I_dirty = false;
 }
 function _rebuildPredE2I(reason) {
+  // Rebuilding: 완료 전까지 resolve 재허용 금지
   _predE2I.clear();
   for (let i=0;i<predators.length;i++){ const p=predators[i]; if(p) _predE2I.set(p.pid|0, i|0); }
   _predE2I_dirty = false;
