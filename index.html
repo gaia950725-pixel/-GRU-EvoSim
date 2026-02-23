@@ -13912,10 +13912,6 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                     });
                 }
 
-                /* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_START === */
-const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
-if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
-/* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_END === */
             }
             function _hs3_layerHunt(ctx, a) {
                     if (Pred.shouldTryHunt(a)) {
@@ -15509,6 +15505,8 @@ function _simStepWhileAccumulated(dt, time) {
       // Phase1: reset per-tick death flags (no allocation)
       _tickDeathFlags.agent = false; _tickDeathFlags.herb = false; _tickDeathFlags.pred = false;
 
+      // [B1] World.Pre
+      // 여기서만 하는 일: tick 초반 공용 정리를 순서대로 수행한다.
 /* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_START === */
 try {
   if (_clamorComFast && _clamorHotN > 0 && (simulatedTicks % CLAMOR_DECAY_PERIOD_TICKS === 0)) {
@@ -15517,8 +15515,17 @@ try {
 } catch(_) {}
 /* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_END === */
 
+      // World.Pre: foods 구조 변경(압축)은 여기 단일 경로에서만 수행.
+      // 규약: drop은 push만, grid 반영은 next tick.
+      _compactFoodsIfNeeded();
+
+      _processFoodSpawnQueue(simulatedTicks);
+
+      const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
+      if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
+
       /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_START === */
-      // Selected tile: keep agro stats fresh at low frequency (moved from UI update)
+      // World.Pre substep: Selected tile lazy touch 보정 고정
       try {
         if (AGRO && selectedTileIdx !== -1) {
           if (_agroSelTouchPending) {
@@ -15542,9 +15549,8 @@ try {
       } catch (_) {}
       /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_END === */ 
 
-      // [B1] Tick Housekeeping
-      // 여기서만 하는 일: 저주기 갱신/큐 처리/프레스티지 갱신을 수행한다.
-      _processFoodSpawnQueue(simulatedTicks);
+      // [B2] World.Pre 저주기 정리
+      // 여기서만 하는 일: compaction/pack/prestige 저주기 정리를 수행한다.
     
       // Prestige update: every 120 ticks (low frequency)
       if (simulatedTicks % 120 === 0) {
@@ -15557,8 +15563,6 @@ try {
           }
       }
     
-      // [B2] Compaction & Pack Maintenance
-      // 여기서만 하는 일: 엔티티 압축/팩 유지보수/food 구조 정리를 수행한다.
             if (simulatedTicks % ENTITY_COMPACTION_PERIOD_TICKS === 0) {
         // --- agents in-place compaction ---
         const aBefore = agents.length;
@@ -15653,10 +15657,6 @@ try {
           }
       }
 
-      // World.Pre: foods 구조 변경(압축)은 여기 단일 경로에서만 수행.
-      // 규약: drop은 push만, grid 반영은 next tick.
-      _compactFoodsIfNeeded();
-
       // [B3] Pre-Snapshot Build
       // 여기서만 하는 일: think/collision 공유용 Pre 스냅샷 그리드를 확정한다.
       // Snapshot.Pre authoritative grids for this tick (shared by think + collision).
@@ -15687,7 +15687,7 @@ try {
         }
       }
 
-      // [B4] Predator/Leadership Pre-Body
+      // [B4] Predator/Leadership/Influx/Respawn Pre-Body
       // 여기서만 하는 일: predator body 선처리와 리더십/앵커 리프레시를 수행한다.
       // Ecology.Pre: Predator Body uses the Body-stage agent grid snapshot.
       if (_mp_enabled) {
@@ -15718,6 +15718,33 @@ try {
           if (simulatedTicks % ANCHOR_REFRESH_TICKS === 0) {
               refreshAnchors(agentGridPre, simulatedTicks);
           }
+      }
+
+      if (
+          predatorRespawnQueue.length > 0 &&
+          predatorRespawnQueue[0].tick <= simulatedTicks &&
+          (simulatedTicks - lastPredRespawnTick) >= PRED_RESPAWN_MIN_INTERVAL_TICKS
+      ) {
+          const item = predatorRespawnQueue.shift();
+          lastPredRespawnTick = simulatedTicks;
+
+          if (item.kind === 'DIREWOLF_PACK') {
+              spawnDirewolfPack(getRandomLandPoint(), item.packSize);
+              logEvent("다이어울프 팩 출현", "event");
+          } else {
+              let p = getRandomLandPoint();
+              predators.push(new Predator(p.x, p.y, { kind: 'SABERTOOTH' }));
+              _e2i_onPredAdded(predators.length-1);
+              logEvent("검치호 출현", "event");
+          }
+      }
+
+      // === Population Influx (Crisis & Periodic) ===
+      try {
+          _influxPopulationCrisisGroupV2(agentGridPre);
+          _influxPeriodicGroupV2(agentGridPre);
+      } catch(e) {
+          console.warn("[PopInflux] error", e);
       }
 
       // [B5] Agent Think/Signal/Body
@@ -15911,38 +15938,7 @@ if (_mp_enabled) {
           herbGridPost = _buildHerbivoreGrid(herbivores);
       }
 
-      // [B7] Spawn/Influx Events
-      // 여기서만 하는 일: 포식자 리스폰과 인구 유입 이벤트를 처리한다.
-      if (
-          predatorRespawnQueue.length > 0 &&
-          predatorRespawnQueue[0].tick <= simulatedTicks &&
-          (simulatedTicks - lastPredRespawnTick) >= PRED_RESPAWN_MIN_INTERVAL_TICKS
-      ) {
-          const item = predatorRespawnQueue.shift();
-          lastPredRespawnTick = simulatedTicks;
-        
-          if (item.kind === 'DIREWOLF_PACK') {
-              spawnDirewolfPack(getRandomLandPoint(), item.packSize);
-              logEvent("다이어울프 팩 출현", "event");
-          } else {
-              let p = getRandomLandPoint();
-              predators.push(new Predator(p.x, p.y, { kind: 'SABERTOOTH' }));
-              _e2i_onPredAdded(predators.length-1);
-              logEvent("검치호 출현", "event");
-          }
-      }
-
-
-
-      // === Population Influx (Crisis & Periodic) ===
-      try {
-          _influxPopulationCrisisGroupV2(agentGridPost);
-          _influxPeriodicGroupV2(agentGridPost);
-      } catch(e) {
-          console.warn("[PopInflux] error", e);
-      }
-
-      // [B8] Interaction Resolution
+      // [B7] Interaction Resolution
       // 여기서만 하는 일: 충돌/상호작용 해석과 solitary action 스윕을 수행한다.
       if (_mp_enabled) { const __t = performance.now(); // === SS: Interaction Sweep ===
       checkCollisions(foodGridForTick, agentGridPost, herbGridPost); _mp_coll += (performance.now() - __t); } else { checkCollisions(foodGridForTick, agentGridPost, herbGridPost); }
@@ -15953,7 +15949,7 @@ if (_mp_enabled) {
         _ss_applySolitaryActions(a, simulatedTicks);
       }
 
-      // [B9] Tick Finalize & Cache Commit
+      // [B8] Tick Finalize & Cache Commit
       // 여기서만 하는 일: 다음 tick용 캐시/맵 후처리를 커밋한다.
       // Phase1: finalize NEXT-TICK grid caches AFTER collisions (post-collision snapshot)
       // If deaths happened during this tick, invalidate caches to force rebuild on next tick.
