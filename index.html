@@ -15657,29 +15657,25 @@ try {
           if (_mp_enabled) { const __t = performance.now(); agentGridPre = _buildAgentGrid(agents); _mp_grid += (performance.now() - __t); }
           else agentGridPre = _buildAgentGrid(agents);
       }
-      let herbGridPre = cachedHerbGrid; // Patch D: Use cache
-      if (!herbGridPre) {
-          if (_mp_enabled) { const __t = performance.now(); herbGridPre = _buildHerbivoreGrid(herbivores); _mp_grid += (performance.now() - __t); }
-          else herbGridPre = _buildHerbivoreGrid(herbivores);
-      }
-
-
-      let predGridPre = cachedPredGrid; // Phase2.5: NEXT-TICK pred snapshot cache
-      if (!predGridPre) {
-        // Cache may be invalidated by pred death/compaction in the previous tick.
-        // Rebuild (do NOT throw; tick-local flags are reset at tick start).
-        if (_mp_enabled) {
+      // [B4] Ecology.Pre + Leadership/Influx/Respawn
+      // 여기서만 하는 일: Ecology.Pre body 스윕과 리더십/앵커 리프레시를 수행한다.
+      // Ecology.Pre: Herbivore -> Predator 순으로 body를 선처리한다.
+      if (_mp_enabled) {
           const __t = performance.now();
-          predGridPre = _buildPredatorGrid(predators);
-          _mp_grid += (performance.now() - __t);
-        } else {
-          predGridPre = _buildPredatorGrid(predators);
-        }
+          for (let hi = 0; hi < herbivores.length; hi++) {
+              const h = herbivores[hi];
+              if (!h) continue;
+              h.update(foodGridForTick);
+          }
+          _mp_anim += (performance.now() - __t);
+      } else {
+          for (let hi = 0; hi < herbivores.length; hi++) {
+              const h = herbivores[hi];
+              if (!h) continue;
+              h.update(foodGridForTick);
+          }
       }
 
-      // [B4] Predator/Leadership/Influx/Respawn Pre-Body
-      // 여기서만 하는 일: predator body 선처리와 리더십/앵커 리프레시를 수행한다.
-      // Ecology.Pre: Predator Body uses the Body-stage agent grid snapshot.
       if (_mp_enabled) {
           const __t = performance.now();
           for (let pi = 0; pi < predators.length; pi++) {
@@ -15744,6 +15740,20 @@ try {
           _influxPeriodicGroupV2(agentGridPre);
       } catch(e) {
           console.warn("[PopInflux] error", e);
+      }
+
+      let herbGridPre = cachedHerbGrid; // Patch D: Use cache
+      let predGridPre = cachedPredGrid; // Phase2.5: NEXT-TICK pred snapshot cache
+      if (!herbGridPre || !predGridPre) {
+          if (_mp_enabled) {
+              const __t = performance.now();
+              if (!herbGridPre) herbGridPre = _buildHerbivoreGrid(herbivores);
+              if (!predGridPre) predGridPre = _buildPredatorGrid(predators);
+              _mp_grid += (performance.now() - __t);
+          } else {
+              if (!herbGridPre) herbGridPre = _buildHerbivoreGrid(herbivores);
+              if (!predGridPre) predGridPre = _buildPredatorGrid(predators);
+          }
       }
 
       // [B5] Agent Think/Signal/Body
@@ -15910,20 +15920,6 @@ try {
               if (!a || a.dead) continue;
               a.update();
           }
-      }
-
-      // [B6] Herbivore Body
-      // 여기서만 하는 일: herbivore body 스윕을 수행한다.
-if (_mp_enabled) {
-          const __t = performance.now();
-          for(let h of herbivores) {
-          h.update(foodGridForTick);
-      }
-          _mp_anim += (performance.now() - __t);
-      } else {
-          for(let h of herbivores) {
-          h.update(foodGridForTick);
-      }
       }
 
       // [B7] Interaction Resolution
