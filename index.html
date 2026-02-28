@@ -403,6 +403,16 @@
 
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
         .value { font-weight: bold; color: #fff; }
+        .locale-obs { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+        .locale-obs-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .locale-obs-k { opacity: 0.75; font-weight: 500; }
+        .locale-obs-v { font-weight: 700; white-space: nowrap; }
+        .locale-obs-hint { justify-content: flex-end; }
+        .locale-obs-group { display: flex; flex-direction: column; gap: 1px; }
+        .locale-obs-group-title { opacity: 0.85; font-weight: 700; margin-top: 2px; }
+        .locale-obs-subrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .locale-obs-subk { opacity: 0.72; padding-left: 8px; }
+        .locale-obs-subv { font-weight: 700; text-align: right; white-space: nowrap; }
         .log-entry { 
             flex: 0 0 auto;
 font-size: 12px; 
@@ -2277,7 +2287,7 @@ BUILDER_BLOCK: CSS_END === */
                 <!-- Expanded Info -->
                 <div id="info-accordion-content" class="accordion-panel-content" style="display:none;">
 <div id="pnrev-dash-chipbar" class="pnrev-chipbar" style="margin:6px 0 10px;">
-  <button type="button" data-tab="geo">Geography</button>
+  <button type="button" data-tab="geo">Locale</button>
   <button type="button" data-tab="demo">Demography</button>
   <button type="button" data-tab="subs">Subsistence</button>
   <button type="button" data-tab="inter">Interaction</button>
@@ -2285,10 +2295,9 @@ BUILDER_BLOCK: CSS_END === */
 
 <div class="pnrev-tab" data-tab="geo">
 <div class="detail-section">
-                        <div class="detail-title">지질정보 (Geography)</div>
+                        <div class="detail-title">Locale</div>
                         <div class="stat-row">
-                            <span>농지 관측(c/t):</span>
-                            <span id="disp-farm-obs-mini" class="value" style="color:var(--herb)">Shift+클릭 농지</span>
+                            <div id="disp-farm-obs-mini" class="value locale-obs" style="color:var(--herb)">Shift+클릭 타일</div>
                         </div>
                     </div>
 </div>
@@ -4317,6 +4326,17 @@ function agroConsumeSeedForRepIdx(repIdx) {
         
 
 // --- Agro v2: season & stage helpers ---
+const AGRO_STAGE_LABELS = Object.freeze({
+  0: 'Preparation',
+  1: 'Sowing & Cultivation',
+  // Stage 2 "Transport" means interpretation of existing farm_drop flow (not a new transport system).
+  2: 'Harvest & Transport'
+});
+
+function agroStageLabel(stage) {
+  return AGRO_STAGE_LABELS[(stage | 0)] || AGRO_STAGE_LABELS[0];
+}
+
 // season multiplier for stage=1 only. Uses CAL_TICKS_PER_YR (240 ticks/year after timeline patch).
 function agroSeasonMul() {
   const T = (typeof CAL_TICKS_PER_YR === 'number' && CAL_TICKS_PER_YR > 0) ? CAL_TICKS_PER_YR : 240;
@@ -12072,6 +12092,7 @@ if (inBrake) speedCap = 0;
         let selectedPredator = null;
         let selectedHerbivore = null;
         let selectedTileIdx = -1; // [Patch B] 농지 타일 선택 인덱스
+        let selectedTileFarmable = false;
         let _agroSelTouchPending = false;
         let _agroSelTouchLastTick = -1e15;
         let hoverTileIdx = -1;   // [Patch] Shift-held 농지 타일 미리보기(타일 하이라이트)
@@ -14662,31 +14683,33 @@ isDragging = true;
             lastMouse.x = e.clientX;
             lastMouse.y = e.clientY;
 
-            // [Shift + 클릭] 농지 타일 선택 모드
+            // [Shift + 클릭] 타일 선택 모드
             if (e.shiftKey) {
                 if (AGRO) {
                     const tIdx = agroTileIndexAt(wx, wy);
-                    if (tIdx !== -1 && AGRO.farmMask[tIdx] > 0) {
+                    if (tIdx !== -1) {
                         selectedTileIdx = tIdx;
+                        selectedTileFarmable = !!(AGRO.farmMask && AGRO.farmMask[tIdx] > 0);
                         _agroSelTouchPending = true;
                         _agroSelTouchLastTick = -1e15;
                         selectedAgent = null;
                         selectedPredator = null;
                         selectedHerbivore = null;
                         
-                        // 인스펙터 패널에 안내 문구 표시
-                        if(inspectorContent) inspectorContent.innerHTML = `<div style="text-align: center; color: var(--herb); padding: 20px; line-height:1.6;">🌱 <b>농지 타일 선택됨</b><br><span style="font-size:11px; color:#aaa;">(시스템 현황 패널을 확인하세요)</span></div>`;
+                        if(inspectorContent) inspectorContent.innerHTML = `<div style="text-align: center; color: var(--herb); padding: 20px; line-height:1.6;">🌱 <b>타일 선택됨</b><br><span style="font-size:11px; color:#aaa;">(시스템 현황 패널을 확인하세요)</span></div>`;
                         if(brainCanvas) brainCanvas.style.display = 'none';
                         if(brainOutputsEl) brainOutputsEl.style.display = 'none';
                         return;
                     }
                 }
                 selectedTileIdx = -1;
+                selectedTileFarmable = false;
                 return;
             }
 
             // [일반 클릭] 개체 선택 모드
             selectedTileIdx = -1;
+            selectedTileFarmable = false;
             let minDist = 30 / camera.zoom;
             let closest = null;
             let clickedType = null; // Renamed from type to avoid issues
@@ -14716,7 +14739,7 @@ isDragging = true;
                 else if(clickedType === 'predator') selectedPredator = closest;
                 else if(clickedType === 'herbivore') selectedHerbivore = closest;
             } else {
-                if(inspectorContent) inspectorContent.innerHTML = `<div style="text-align: center; color: #666; padding: 20px;">개체를 클릭하여 확인하세요<br><span style="font-size:11px;">(Shift+클릭: 농지 정보)</span></div>`;
+                if(inspectorContent) inspectorContent.innerHTML = `<div style="text-align: center; color: #666; padding: 20px;">개체를 클릭하여 확인하세요<br><span style="font-size:11px;">(Shift+클릭: 타일 정보)</span></div>`;
                 if(brainCtx) brainCtx.clearRect(0,0,brainCanvas.width, brainCanvas.height);
                 if(brainOutputsEl) brainOutputsEl.style.display = 'none';
             }
@@ -14985,35 +15008,113 @@ _setTextIfChanged(uiPredCount, predators.length);
              _setTextIfChanged(uiLife, cachedUiLifeText);
 
              if (uiFarmObsMini) {
-                if (AGRO && selectedTileIdx !== -1) {
-                    /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_START === */
-                    const iRaw = selectedTileIdx;
-                    const peek = agroPeekTile(iRaw);
-
-                    const crop = (peek ? peek.crop : 0);
-                    const tilth = (peek ? peek.tilth : 0);
-
-                    (() => {
-                    let extra = '';
-                    try {
-                        if (AGRO) {
-                            const cols = (AGRO.cols | 0);
-                            if (cols > 0) {
-                                const tx = (iRaw % cols);
-                                const ty = ((iRaw / cols) | 0);
-                                const wx = (tx + 0.5) * AGRO.tile;
-                                const wy = (ty + 0.5) * AGRO.tile;
-                                const z = _clamorPeekAtWorldXY(wx, wy);
-                                extra = ` | CLAMOR cF=${z[0].toFixed(2)} cS=${z[1].toFixed(2)} vF=${z[2].toFixed(2)} vS=${z[3].toFixed(2)}`;
-                            }
+                /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_START === */
+                if (!uiFarmObsMini.__localeRows) {
+                    const mkSubRow = (k) => {
+                        const row = document.createElement('div');
+                        row.className = 'locale-obs-subrow';
+                        const key = document.createElement('span');
+                        key.className = 'locale-obs-subk';
+                        key.textContent = k;
+                        const val = document.createElement('span');
+                        val.className = 'locale-obs-subv';
+                        val.textContent = '—';
+                        row.appendChild(key);
+                        row.appendChild(val);
+                        return { row, val };
+                    };
+                    const mkGroup = (title, keys) => {
+                        const group = document.createElement('div');
+                        group.className = 'locale-obs-group';
+                        const t = document.createElement('div');
+                        t.className = 'locale-obs-group-title';
+                        t.textContent = title;
+                        group.appendChild(t);
+                        const vals = {};
+                        for (const k of keys) {
+                            const { row, val } = mkSubRow(k);
+                            vals[k] = val;
+                            group.appendChild(row);
                         }
-                    } catch (_) {}
-                    _setTextIfChanged(uiFarmObsMini, `${crop.toFixed(2)} / ${tilth.toFixed(2)}${extra}`);
-                })();
-/* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_END === */
-                } else {
-                    _setTextIfChanged(uiFarmObsMini, 'Shift+클릭 농지');
+                        return { group, vals };
+                    };
+                    uiFarmObsMini.textContent = '';
+                    const climate = mkGroup('Climate', ['temperature', 'humidity']);
+                    const topography = mkGroup('Topography', ['altitude']);
+                    const clamor = mkGroup('Clamor', ['cF', 'cS', 'vF', 'vS']);
+                    const agriculture = mkGroup('Agriculture', ['crop', 'tilth', 'stage']);
+                    const hintRow = document.createElement('div');
+                    hintRow.className = 'locale-obs-row locale-obs-hint';
+                    const hintVal = document.createElement('span');
+                    hintVal.className = 'locale-obs-v';
+                    hintVal.textContent = '';
+                    hintRow.appendChild(hintVal);
+                    uiFarmObsMini.appendChild(hintRow);
+                    uiFarmObsMini.appendChild(climate.group);
+                    uiFarmObsMini.appendChild(topography.group);
+                    uiFarmObsMini.appendChild(clamor.group);
+                    uiFarmObsMini.appendChild(agriculture.group);
+                    uiFarmObsMini.__localeRows = {
+                        ...climate.vals,
+                        ...topography.vals,
+                        ...clamor.vals,
+                        ...agriculture.vals,
+                        hint: hintVal
+                    };
                 }
+                const rows = uiFarmObsMini.__localeRows;
+                if (!(AGRO && selectedTileIdx !== -1)) {
+                    _setTextIfChanged(rows.temperature, '—');
+                    _setTextIfChanged(rows.humidity, '—');
+                    _setTextIfChanged(rows.altitude, '—');
+                    _setTextIfChanged(rows.cF, '—');
+                    _setTextIfChanged(rows.cS, '—');
+                    _setTextIfChanged(rows.vF, '—');
+                    _setTextIfChanged(rows.vS, '—');
+                    _setTextIfChanged(rows.crop, '—');
+                    _setTextIfChanged(rows.tilth, '—');
+                    _setTextIfChanged(rows.stage, '—');
+                    _setTextIfChanged(rows.hint, 'Shift+클릭 타일');
+                } else {
+                    const iRaw = selectedTileIdx;
+                    const cols = (AGRO.cols | 0);
+                    const tx = (iRaw % cols);
+                    const ty = ((iRaw / cols) | 0);
+                    const wx = (tx + 0.5) * AGRO.tile;
+                    const wy = (ty + 0.5) * AGRO.tile;
+                    _setTextIfChanged(rows.temperature, `${temp01At(wx, wy).toFixed(2)}`);
+                    _setTextIfChanged(rows.humidity, `${humid01At(wx, wy).toFixed(2)}`);
+                    _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
+                    try {
+                        const z = _clamorPeekAtWorldXY(wx, wy);
+                        _setTextIfChanged(rows.cF, `${z[0].toFixed(2)}`);
+                        _setTextIfChanged(rows.cS, `${z[1].toFixed(2)}`);
+                        _setTextIfChanged(rows.vF, `${z[2].toFixed(2)}`);
+                        _setTextIfChanged(rows.vS, `${z[3].toFixed(2)}`);
+                    } catch (_) {
+                        _setTextIfChanged(rows.cF, '—');
+                        _setTextIfChanged(rows.cS, '—');
+                        _setTextIfChanged(rows.vF, '—');
+                        _setTextIfChanged(rows.vS, '—');
+                    }
+                    if (selectedTileFarmable) {
+                        const peek = agroPeekTile(iRaw);
+                        const crop = (peek ? peek.crop : 0);
+                        const tilth = (peek ? peek.tilth : 0);
+                        const repIdx = (typeof agroRepIdxForTileIdx === 'function') ? agroRepIdxForTileIdx(iRaw) : -1;
+                        const hasStage = !!(AGRO.repStage && repIdx >= 0);
+                        const stage = hasStage ? (AGRO.repStage[repIdx] | 0) : 0;
+                        _setTextIfChanged(rows.crop, `${crop.toFixed(2)}`);
+                        _setTextIfChanged(rows.tilth, `${tilth.toFixed(2)}`);
+                        _setTextIfChanged(rows.stage, hasStage ? agroStageLabel(stage) : '-');
+                    } else {
+                        _setTextIfChanged(rows.crop, '-');
+                        _setTextIfChanged(rows.tilth, '-');
+                        _setTextIfChanged(rows.stage, '-');
+                    }
+                    _setTextIfChanged(rows.hint, '');
+                }
+                /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_END === */
             }
             }
 
@@ -16675,7 +16776,7 @@ function __evoRafStop(){
             try{ selectedAgent = null; }catch(e){}
             try{ selectedPredator = null; }catch(e){}
             try{ selectedHerbivore = null; }catch(e){}
-            try{ selectedTileIdx = -1; }catch(e){}
+            try{ selectedTileIdx = -1; selectedTileFarmable = false; }catch(e){}
             try{ hoverTileIdx = -1; }catch(e){}
             try{ followEnabled = false; }catch(e){}
 
