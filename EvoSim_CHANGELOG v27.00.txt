@@ -1,4 +1,4 @@
-# EvoSim CHANGELOG (Single Source of Truth)
+# EvoSim CHANGELOG v27.00 (Single Source of Truth)
 - Last stable version: **27.00**  
 - Policy: **Code comments are minimal (local-only). Patch history lives here.**
 - Scope note: older pre-26.xx items may be summarized (seeded from notes) and later validated against code.
@@ -7,6 +7,7 @@
 
 ## 0) Non-Negotiables (do not break)
 - Fail-fast in core sim loop; no “pretend OK” fallbacks.
+- On version bumps, update the document title version together (e.g., `# EvoSim CHANGELOG vXX.XX ...`).
 - Render/UI only: defensive guards allowed, must mark `// RENDER-ONLY GUARD`.
 - No per-frame full scans added by default. Prefer caches + low-frequency refresh (0.25–1s) + event-driven invalidation.
 - BUILDER_BLOCK boundaries respected. Marker changes require explicit justification.
@@ -34,6 +35,11 @@ When a patch lands, record:
 - **Why (1 bullet)**
 - **Regression risk (1–2 bullets)**
 - **How to verify (copy/paste console cmds or in-game steps)**
+- **Patch application procedure (update as a set):**
+  - `Last stable version` update
+  - Title `# EvoSim CHANGELOG vXX.XX ...` update
+
+For 27.03+ updates, repeat this same checklist in the PR body under verification items.
 
 ---
 
