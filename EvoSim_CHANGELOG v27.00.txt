@@ -1,0 +1,114 @@
+# EvoSim CHANGELOG (Single Source of Truth)
+- Last stable version: **27.00**  
+- Policy: **Code comments are minimal (local-only). Patch history lives here.**
+- Scope note: older pre-26.xx items may be summarized (seeded from notes) and later validated against code.
+
+---
+
+## 0) Non-Negotiables (do not break)
+- Fail-fast in core sim loop; no “pretend OK” fallbacks.
+- Render/UI only: defensive guards allowed, must mark `// RENDER-ONLY GUARD`.
+- No per-frame full scans added by default. Prefer caches + low-frequency refresh (0.25–1s) + event-driven invalidation.
+- BUILDER_BLOCK boundaries respected. Marker changes require explicit justification.
+- Comment policy in code:
+  - `RENDER-ONLY GUARD`, `[DEPRECATED]`, `LOCAL INVARIANT` only.
+
+---
+
+## 1) Current Architecture Snapshot (keep short)
+### Tick semantics
+- (write a 5–10 line snapshot of current tick pipeline contracts)
+- PRE snapshot policy: (what is authoritative SOT for reads)
+- COMMIT policy: (what writes happen, when)
+
+### Core data SOTs
+- World/terrain/GAIA SOT:
+- Agent/Entity SOT:
+- Grid/caches SOT:
+
+---
+
+## 2) Regression checklist (copy/paste for every patch)
+When a patch lands, record:
+- **What changed (1–3 bullets)**
+- **Why (1 bullet)**
+- **Regression risk (1–2 bullets)**
+- **How to verify (copy/paste console cmds or in-game steps)**
+
+---
+
+## 3) Patch Log (append-only, newest first)
+### 27.00 — input27 proprio+socio
+- Change: expand inputs 23→27; reorder SENSOR indices to match 27 label order (Vis8/Aud4/Olf3/Proprio3/Intero5/Socio4).
+- Add: new slots PROPRIO_SLP / PROPRIO_KINE / PROPRIO_EMB and SOCIO_DWEL (0-filled; value generation deferred).
+- Comment: replace sensor group headers to new grouping; add 2-line `sensory type` + `cortex unit` per group (comment-only).
+- Label: replace short/long labels with `layer(mod)-target`; Δ/Σ kept as UI labels; long olf-hmn adds “(전체)” per policy.
+- Verify:
+  - CFG.inputs == 27; SENSOR_LABELS_SHORT/LONG length == 27.
+  - Search: no numeric sensor indexing (e.g., `sensors[0]`) and no `i<23` hard-codes.
+
+> Format rule: 1 patch entry = max 12 lines.  
+> Include “verify steps” every time.
+
+### 26.50 — Olf human global dual-bucket
+- Change: rival humans now add to HUMAN_SCENT as well as THREAT_SCENT; long label for olf-human adds “(전체)”; short labels unchanged.
+- Why: align olfactory “human presence” semantics with visual-human while preserving threat signal for rivals.
+- Risk: neolithic crowding/avoidance dynamics may shift slightly; NN adapts over time.
+- Verify:
+  - Neolithic: place 2 clans close → HUMAN_SCENT and THREAT_SCENT should both rise.
+  - Ctrl+F: `const isRival = (ERA === 'NEOLITHIC'` → ensure HUMAN add happens before rival THREAT add.
+- Planned opt: compute scent weight `w` once per target and distribute to both buckets (avoid duplicate w calc).
+
+### 26.47 — CM phase comment cleanup
+- Change: remove dev-phase/step comments ("Phase", "Step") that age like patch-notes; keep only `LOCAL INVARIANT` / `[DEPRECATED]` / `RENDER-ONLY GUARD`.
+- Why: phase-labeled comments were drifting and acting as false documentation; CHANGELOG remains SOT.
+- Risk: low (comment-only); ensure no accidental code edits.
+- Verify:
+  - Ctrl+F in HTML should return 0 hits for: `// Phase`, `/* --- Phase`, `Phase 3A`, `Phase3-3A`, `Step2` (comments only)
+  - In-game: quick boot + 60s run; no console errors.
+
+### 26.46 — CM stale comment cleanup
+- Change: remove stale patch/version/magic-number comments; keep only `LOCAL INVARIANT` / `[DEPRECATED]` / `RENDER-ONLY GUARD`.
+- Why: comment drift was misleading AI + humans after code changes; CHANGELOG is the SOT.
+- Risk: low (comment-only), but accidental deletions are possible if sweep was too broad.
+- Verify:
+  - Ctrl+F in HTML should return 0 hits for: `CHANGED FROM`, `TEMP PATCH`, `Patch 1:`, `Patch 2:`, `Patch 3:`, `Patch 4:`, `v22.17:`, `[Patch 4.5]`, `[PATCH] Legacy 2-ray`
+  - In-game: start a new session; no console errors on first 60s; basic UI/panels still render.
+
+### 26.45 — TS shout reorganize
+- Change: unify shout enqueue across MP on/off; MP becomes measure-only; remove dead loops.
+- Why: fix intermittent ‘no shout’ and reduce duplicated paths.
+- Risk: shout timing/weight changes could affect early-tick behavior.
+- Verify:
+  - In-game: observe shout behavior across several ticks (MP on/off); agents should still broadcast and react.
+  - Console: no new errors during 2–3 minutes; (optional) use existing DEV.perf(1) to confirm no major TPS drop.
+### 26.44 — <Patch name>
+- Change:
+- Why:
+- Risk:
+- Verify:
+
+---
+
+## 4) Known issues / open decisions (keep actionable)
+- Issue:
+  - Symptom:
+  - Suspected area:
+  - Next step:
+- Decision needed:
+  - Option A:
+  - Option B:
+  - Recommendation:
+
+---
+
+## 5) Legacy history (coarse, to be validated)
+> This section is allowed to be imperfect initially; mark uncertain items with (?) and validate later.
+
+- 15.x: …
+- 16.x: …
+- 17.x: …
+- 18.x: …
+- 19.x: …
+- 21.x–22.x: …
+- 24.53: main loop sweep change
