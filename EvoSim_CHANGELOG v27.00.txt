@@ -1,5 +1,5 @@
 # EvoSim CHANGELOG (Single Source of Truth)
-- Last stable version: **27.00**  
+- Last stable version: **27.02**  
 - Policy: **Code comments are minimal (local-only). Patch history lives here.**
 - Scope note: older pre-26.xx items may be summarized (seeded from notes) and later validated against code.
 
@@ -38,6 +38,17 @@ When a patch lands, record:
 ---
 
 ## 3) Patch Log (append-only, newest first)
+### 27.02 — Locale geography rows + all-tile Shift select
+- Change: Geography `disp-farm-obs-mini` is now 4 rows (Climate/Topography/Clamor/Agriculture) with cached row DOM updates.
+- Change: Shift+click tile selection now accepts any tile (`tIdx !== -1`), with farmability tracked separately.
+- Change: Climate/Topography show decimal values from `temp01At/humid01At` and `altitude01At`; Agriculture shows `-` on non-farm tiles.
+- Why: remove farm-only observability and align Locale panel with tile-level data policy.
+- Risk: low-medium (UI/update-path change in system panel); no sim core write-path changes.
+- Verify:
+  - Geography default shows `Shift+클릭 타일`.
+  - Shift+click non-farm tile => Agriculture `-`, other rows update.
+  - Shift+click farm tile => Agriculture `crop / tilth` with decimals; no console errors.
+
 ### 27.00 — input27 proprio+socio
 - Change: expand inputs 23→27; reorder SENSOR indices to match 27 label order (Vis8/Aud4/Olf3/Proprio3/Intero5/Socio4).
 - Add: new slots PROPRIO_SLP / PROPRIO_KINE / PROPRIO_EMB and SOCIO_DWEL (0-filled; value generation deferred).
