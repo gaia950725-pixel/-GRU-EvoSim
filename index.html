@@ -403,10 +403,15 @@
 
         .stat-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; }
         .value { font-weight: bold; color: #fff; }
-        .locale-obs { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+        .locale-obs { display: flex; flex-direction: column; gap: 2px; width: 100%; color: #fff; font-size: 13px; }
         .locale-obs-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .locale-obs-k { opacity: 0.75; font-weight: 500; }
         .locale-obs-v { font-weight: 700; white-space: nowrap; }
+        .locale-obs-group { display: flex; flex-direction: column; gap: 1px; }
+        .locale-obs-group-title { opacity: 0.85; font-weight: 700; margin-top: 2px; }
+        .locale-obs-subrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .locale-obs-subk { opacity: 0.72; padding-left: 8px; }
+        .locale-obs-subv { font-weight: 700; text-align: right; white-space: nowrap; }
         .log-entry { 
             flex: 0 0 auto;
 font-size: 12px; 
@@ -2289,9 +2294,9 @@ BUILDER_BLOCK: CSS_END === */
 
 <div class="pnrev-tab" data-tab="geo">
 <div class="detail-section">
-                        <div class="detail-title">Locale</div>
+                        <div class="detail-title">Locale (Shift+클릭 타일)</div>
                         <div class="stat-row">
-                            <div id="disp-farm-obs-mini" class="value locale-obs" style="color:var(--herb)">Shift+클릭 타일</div>
+                            <div id="disp-farm-obs-mini" class="locale-obs">—</div>
                         </div>
                     </div>
 </div>
@@ -4320,6 +4325,17 @@ function agroConsumeSeedForRepIdx(repIdx) {
         
 
 // --- Agro v2: season & stage helpers ---
+const AGRO_STAGE_LABELS = Object.freeze({
+  0: 'Preparation',
+  1: 'Sowing & Cultivation',
+  // Stage 2 "Transport" means interpretation of existing farm_drop flow (not a new transport system).
+  2: 'Harvest & Transport'
+});
+
+function agroStageLabel(stage) {
+  return AGRO_STAGE_LABELS[(stage | 0)] || AGRO_STAGE_LABELS[0];
+}
+
 // season multiplier for stage=1 only. Uses CAL_TICKS_PER_YR (240 ticks/year after timeline patch).
 function agroSeasonMul() {
   const T = (typeof CAL_TICKS_PER_YR === 'number' && CAL_TICKS_PER_YR > 0) ? CAL_TICKS_PER_YR : 240;
@@ -14993,36 +15009,62 @@ _setTextIfChanged(uiPredCount, predators.length);
              if (uiFarmObsMini) {
                 /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_START === */
                 if (!uiFarmObsMini.__localeRows) {
-                    const mkRow = (k) => {
+                    const mkSubRow = (k) => {
                         const row = document.createElement('div');
-                        row.className = 'locale-obs-row';
+                        row.className = 'locale-obs-subrow';
                         const key = document.createElement('span');
-                        key.className = 'locale-obs-k';
+                        key.className = 'locale-obs-subk';
                         key.textContent = k;
                         const val = document.createElement('span');
-                        val.className = 'locale-obs-v';
+                        val.className = 'locale-obs-subv';
                         val.textContent = '—';
                         row.appendChild(key);
                         row.appendChild(val);
                         return { row, val };
                     };
+                    const mkGroup = (title, keys) => {
+                        const group = document.createElement('div');
+                        group.className = 'locale-obs-group';
+                        const t = document.createElement('div');
+                        t.className = 'locale-obs-group-title';
+                        t.textContent = title;
+                        group.appendChild(t);
+                        const vals = {};
+                        for (const k of keys) {
+                            const { row, val } = mkSubRow(k);
+                            vals[k] = val;
+                            group.appendChild(row);
+                        }
+                        return { group, vals };
+                    };
                     uiFarmObsMini.textContent = '';
-                    const climate = mkRow('Climate');
-                    const topography = mkRow('Topography');
-                    const clamor = mkRow('Clamor');
-                    const agriculture = mkRow('Agriculture');
-                    uiFarmObsMini.appendChild(climate.row);
-                    uiFarmObsMini.appendChild(topography.row);
-                    uiFarmObsMini.appendChild(clamor.row);
-                    uiFarmObsMini.appendChild(agriculture.row);
-                    uiFarmObsMini.__localeRows = { climate: climate.val, topography: topography.val, clamor: clamor.val, agriculture: agriculture.val };
+                    const climate = mkGroup('Climate', ['temperature', 'humidity']);
+                    const topography = mkGroup('Topography', ['altitude']);
+                    const clamor = mkGroup('Clamor', ['cF', 'cS', 'vF', 'vS']);
+                    const agriculture = mkGroup('Agriculture', ['crop', 'tilth', 'stage']);
+                    uiFarmObsMini.appendChild(climate.group);
+                    uiFarmObsMini.appendChild(topography.group);
+                    uiFarmObsMini.appendChild(clamor.group);
+                    uiFarmObsMini.appendChild(agriculture.group);
+                    uiFarmObsMini.__localeRows = {
+                        ...climate.vals,
+                        ...topography.vals,
+                        ...clamor.vals,
+                        ...agriculture.vals
+                    };
                 }
                 const rows = uiFarmObsMini.__localeRows;
                 if (!(AGRO && selectedTileIdx !== -1)) {
-                    _setTextIfChanged(rows.climate, '—');
-                    _setTextIfChanged(rows.topography, '—');
-                    _setTextIfChanged(rows.clamor, '—');
-                    _setTextIfChanged(rows.agriculture, 'Shift+클릭 타일');
+                    _setTextIfChanged(rows.temperature, '—');
+                    _setTextIfChanged(rows.humidity, '—');
+                    _setTextIfChanged(rows.altitude, '—');
+                    _setTextIfChanged(rows.cF, '—');
+                    _setTextIfChanged(rows.cS, '—');
+                    _setTextIfChanged(rows.vF, '—');
+                    _setTextIfChanged(rows.vS, '—');
+                    _setTextIfChanged(rows.crop, '—');
+                    _setTextIfChanged(rows.tilth, '—');
+                    _setTextIfChanged(rows.stage, '—');
                 } else {
                     const iRaw = selectedTileIdx;
                     const cols = (AGRO.cols | 0);
@@ -15030,24 +15072,35 @@ _setTextIfChanged(uiPredCount, predators.length);
                     const ty = ((iRaw / cols) | 0);
                     const wx = (tx + 0.5) * AGRO.tile;
                     const wy = (ty + 0.5) * AGRO.tile;
-                    const tVal = temp01At(wx, wy);
-                    const hVal = humid01At(wx, wy);
-                    const aVal = altitude01At(wx, wy);
-                    _setTextIfChanged(rows.climate, `${tVal.toFixed(2)} / ${hVal.toFixed(2)}`);
-                    _setTextIfChanged(rows.topography, `${aVal.toFixed(2)}`);
-                    let clamorText = '—';
+                    _setTextIfChanged(rows.temperature, `${temp01At(wx, wy).toFixed(2)}`);
+                    _setTextIfChanged(rows.humidity, `${humid01At(wx, wy).toFixed(2)}`);
+                    _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
                     try {
                         const z = _clamorPeekAtWorldXY(wx, wy);
-                        clamorText = `cF=${z[0].toFixed(2)} cS=${z[1].toFixed(2)} vF=${z[2].toFixed(2)} vS=${z[3].toFixed(2)}`;
-                    } catch (_) {}
-                    _setTextIfChanged(rows.clamor, clamorText);
+                        _setTextIfChanged(rows.cF, `${z[0].toFixed(2)}`);
+                        _setTextIfChanged(rows.cS, `${z[1].toFixed(2)}`);
+                        _setTextIfChanged(rows.vF, `${z[2].toFixed(2)}`);
+                        _setTextIfChanged(rows.vS, `${z[3].toFixed(2)}`);
+                    } catch (_) {
+                        _setTextIfChanged(rows.cF, '—');
+                        _setTextIfChanged(rows.cS, '—');
+                        _setTextIfChanged(rows.vF, '—');
+                        _setTextIfChanged(rows.vS, '—');
+                    }
                     if (selectedTileFarmable) {
                         const peek = agroPeekTile(iRaw);
                         const crop = (peek ? peek.crop : 0);
                         const tilth = (peek ? peek.tilth : 0);
-                        _setTextIfChanged(rows.agriculture, `${crop.toFixed(2)} / ${tilth.toFixed(2)}`);
+                        const repIdx = (typeof agroRepIdxForTileIdx === 'function') ? agroRepIdxForTileIdx(iRaw) : -1;
+                        const hasStage = !!(AGRO.repStage && repIdx >= 0);
+                        const stage = hasStage ? (AGRO.repStage[repIdx] | 0) : 0;
+                        _setTextIfChanged(rows.crop, `${crop.toFixed(2)}`);
+                        _setTextIfChanged(rows.tilth, `${tilth.toFixed(2)}`);
+                        _setTextIfChanged(rows.stage, hasStage ? agroStageLabel(stage) : '-');
                     } else {
-                        _setTextIfChanged(rows.agriculture, '-');
+                        _setTextIfChanged(rows.crop, '-');
+                        _setTextIfChanged(rows.tilth, '-');
+                        _setTextIfChanged(rows.stage, '-');
                     }
                 }
                 /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_END === */
