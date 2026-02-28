@@ -1,4 +1,4 @@
-# EvoSim CHANGELOG (Single Source of Truth)
+# EvoSim CHANGELOG v27.02 (Single Source of Truth)
 - Last stable version: **27.02**  
 - Policy: **Code comments are minimal (local-only). Patch history lives here.**
 - Scope note: older pre-26.xx items may be summarized (seeded from notes) and later validated against code.
@@ -39,6 +39,7 @@ When a patch lands, record:
 
 ## 3) Patch Log (append-only, newest first)
 ### 27.02 — Locale geography rows + all-tile Shift select
+- Change: Locale tab naming applied in panel (tab/button title), and the left metric header label removed for compact row-first layout.
 - Change: Geography `disp-farm-obs-mini` is now 4 rows (Climate/Topography/Clamor/Agriculture) with cached row DOM updates.
 - Change: Shift+click tile selection now accepts any tile (`tIdx !== -1`), with farmability tracked separately.
 - Change: Climate/Topography show decimal values from `temp01At/humid01At` and `altitude01At`; Agriculture shows `-` on non-farm tiles.
