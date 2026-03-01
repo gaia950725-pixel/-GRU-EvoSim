@@ -34,6 +34,11 @@
 - [변경 범위]
 - [금지사항]
 - [구현 지침]
+- [FINAL 지침] (필수)
+  1) 최종 적용 완료본을 `docs/releases/EvoSim_latest.html`로 동기화
+  2) `docs/releases/archive/EvoSim_<version>_<patch>.html` 생성
+  3) `docs/releases/EvoSim_CHANGELOG.txt` 최종 항목 확정(중간/중요)
+  4) 위 3개 완료 후에만 PR Ready 처리
 
 ### 실행보고
 - 대상 파일명
@@ -59,3 +64,4 @@
 - 코드 변경 diff
 - 실행보고
 - changelog 항목(중간/중요)
+- FINAL 지침 완료 증거(latest/archive/changelog 반영)
