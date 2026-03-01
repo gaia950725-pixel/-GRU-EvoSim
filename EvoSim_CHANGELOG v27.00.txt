@@ -43,6 +43,19 @@ For 27.03+ updates, repeat this same checklist in the PR body under verification
 ---
 
 ## 3) Patch Log (append-only, newest first)
+### 27.03 — maritime sot + locale geography
+- Follow-up: staged deliverables are retained as step1/step2/step3/final files for prompt-by-prompt replay and review.
+- Change: world config adds Maritime toggle (default ON) and status sync, plus “Fishing: coming soon” placeholder in settings.
+- Change: GAIA adds maritime SOT fields `distToCoast30` and `oceanicity30` with a dedicated `gaiaBuildMaritimeSOT30()` stage.
+- Change: worldgen order is now mountains → maritime → altitude so altitude can consume maritime outputs.
+- Change: when maritime is OFF, maritime stage early-returns and skips coast-distance BFS entirely (no dist/oceanicity allocation).
+- Change: altitude builder no longer computes coast BFS internally; it reads `GAIA.oceanicity30` and keeps the same altitude formula.
+- Change: Locale mini-observer renames Topography → Geography and adds `coastDist`/`oceanicity` rows with OFF-safe defaults.
+- Why: separate ocean moderation into single SOT stage and avoid duplicated coast-distance computations.
+- Verify:
+  - Maritime ON: worldgen log passes maritime stage; Geography shows numeric coastDist/oceanicity.
+  - Maritime OFF: Geography shows coastDist `—`, oceanicity `0.00`, and no maritime BFS side effects.
+
 ### 27.02 — Locale geography rows + all-tile Shift select
 - Change: Locale tab naming applied in panel (tab/button title), and the left metric header label removed for compact row-first layout.
 - Change: Geography `disp-farm-obs-mini` is now 4 rows (Climate/Topography/Clamor/Agriculture) with cached row DOM updates.
