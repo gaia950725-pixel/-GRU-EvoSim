@@ -30,8 +30,15 @@
 
 ### Canonical outputs
 - 최신 정본: `docs/releases/EvoSim_latest.html`
-- 변경 이력: `docs/releases/archive/EvoSim_<version>_<patch-slug>.html`
+- 변경 이력(archive): `docs/releases/archive/EvoSim_<version>_<patch-or-branch>.html`
 - CHANGELOG 단일 파일: `docs/releases/EvoSim_CHANGELOG.txt`
+
+### Archive naming policy
+- archive는 `latest`를 덮어쓰지 않고, 버전별 산출물을 보존하기 위한 공간이다.
+- 파일명은 버전 + 패치명을 포함한다.
+- 예시:
+  - `EvoSim_27.03_maritime_sot_FINAL.html`
+  - `EvoSim_27.02_locale.html`
 
 ### Update mapping (must)
 - 코드 동작 변경: `EvoSim_latest.html` + `archive` 스냅샷
@@ -41,7 +48,7 @@
 ## 6) Merge Gate (Definition of Done)
 머지 전 체크리스트:
 1. latest 동기화 완료
-2. archive 스냅샷 생성 완료
+2. archive 스냅샷 생성 완료(버전+패치명 파일명)
 3. changelog 갱신 완료(중간/중요)
 4. 사용자 검정(플레이/콘솔) 완료
 5. 독립 라인 정책 위반 없음(27.04 등)
@@ -54,3 +61,8 @@
 ## 8) Relative-path Rule (for AI prompts)
 - 프롬프트 입출력 경로는 저장소 상대경로만 사용한다.
 - 절대경로(`/mnt/data` 등) 사용 금지.
+
+### 상대경로 예시
+- 저장소 루트가 기준일 때:
+  - `docs/releases/EvoSim_latest.html` ✅ (상대경로)
+  - `/mnt/data/EvoSim_latest.html` ❌ (절대경로)
