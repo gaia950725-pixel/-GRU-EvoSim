@@ -78,8 +78,9 @@ When a patch lands, record:
   - Title `# EvoSim CHANGELOG vXX.XX ...` update
 
 ### 2-a) Importance gate (required)
-- Every patch must declare **Importance**: `P0` (sim/core/SOT), `P1` (runtime feature/UI-visible), `P2` (docs/refactor).
-- **P0/P1 are PR-blocking** if changelog entry is missing or incomplete.
+- Every patch must declare **Importance**: `P0` (critical), `P1` (medium+), `P2` (minor).
+- **P0/P1 only** must be recorded in changelog (PR-blocking if missing/incomplete).
+- **P2(minor)** changes are allowed to skip changelog; keep details in commit/PR body only.
 - Minimum changelog fields for P0/P1: `What`, `Why`, `Risk`, `Verify`, `Rollback hint(1 line)`.
 - Reviewer checklist (must pass before merge):
   - `index.html` and `docs/releases/EvoSim_latest.html` parity checked for user-visible/runtime changes.
