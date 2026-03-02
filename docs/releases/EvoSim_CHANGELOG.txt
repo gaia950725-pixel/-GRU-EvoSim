@@ -1,3 +1,6 @@
+### 27.06 — terrain slope fix2
+- 27.06 terrain slope fix2: clear altCorner/altTri*/altRough01 when altitude disabled to prevent stale locale diagnostics
+
 ### 27.06 — terrain slope fix1
 - 27.06 terrain slope fix1: locale slope shows per-tile (display-only), no new rows
 
