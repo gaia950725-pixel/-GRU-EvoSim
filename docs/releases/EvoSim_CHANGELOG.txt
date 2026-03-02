@@ -31,14 +31,19 @@
 
 ## 1) Current Architecture Snapshot (keep short)
 ### Tick semantics
-- (write a 5–10 line snapshot of current tick pipeline contracts)
-- PRE snapshot policy: (what is authoritative SOT for reads)
-- COMMIT policy: (what writes happen, when)
+- Tick = one time-slice. Pipeline order: **PRE → SWEEP → COMMIT** (TS_PATCH 26.10/26.21).
+- **PRE**: time-advance (decay/regen/TTL/catch-up), rebuild E2I maps if dirty, build Snapshot.Pre grids (agent/herb/pred/food).
+- **SWEEP**: reads Snapshot.Pre only. No direct world/agent writes. Emits events (CL_voice for shout, deltas for movement/damage). Collision queries use Snapshot.Pre positions.
+- **COMMIT**: apply deltas/events/pending queue; finalize health/dead (healthFinal ≤ 0); recompute breath01; write clamor grid (voice events); flush spawn/birth/food-add pending; invalidate E2I dirty flags for next PRE.
+- Spawn/birth/respawn/food-add: queued in SWEEP → flushed in COMMIT → observed after next PRE.
+- DEAD finalized only in COMMIT; no mid-tick death latch — actors remain active through SWEEP.
+- PRE snapshot policy: `agentGridPre` / `herbGridPre` / `predGridPre` / `foodGridPre` are authoritative SOT for all SWEEP reads.
+- COMMIT policy: shout clamor writes, breath01 recompute, `TS_commitPending()` flush, E2I dirty flag invalidation.
 
 ### Core data SOTs
-- World/terrain/GAIA SOT:
-- Agent/Entity SOT:
-- Grid/caches SOT:
+- World/terrain/GAIA SOT: `GAIA` const object — typed arrays (`land`, `pass`, `mountain`, `distToCoast30`, `oceanicity30`, `seasonAmp30`). Built once in worldgen (mountains→maritime→altitude→seasonAmp); read-only during simulation.
+- Agent/Entity SOT: `agents[]`, `foods[]`, `herbivores[]`, `predators[]` session-scoped arrays. Cell↔entity access via E2I maps (`_agentE2I`, `_herbE2I`, `_predE2I`); rebuilt in PRE when dirty flags are set.
+- Grid/caches SOT: Spatial grids (`AgentGrid1D`, `FoodGrid1D`, `HerbGrid1D`, `PredGrid1D`) built from Snapshot.Pre each PRE phase. Dirty flags: `_agentE2I_dirty`, `_herbE2I_dirty`, `_predE2I_dirty` (set in COMMIT, cleared in PRE rebuild).
 
 ---
 
