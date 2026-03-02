@@ -74,13 +74,14 @@ npm run preview   # Preview built output
 
 ### Branch Conventions
 
-Branches follow: `release/<version>-<task>`, `feature/<task>`, `fix/<task>`, `docs/<task>`
+Branches follow: `release/<version>-<task>`, `fix/<task>`, `docs/<task>`, `feature/<task>`
 
 - All work for the same version number accumulates in **one branch** (no new branch per commit).
+- Version-number updates must always use `release/<version>-<task>` (do not use `feature/*` for version bumps).
 - Independent version lines (e.g., 27.04 vs a parallel experiment) must **never be cross-merged** — use cherry-pick only with explicit user approval.
-- Integration order: `feature/*` → operative branch → `main`
+- Version-bump integration order: `release/*` → operative branch → `main`
 
-**AI 실행팀 브랜치**: Claude·Codex 모두 동일한 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`)는 세션 전용이므로 이 파일에 특정 브랜치명을 기재하지 않는다. 현재 작업 브랜치는 시스템 프롬프트를 확인한다.
+**AI 실행팀 브랜치**: Claude·Codex 모두 동일한 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 버전 갱신 작업은 예외 없이 `release/*`를 사용한다. 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`)는 세션 전용이므로 이 파일에 특정 브랜치명을 기재하지 않는다. 현재 작업 브랜치는 시스템 프롬프트를 확인한다.
 
 **Ops-only / docs-only changes (no sim version bump)**: commit directly to the current AI working branch. No separate `docs/<task>` branch is required when the change is purely operational (e.g., filling CHANGELOG templates, updating governance docs) and carries no code behavior change.
 
@@ -97,11 +98,14 @@ Examples:
 ### Merge Gate (Definition of Done)
 
 Before any PR is marked ready:
-1. `docs/releases/EvoSim_latest.html` synchronized with `index.html`
-2. Versioned archive snapshot created: `docs/releases/archive/EvoSim_<version>_<patch>_FINAL.html`
-3. `docs/releases/EvoSim_CHANGELOG.txt` updated (for intermediate/critical patches)
-4. User has verified gameplay/console (manual play test, no console errors)
-5. No independent-line policy violations
+1. Main HTML (`index.html` or designated single-file runtime) is updated
+2. `docs/releases/EvoSim_latest.html` synchronized with the runtime HTML
+3. Versioned archive snapshot created: `docs/releases/archive/EvoSim_<version>_<patch>_FINAL.html`
+4. `docs/releases/EvoSim_CHANGELOG.txt` updated (for intermediate/critical patches)
+5. Execution report follows the fixed 4-section format in `docs/spec/SPEC_OUTPUTS.md`
+6. Version-bump branch naming rule (`release/*`) is satisfied
+7. User has verified gameplay/console (manual play test, no console errors)
+8. No independent-line policy violations
 
 ---
 

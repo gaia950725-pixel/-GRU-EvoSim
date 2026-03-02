@@ -2,7 +2,7 @@
 
 - update 원칙: 섹션 7(현재상태 및 청사진)만 개발 진행에 따라 갱신.
 - 정책 변경 시에만 나머지 섹션 수정 + `last update` 갱신.
-- last update: 260301, 깃허브 기반 작업구조 반영 + 발화유형 라우팅/가치원칙 구체화 + 프로세스/중요도 라우팅 원문 복구.
+- last update: 260302, 버전 갱신 브랜치 release 고정 규칙 및 산출물 4종/실행보고 4섹션 운영 표준 반영.
 
 > 본 문서는 정책/철학 헌장이다. 운영 절차는 `docs/ops/PROJECT_OPERATIONS.md`, 산출물 형식은 `docs/spec/SPEC_OUTPUTS.md`를 따른다.
 
