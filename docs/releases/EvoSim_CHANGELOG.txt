@@ -1,3 +1,6 @@
+### 27.06 — terrain slope fix1
+- 27.06 terrain slope fix1: locale slope shows per-tile (display-only), no new rows
+
 ### 27.06 — terrain 4tri slope+rough infra (mid)
 - 27.06 terrain 4tri slope+rough infra (altCorner/triSlope/rough01 + locale debug + altitude formula tweak)
 
