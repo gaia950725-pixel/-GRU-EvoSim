@@ -83,6 +83,7 @@ When a patch lands, record:
 ### 2-a) Importance gate (required)
 - Importance routing is owned by Planning team by default.
 - Engineers should set/override **Importance** only when it is missing from prompt or handoff context.
+- If `specoutput final` already includes severity/routing (e.g., 경미/중간), follow it as the source of truth.
 - When Importance is missing, use fallback tags: `P0` (critical), `P1` (medium+), `P2` (minor).
 - **P0/P1 only** must be recorded in changelog (PR-blocking if missing/incomplete).
 - **P2(minor)** changes are allowed to skip changelog; keep details in commit/PR body only.
