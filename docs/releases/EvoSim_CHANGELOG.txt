@@ -1,3 +1,9 @@
+### 27.05 — season lag dr
+- **What**: Normalized release identifier from `26.05` references to `27.05` for branch/release metadata consistency.
+- **Why**: Keep release naming aligned across branch, changelog, archive filename, and PR metadata.
+- **Risk**: Low (identifier-only changes).
+- **Verify**: Confirm branch name `release/27.05-season-lag-dr` and archive filename `EvoSim_27.05_season_lag_dr_FINAL.html`.
+
 ### 27.04 — season spatial amp
 - **What**: Added global season core helpers `seasonPhase01()` and `seasonSin()` with per-tick cache near time narrative constants.
 - **What**: Added constants `SEASON_LAT_POW=1.4`, `SEASON_AMP_COAST=0.35`, `TEMP_SEASON_DELTA=0.15`, `FARM_SEASON_MUL=0.25`.
