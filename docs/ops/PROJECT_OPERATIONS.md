@@ -14,6 +14,15 @@
 - `fix/<task>`
 - `docs/<task>`
 
+### AI working branch
+- 세션마다 시스템 프롬프트가 `claude/<slug>` 패턴으로 지정한다.
+- 이 문서에 특정 브랜치명을 하드코딩하지 않는다.
+
+### Ops-only / docs-only 변경 규칙
+- 시뮬 버전 번프 없는 순수 운영 변경(CHANGELOG 채우기, 거버넌스 문서 수정, CLAUDE.md 규칙 추가 등)은 **AI 워킹 브랜치에 직접 커밋**한다.
+- 별도 `docs/<task>` 브랜치 불필요.
+- 코드 동작 변경이 없으므로 `EvoSim_latest.html` / archive 스냅샷 갱신도 불필요.
+
 ## 3) Version Unit Rule
 - 하나의 작업 흐름(기획→명세→실행→검증→통합)을 하나의 버전 번호로 묶는다.
 - 동일 버전 내 프롬프트가 여러 개인 경우, 브랜치는 유지하고 커밋만 누적한다.
