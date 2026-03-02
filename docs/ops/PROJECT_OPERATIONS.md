@@ -4,18 +4,18 @@
 이 문서는 GitHub 기반 작업 운영 규칙의 단일 소스다. 정책/철학은 `docs/governance/MASTER_PROMPT.md`, 산출물 포맷은 `docs/spec/SPEC_OUTPUTS.md`를 따른다.
 
 ## 2) Branch Strategy
-- 기본 통합 순서: `feature/*` → 운영 브랜치(예: `operative-vibe-coding`) → `main`
+- 버전 증가 작업 통합 순서: `release/*` → 운영 브랜치(예: `operative-vibe-coding`) → `main`
 - 독립 라인(예: 27.04)과 상호 머지는 금지한다. 필요 시 cherry-pick은 사용자 정책 승인 후 수행.
 - 같은 버전 작업은 **하나의 브랜치에서 누적**한다.
 
 ### Branch naming
-- `release/<version>-<task>` (예: `release/27.02-locale`)
-- `feature/<task>`
-- `fix/<task>`
-- `docs/<task>`
+1. `release/<version>-<task>` (버전 증가 작업 필수, 예: `release/27.02-locale`)
+2. `fix/<task>` (버전 증가 없는 결함 수정)
+3. `docs/<task>` (운영/문서 전용)
+4. `feature/<task>` (버전 증가 없는 기능 탐색/실험)
 
 ### AI 실행팀 브랜치 (Claude / Codex)
-- AI 실행팀도 동일한 네이밍 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다.
+- AI 실행팀도 동일한 네이밍 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 버전 갱신 작업은 예외 없이 `release/*`를 사용한다.
 - 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`)는 세션 전용이므로 **이 문서에 특정 브랜치명을 기재하지 않는다.** 현재 작업 브랜치는 시스템 프롬프트를 확인한다.
 
 ### Ops-only / docs-only 변경 규칙
@@ -56,12 +56,11 @@
 
 ## 6) Merge Gate (Definition of Done)
 머지 전 체크리스트:
-1. latest 동기화 완료
+1. latest 동기화 완료(`docs/releases/EvoSim_latest.html`)
 2. archive 스냅샷 생성 완료(버전+패치명 파일명)
-3. changelog 갱신 완료(중간/중요)
-4. 사용자 검정(플레이/콘솔) 완료
-5. 독립 라인 정책 위반 없음(27.04 등)
-6. 실행보고가 `docs/spec/SPEC_OUTPUTS.md` 실행보고 확장양식을 충족함
+3. changelog 갱신 완료(`docs/releases/EvoSim_CHANGELOG.txt`, 중간/중요 패치인 경우)
+4. 실행보고가 `docs/spec/SPEC_OUTPUTS.md`의 고정 4섹션 규격을 충족함
+5. 버전 증가 작업은 `release/*` 브랜치 규칙을 준수함
 
 ## 7) Responsibility Split
 - 사용자: 정책 확정, 최종 머지 승인, 결과 검정

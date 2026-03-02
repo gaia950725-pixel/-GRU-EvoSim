@@ -35,23 +35,23 @@
 - [금지사항]
 - [구현 지침]
 - [FINAL 지침] (필수)
-  1) 최종 적용 완료본을 `docs/releases/EvoSim_latest.html`로 동기화
-  2) `docs/releases/archive/EvoSim_<version>_<patch>.html` 생성
-  3) `docs/releases/EvoSim_CHANGELOG.txt` 최종 항목 확정(중간/중요)
-  4) 위 3개 완료 후에만 PR Ready 처리
+  1) `index.html`(또는 단일 메인 HTML) 변경 반영
+  2) 최종 적용 완료본을 `docs/releases/EvoSim_latest.html`로 동기화
+  3) `docs/releases/archive/EvoSim_<version>_<patch>.html` 생성
+  4) `docs/releases/EvoSim_CHANGELOG.txt` 최종 항목 확정(중간/중요인 경우에만 필수)
+  5) 위 필수 항목 완료 후에만 PR Ready 처리
 
 ### 실행보고
+- 변경내용(10문장 이내)
+- 프롬프트와 다르게 변경한 사항(4문장 이내, 있으면 작성)
+- 주석변경사항(2문장 이내, 있으면 작성)
+- 권고사항(1문장 이내, 있으면 작성)
+
+#### 선택 메타필드(권장)
 - 대상 파일명
 - 완성 파일명
-- 주요 변경사항(1~10문장)
-- 기존 논의와 다르게 적용한 사항(없으면 "없음")
 - 프롬프트 적용 요약(프롬프트별, 각 10문장 이내)
-  - Prompt 1: 변경내용 요약
-  - Prompt 2: 변경내용 요약
-  - Prompt 3: 변경내용 요약
-- 프롬프트와 달리 적용한 내용 + 이유(항목당 4문장 이내, 없으면 "없음")
-- 주석 변경사항 요약(2문장 이내, 없으면 "없음")
-- 권고사항(1문장, 없으면 "없음")
+- 추가 검증 로그/스크린샷 경로
 
 ### 의견서
 - 수정필수/중대/수정권고/경미 분류
