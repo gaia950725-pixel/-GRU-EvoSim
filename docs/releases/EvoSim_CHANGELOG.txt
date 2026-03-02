@@ -13,6 +13,7 @@
 - **Verify**: Confirm `GAIA.seasonLagSin30/seasonLagCos30` allocation occurs in `gaiaBuildSeasonAmp30()` loop path.
 - **Verify**: Confirm `tempSeasoned01At()` and `agroSeasonLocalAtTileIdx()` both read `seasonSinLaggedAtTileIdx()`.
 - **Verify**: Confirm humidity formula stays `Math.exp(-d / 8)` and `GAIA.distToRiver30` is filled from `distMap` in the same loop.
+- **Verify**: Confirm repIdx/crop reads keep bounds guards (`repIdx < AGRO.repStage.length`, `rep2 < AGRO.crop.length`).
 
 ### 27.04 — season spatial amp
 - **What**: Added global season core helpers `seasonPhase01()` and `seasonSin()` with per-tick cache near time narrative constants.
