@@ -78,9 +78,11 @@ Branches follow: `release/<version>-<task>`, `feature/<task>`, `fix/<task>`, `do
 
 - All work for the same version number accumulates in **one branch** (no new branch per commit).
 - Independent version lines (e.g., 27.04 vs a parallel experiment) must **never be cross-merged** — use cherry-pick only with explicit user approval.
-- Integration order: `feature/*` → operative branch → `master`
+- Integration order: `feature/*` → operative branch → `main`
 
-**Current AI working branch**: `claude/claude-md-mm91gsj7bq58i7v8-0iBfR`
+**AI working branch**: assigned per session by the task system prompt. Branch names follow the pattern `claude/<slug>`. Do not hardcode a specific branch name here — check the active system prompt for the current branch.
+
+**Ops-only / docs-only changes (no sim version bump)**: commit directly to the current AI working branch. No separate `docs/<task>` branch is required when the change is purely operational (e.g., filling CHANGELOG templates, updating governance docs) and carries no code behavior change.
 
 ### Commit Message Style
 
