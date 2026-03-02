@@ -78,7 +78,9 @@ When a patch lands, record:
   - Title `# EvoSim CHANGELOG vXX.XX ...` update
 
 ### 2-a) Importance gate (required)
-- Every patch must declare **Importance**: `P0` (critical), `P1` (medium+), `P2` (minor).
+- Importance routing is owned by Planning team by default.
+- Engineers should set/override **Importance** only when it is missing from prompt or handoff context.
+- When Importance is missing, use fallback tags: `P0` (critical), `P1` (medium+), `P2` (minor).
 - **P0/P1 only** must be recorded in changelog (PR-blocking if missing/incomplete).
 - **P2(minor)** changes are allowed to skip changelog; keep details in commit/PR body only.
 - Minimum changelog fields for P0/P1: `What`, `Why`, `Risk`, `Verify`, `Rollback hint(1 line)`.
