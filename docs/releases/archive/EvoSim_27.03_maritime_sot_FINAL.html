@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.04 season spatial amp</title>
+    <title>EvoSim 27.03 maritime sot</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -407,8 +407,7 @@
         .locale-obs-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .locale-obs-k { opacity: 0.75; font-weight: 500; }
         .locale-obs-v { font-weight: 700; white-space: nowrap; }
-        .locale-obs-hint { justify-content: flex-end; margin-top:6px; }
-        .locale-obs-hint .locale-obs-v { color:#888; font-size:11px; font-style:italic; font-weight:400; }
+        .locale-obs-hint { justify-content: flex-end; }
         .locale-obs-group { display: flex; flex-direction: column; gap: 1px; }
         .locale-obs-group-title { opacity: 0.85; font-weight: 700; margin-top: 2px; }
         .locale-obs-subrow { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -2318,7 +2317,7 @@ BUILDER_BLOCK: CSS_END === */
 <div class="detail-section">
                         <div class="detail-title">Locale</div>
                         <div class="stat-row">
-                            <div id="disp-farm-obs-mini" class="value locale-obs">Shift+클릭 타일</div>
+                            <div id="disp-farm-obs-mini" class="value locale-obs" style="color:var(--herb)">Shift+클릭 타일</div>
                         </div>
                     </div>
 </div>
@@ -4374,15 +4373,10 @@ function agroStageLabel(stage) {
 }
 
 // season multiplier for stage=1 only. Uses CAL_TICKS_PER_YR (240 ticks/year after timeline patch).
-function agroSeasonMul() { return 1 + seasonSin() * 0.10; }
-function agroSeasonLocalAtTileIdx(ti, tick = simulatedTicks){
-  if (!(GAIA && GAIA.seasonAmp30)) return 0;
-  return seasonSin(tick) * (GAIA.seasonAmp30[ti] || 0);
-}
-function agroSeasonGrowMulAtTileIdx(ti, tick = simulatedTicks){
-  const local = agroSeasonLocalAtTileIdx(ti, tick);
-  const v = 1 + FARM_SEASON_MUL * local;
-  return Math.max(0, Math.min(2, v));
+function agroSeasonMul() {
+  const T = (typeof CAL_TICKS_PER_YR === 'number' && CAL_TICKS_PER_YR > 0) ? CAL_TICKS_PER_YR : 240;
+  const phase = (simulatedTicks % T) / T; // 0..1
+  return 1 + Math.sin(phase * 2 * Math.PI) * 0.10;
 }
 
 // Update repStage with hysteresis, and reset seedMode when stage drops to 0.
@@ -4796,7 +4790,7 @@ function agroHarvestTileIfReady(idx) {
             let mul = 1.0;
             const st = (AGRO.repStage ? (AGRO.repStage[idx] | 0) : 0);
             if (st === 1) {
-                mul *= agroSeasonGrowMulAtTileIdx(idxRaw);
+                mul *= agroSeasonMul();
                 if (AGRO.repSeedMode && AGRO.repSeedMode[idx]) mul *= 1.4;
             }
             const growth = CFG.farmG * suit * effDelta * tilthFactor * mul;
@@ -5618,14 +5612,6 @@ function temp01At(x, y){
 }
 // Back-compat: existing code may call tempNormAt; make it grid-first.
 function tempNormAt(x, y){ return temp01At(x, y); }
-function tempSeasoned01At(x, y, tick = simulatedTicks){
-  const base = temp01At(x, y);
-  if (!(CFG && CFG.climateEnabled)) return base;
-  if (!(GAIA && GAIA.seasonAmp30)) return base;
-  const ti = gaiaTileAtXY(x, y);
-  const local = seasonSin(tick) * (GAIA.seasonAmp30[ti] || 0);
-  return _clamp01(base + TEMP_SEASON_DELTA * local);
-}
 
 
 
@@ -5732,27 +5718,6 @@ const TICKS_PER_SEC = 60;            // engine ticks per real second
 const CAL_TICKS_PER_SEASON = 60;     // narrative calendar: ticks per season (== 1 engine second by design)
 const CAL_SEASONS_PER_YR = 4;
 const CAL_TICKS_PER_YR = CAL_TICKS_PER_SEASON * CAL_SEASONS_PER_YR; // 240
-const SEASON_LAT_POW = 1.4;
-const SEASON_AMP_COAST = 0.35;
-const TEMP_SEASON_DELTA = 0.15;
-const FARM_SEASON_MUL = 0.25;
-
-let _seasonCore_cacheTick = -1;
-let _seasonCore_cachePhase01 = 0;
-let _seasonCore_cacheSin = 0;
-
-function _seasonCore_ensure(tick){
-  const t = (typeof tick === 'number' && Number.isFinite(tick)) ? (tick | 0) : 0;
-  if (t === _seasonCore_cacheTick) return;
-  const T = (typeof CAL_TICKS_PER_YR === 'number' && CAL_TICKS_PER_YR > 0) ? CAL_TICKS_PER_YR : 240;
-  const tm = ((t % T) + T) % T;
-  const ph = tm / T;
-  _seasonCore_cacheTick = t;
-  _seasonCore_cachePhase01 = ph;
-  _seasonCore_cacheSin = Math.sin(ph * 2 * Math.PI);
-}
-function seasonPhase01(tick = simulatedTicks){ _seasonCore_ensure(tick); return _seasonCore_cachePhase01; }
-function seasonSin(tick = simulatedTicks){ _seasonCore_ensure(tick); return _seasonCore_cacheSin; }
 
 
 const COLLISION_CHILD_START_ENERGY = 1200;
@@ -6890,26 +6855,6 @@ function gaiaBuildMaritimeSOT30(){
     const do2 = (dO[i] < 0) ? 999 : dO[i];
     GAIA.oceanicity30[i] = Math.exp(-do2 / 5.0);
   }
-}
-
-
-function gaiaBuildSeasonAmp30(){
-    gaiaInitTiles30();
-    const cols = GAIA.cols|0, rows = GAIA.rows|0;
-    const N = cols * rows;
-    const seasonAmp30 = new Float32Array(N);
-
-    const denom = Math.max(1, rows - 1);
-    for (let i = 0; i < N; i++){
-        const ty = (i / cols) | 0;
-        const lat01 = ty / denom;
-        const hemiSign = (lat01 < 0.5 ? 1 : -1);
-        const latAmp = Math.pow(Math.abs(lat01 - 0.5) * 2, SEASON_LAT_POW);
-        const o = (GAIA && GAIA.oceanicity30) ? (GAIA.oceanicity30[i] || 0) : 0;
-        const ampOcean = SEASON_AMP_COAST + (1 - SEASON_AMP_COAST) * (1 - o);
-        seasonAmp30[i] = hemiSign * latAmp * ampOcean;
-    }
-    GAIA.seasonAmp30 = seasonAmp30;
 }
 
 function gaiaBuildAltitudeGrid(){
@@ -10335,11 +10280,6 @@ document.getElementById('disp-era').textContent = "구석기";
                 await nextFrame();
                 try { if (typeof gaiaBuildMaritimeSOT30 === 'function') gaiaBuildMaritimeSOT30(); }
                 catch(e){ console.warn("GAIA maritime build failed", e); }
-
-                setWorldGenState('generating', 'seasonAmp', 'Building season amp...', 0.355);
-                await nextFrame();
-                try { if (typeof gaiaBuildSeasonAmp30 === 'function') gaiaBuildSeasonAmp30(); }
-                catch(e){ console.warn("GAIA seasonAmp build failed", e); }
 
                 setWorldGenState('generating', 'altitude', 'Building altitude grid...', 0.37);
                 await nextFrame();
@@ -15191,11 +15131,11 @@ _setTextIfChanged(uiPredCount, predators.length);
                     hintVal.className = 'locale-obs-v';
                     hintVal.textContent = '';
                     hintRow.appendChild(hintVal);
+                    uiFarmObsMini.appendChild(hintRow);
                     uiFarmObsMini.appendChild(climate.group);
                     uiFarmObsMini.appendChild(geography.group);
                     uiFarmObsMini.appendChild(clamor.group);
                     uiFarmObsMini.appendChild(agriculture.group);
-                    uiFarmObsMini.appendChild(hintRow);
                     uiFarmObsMini.__localeRows = {
                         ...climate.vals,
                         ...geography.vals,
@@ -15226,9 +15166,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     const ty = ((iRaw / cols) | 0);
                     const wx = (tx + 0.5) * AGRO.tile;
                     const wy = (ty + 0.5) * AGRO.tile;
-                    const tBase = temp01At(wx, wy);
-                    const tNow = tempSeasoned01At(wx, wy);
-                    _setTextIfChanged(rows.temperature, `${tBase.toFixed(2)} → ${tNow.toFixed(2)}`);
+                    _setTextIfChanged(rows.temperature, `${temp01At(wx, wy).toFixed(2)}`);
                     _setTextIfChanged(rows.humidity, `${humid01At(wx, wy).toFixed(2)}`);
                     _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
                     const coastD = coastDistAt(wx, wy);
@@ -15261,7 +15199,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                         _setTextIfChanged(rows.tilth, '-');
                         _setTextIfChanged(rows.stage, '-');
                     }
-                    _setTextIfChanged(rows.hint, 'Shift+클릭 타일');
+                    _setTextIfChanged(rows.hint, '');
                 }
                 /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_END === */
             }
