@@ -78,9 +78,11 @@ Branches follow: `release/<version>-<task>`, `feature/<task>`, `fix/<task>`, `do
 
 - All work for the same version number accumulates in **one branch** (no new branch per commit).
 - Independent version lines (e.g., 27.04 vs a parallel experiment) must **never be cross-merged** — use cherry-pick only with explicit user approval.
-- Integration order: `feature/*` → operative branch → `master`
+- Integration order: `feature/*` → operative branch → `main`
 
-**Current AI working branch**: `claude/claude-md-mm91gsj7bq58i7v8-0iBfR`
+**AI 실행팀 브랜치**: Claude·Codex 모두 동일한 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`)는 세션 전용이므로 이 파일에 특정 브랜치명을 기재하지 않는다. 현재 작업 브랜치는 시스템 프롬프트를 확인한다.
+
+**Ops-only / docs-only changes (no sim version bump)**: commit directly to the current AI working branch. No separate `docs/<task>` branch is required when the change is purely operational (e.g., filling CHANGELOG templates, updating governance docs) and carries no code behavior change.
 
 ### Commit Message Style
 
