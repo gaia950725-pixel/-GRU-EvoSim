@@ -1,3 +1,17 @@
+### 27.04 — season spatial amp
+- **What**: Added global season core helpers `seasonPhase01()` and `seasonSin()` with per-tick cache near time narrative constants.
+- **What**: Added constants `SEASON_LAT_POW=1.4`, `SEASON_AMP_COAST=0.35`, `TEMP_SEASON_DELTA=0.15`, `FARM_SEASON_MUL=0.25`.
+- **What**: Added `gaiaBuildSeasonAmp30()` to build `GAIA.seasonAmp30` from latitude amplitude, hemisphere sign, and maritime moderation.
+- **What**: Wired worldgen seasonAmp stage between maritime and altitude generation steps.
+- **What**: Added `tempSeasoned01At(x,y,tick)` to compute local seasonal temperature (`base + TEMP_SEASON_DELTA * local`).
+- **What**: Added agro local helpers `agroSeasonLocalAtTileIdx()` / `agroSeasonGrowMulAtTileIdx()` and applied them to stage=1 crop growth.
+- **What**: Locale climate temperature now renders `base → now` without adding a new row.
+- **What**: Locale hint row moved to the bottom and kept visible as gray/italic note; removed inline green tint for text consistency.
+- **Why**: Introduce spatially-aware seasonal behavior without altering average climate baseline or NN input contracts.
+- **Risk**: Season amplitude depends on row-based hemisphere convention (top=north) and may need flip if map orientation changes.
+- **Verify**: Confirm title 27.04, worldgen includes seasonAmp stage, locale shows `base → now`, and stage=1 growth uses tile-local multiplier.
+- **Policy**: ARCHITECTURE_OVERVIEW intentionally not updated per user policy (CHANGELOG-only for this patch).
+
 
 - Policy: **Code comments are minimal (local-only). Patch history lives here.**
 - Scope note: older pre-26.xx items may be summarized (seeded from notes) and later validated against code.
