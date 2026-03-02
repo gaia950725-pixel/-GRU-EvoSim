@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.06 terrain slope fix3</title>
+    <title>EvoSim 27.06 terrain 4tri slope rough</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -6943,11 +6943,6 @@ function gaiaBuildAltitudeGrid(){
 
   if (!CFG.altitudeEnabled){
     GAIA.altitudeGrid = null;
-    GAIA.altCorner = null;
-    GAIA.altTriGx = null;
-    GAIA.altTriGy = null;
-    GAIA.altTriSlope = null;
-    GAIA.altRough01 = null;
     return;
   }
 
@@ -15321,7 +15316,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     };
                     uiFarmObsMini.textContent = '';
                     const climate = mkGroup('Climate', ['temperature', 'humidity']);
-                    const geography = mkGroup('Geography', ['altitude', 'Slope (per tile N/E/S/W)', 'Rough', 'coastDist', 'oceanicity']);
+                    const geography = mkGroup('Geography', ['altitude', 'Slope(N/E/S/W)', 'Rough', 'coastDist', 'oceanicity']);
                     const clamor = mkGroup('Clamor', ['cF', 'cS', 'vF', 'vS']);
                     const agriculture = mkGroup('Agriculture', ['crop', 'tilth', 'stage']);
                     const hintRow = document.createElement('div');
@@ -15348,7 +15343,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.temperature, '—');
                     _setTextIfChanged(rows.humidity, '—');
                     _setTextIfChanged(rows.altitude, '—');
-                    _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
+                    _setTextIfChanged(rows['Slope(N/E/S/W)'], '—');
                     _setTextIfChanged(rows['Rough'], '—');
                     _setTextIfChanged(rows.coastDist, '—');
                     _setTextIfChanged(rows.oceanicity, '0.00');
@@ -15374,35 +15369,21 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
                     try {
                         const gIdx = gaiaTileAtXY(wx, wy);
-                        if (gIdx >= 0 && GAIA && GAIA.altTriGx && GAIA.altTriGy && GAIA.altRough01) {
+                        if (gIdx >= 0 && GAIA && GAIA.altTriSlope && GAIA.altRough01) {
                             const base = gIdx * 4;
-                            const gxN = GAIA.altTriGx[base + 0] || 0;
-                            const gyN = GAIA.altTriGy[base + 0] || 0;
-                            const gxE = GAIA.altTriGx[base + 1] || 0;
-                            const gyE = GAIA.altTriGy[base + 1] || 0;
-                            const gxS = GAIA.altTriGx[base + 2] || 0;
-                            const gyS = GAIA.altTriGy[base + 2] || 0;
-                            const gxW = GAIA.altTriGx[base + 3] || 0;
-                            const gyW = GAIA.altTriGy[base + 3] || 0;
+                            const sN = GAIA.altTriSlope[base + 0] || 0;
+                            const sE = GAIA.altTriSlope[base + 1] || 0;
+                            const sS = GAIA.altTriSlope[base + 2] || 0;
+                            const sW = GAIA.altTriSlope[base + 3] || 0;
                             const rough = GAIA.altRough01[gIdx] || 0;
-                            const T = (GAIA && GAIA.tile) ? GAIA.tile : 30;
-                            const fmt = (v) => {
-                                const z = (Math.abs(v) < 0.005) ? 0 : v;
-                                const sgn = z > 0 ? '+' : '';
-                                return `${sgn}${z.toFixed(2)}`;
-                            };
-                            const tN = (-gyN) * T;
-                            const tE = (gxE) * T;
-                            const tS = (gyS) * T;
-                            const tW = (-gxW) * T;
-                            _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], `${fmt(tN)} / ${fmt(tE)} / ${fmt(tS)} / ${fmt(tW)}`);
+                            _setTextIfChanged(rows['Slope(N/E/S/W)'], `${sN.toFixed(2)} / ${sE.toFixed(2)} / ${sS.toFixed(2)} / ${sW.toFixed(2)}`);
                             _setTextIfChanged(rows['Rough'], `${rough.toFixed(2)}`);
                         } else {
-                            _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
+                            _setTextIfChanged(rows['Slope(N/E/S/W)'], '—');
                             _setTextIfChanged(rows['Rough'], '—');
                         }
                     } catch (_) {
-                        _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
+                        _setTextIfChanged(rows['Slope(N/E/S/W)'], '—');
                         _setTextIfChanged(rows['Rough'], '—');
                     }
                     const coastD = coastDistAt(wx, wy);

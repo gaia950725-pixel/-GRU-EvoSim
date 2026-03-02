@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.06 terrain slope fix3</title>
+    <title>EvoSim 27.06 terrain slope fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -6943,11 +6943,6 @@ function gaiaBuildAltitudeGrid(){
 
   if (!CFG.altitudeEnabled){
     GAIA.altitudeGrid = null;
-    GAIA.altCorner = null;
-    GAIA.altTriGx = null;
-    GAIA.altTriGy = null;
-    GAIA.altTriSlope = null;
-    GAIA.altRough01 = null;
     return;
   }
 
@@ -15374,28 +15369,19 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
                     try {
                         const gIdx = gaiaTileAtXY(wx, wy);
-                        if (gIdx >= 0 && GAIA && GAIA.altTriGx && GAIA.altTriGy && GAIA.altRough01) {
+                        if (gIdx >= 0 && GAIA && GAIA.altTriSlope && GAIA.altRough01) {
                             const base = gIdx * 4;
-                            const gxN = GAIA.altTriGx[base + 0] || 0;
-                            const gyN = GAIA.altTriGy[base + 0] || 0;
-                            const gxE = GAIA.altTriGx[base + 1] || 0;
-                            const gyE = GAIA.altTriGy[base + 1] || 0;
-                            const gxS = GAIA.altTriGx[base + 2] || 0;
-                            const gyS = GAIA.altTriGy[base + 2] || 0;
-                            const gxW = GAIA.altTriGx[base + 3] || 0;
-                            const gyW = GAIA.altTriGy[base + 3] || 0;
+                            const sN = GAIA.altTriSlope[base + 0] || 0;
+                            const sE = GAIA.altTriSlope[base + 1] || 0;
+                            const sS = GAIA.altTriSlope[base + 2] || 0;
+                            const sW = GAIA.altTriSlope[base + 3] || 0;
                             const rough = GAIA.altRough01[gIdx] || 0;
                             const T = (GAIA && GAIA.tile) ? GAIA.tile : 30;
-                            const fmt = (v) => {
-                                const z = (Math.abs(v) < 0.005) ? 0 : v;
-                                const sgn = z > 0 ? '+' : '';
-                                return `${sgn}${z.toFixed(2)}`;
-                            };
-                            const tN = (-gyN) * T;
-                            const tE = (gxE) * T;
-                            const tS = (gyS) * T;
-                            const tW = (-gxW) * T;
-                            _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], `${fmt(tN)} / ${fmt(tE)} / ${fmt(tS)} / ${fmt(tW)}`);
+                            const tN = sN * T;
+                            const tE = sE * T;
+                            const tS = sS * T;
+                            const tW = sW * T;
+                            _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], `${tN.toFixed(2)} / ${tE.toFixed(2)} / ${tS.toFixed(2)} / ${tW.toFixed(2)}`);
                             _setTextIfChanged(rows['Rough'], `${rough.toFixed(2)}`);
                         } else {
                             _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');

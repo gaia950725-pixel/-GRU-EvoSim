@@ -1,3 +1,12 @@
+### 27.06 — terrain slope fix2
+- 27.06 terrain slope fix2: clear altCorner/altTri*/altRough01 when altitude disabled to prevent stale locale diagnostics
+
+### 27.06 — terrain slope fix1
+- 27.06 terrain slope fix1: locale slope shows per-tile (display-only), no new rows
+
+### 27.06 — terrain 4tri slope+rough infra (mid)
+- 27.06 terrain 4tri slope+rough infra (altCorner/triSlope/rough01 + locale debug + altitude formula tweak)
+
 ### 27.05 — season lag + dr SOT + repIdx normalize
 - **What**: Added season lag constants per tile in GAIA as `seasonLagSin30` / `seasonLagCos30` built inside `gaiaBuildSeasonAmp30()` (LAG_MAX=0.08, oceanicity-based).
 - **What**: Season core now caches cosine (`_seasonCore_cacheCos`) in the same per-tick cache path.
@@ -73,6 +82,19 @@ When a patch lands, record:
 - **Patch application procedure (update as a set):**
   - `Last stable version` update
   - Title `# EvoSim CHANGELOG vXX.XX ...` update
+
+### 2-a) Importance gate (required)
+- Importance routing is owned by Planning team by default.
+- Engineers should set/override **Importance** only when it is missing from prompt or handoff context.
+- If `specoutput final` already includes severity/routing (e.g., 경미/중간), follow it as the source of truth.
+- When Importance is missing, use fallback tags: `P0` (critical), `P1` (medium+), `P2` (minor).
+- **P0/P1 only** must be recorded in changelog (PR-blocking if missing/incomplete).
+- **P2(minor)** changes are allowed to skip changelog; keep details in commit/PR body only.
+- Minimum changelog fields for P0/P1: `What`, `Why`, `Risk`, `Verify`, `Rollback hint(1 line)`.
+- Reviewer checklist (must pass before merge):
+  - `index.html` and `docs/releases/EvoSim_latest.html` parity checked for user-visible/runtime changes.
+  - archive snapshot created when version/title changes.
+  - PR body includes the same verification steps as changelog.
 
 For 27.03+ updates, repeat this same checklist in the PR body under verification items.
 

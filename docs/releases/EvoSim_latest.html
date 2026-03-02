@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.05 season lag dr</title>
+    <title>EvoSim 27.06 terrain slope fix3</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5740,6 +5740,7 @@ const SEASON_LAT_POW = 1.4;
 const SEASON_AMP_COAST = 0.35;
 const TEMP_SEASON_DELTA = 0.15;
 const FARM_SEASON_MUL = 0.25;
+const KR_ROUGH_ALT = 1.50;
 
 let _seasonCore_cacheTick = -1;
 let _seasonCore_cachePhase01 = 0;
@@ -6942,6 +6943,11 @@ function gaiaBuildAltitudeGrid(){
 
   if (!CFG.altitudeEnabled){
     GAIA.altitudeGrid = null;
+    GAIA.altCorner = null;
+    GAIA.altTriGx = null;
+    GAIA.altTriGy = null;
+    GAIA.altTriSlope = null;
+    GAIA.altRough01 = null;
     return;
   }
 
@@ -6971,9 +6977,119 @@ function gaiaBuildAltitudeGrid(){
     const m = Math.exp(-dm / 4.0);
     const o = (GAIA && GAIA.oceanicity30) ? (GAIA.oceanicity30[i] || 0) : 0;
 
-    const alt = _clamp01(0.08 + 0.95 * m - 0.55 * o);
+    const alt = _clamp01(0.16 + 0.9 * m - 0.55 * o);
     GAIA.altitudeGrid[i] = alt;
   }
+
+  const T = GAIA.tile || 30;
+  const cCols = cols + 1;
+  const cRows = rows + 1;
+  const cornerIndex = (ix, iy) => (iy * cCols + ix);
+
+  GAIA.altCorner = new Float32Array(cCols * cRows);
+  GAIA.altTriGx = new Float32Array(N * 4);
+  GAIA.altTriGy = new Float32Array(N * 4);
+  GAIA.altTriSlope = new Float32Array(N * 4);
+  GAIA.altRough01 = new Float32Array(N);
+
+  for (let iy = 0; iy < cRows; iy++){
+    for (let ix = 0; ix < cCols; ix++){
+      let sum = 0;
+      let cnt = 0;
+      const cands = [
+        [ix - 1, iy - 1],
+        [ix, iy - 1],
+        [ix - 1, iy],
+        [ix, iy]
+      ];
+      for (let k = 0; k < 4; k++){
+        const cx = cands[k][0];
+        const cy = cands[k][1];
+        if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue;
+        const ti = gaiaTileIndex(cx, cy);
+        sum += GAIA.altitudeGrid[ti] || 0;
+        cnt++;
+      }
+      GAIA.altCorner[cornerIndex(ix, iy)] = cnt > 0 ? (sum / cnt) : 0;
+    }
+  }
+
+  const triGradXY = (x0, y0, h0, x1, y1, h1, x2, y2, h2) => {
+    const dx1 = x1 - x0;
+    const dy1 = y1 - y0;
+    const dz1 = h1 - h0;
+    const dx2 = x2 - x0;
+    const dy2 = y2 - y0;
+    const dz2 = h2 - h0;
+    const det = dx1 * dy2 - dy1 * dx2;
+    if (Math.abs(det) < 1e-9) return { gx: 0, gy: 0 };
+    const invDet = 1 / det;
+    return {
+      gx: (dz1 * dy2 - dy1 * dz2) * invDet,
+      gy: (dx1 * dz2 - dz1 * dx2) * invDet
+    };
+  };
+
+  for (let cy = 0; cy < rows; cy++){
+    for (let cx = 0; cx < cols; cx++){
+      const ti = gaiaTileIndex(cx, cy);
+      const base = ti * 4;
+      const hC = GAIA.altitudeGrid[ti] || 0;
+      const hNW = GAIA.altCorner[cornerIndex(cx, cy)] || 0;
+      const hNE = GAIA.altCorner[cornerIndex(cx + 1, cy)] || 0;
+      const hSW = GAIA.altCorner[cornerIndex(cx, cy + 1)] || 0;
+      const hSE = GAIA.altCorner[cornerIndex(cx + 1, cy + 1)] || 0;
+
+      const gN = triGradXY(T * 0.5, T * 0.5, hC, 0, 0, hNW, T, 0, hNE);
+      const gE = triGradXY(T * 0.5, T * 0.5, hC, T, 0, hNE, T, T, hSE);
+      const gS = triGradXY(T * 0.5, T * 0.5, hC, T, T, hSE, 0, T, hSW);
+      const gW = triGradXY(T * 0.5, T * 0.5, hC, 0, T, hSW, 0, 0, hNW);
+
+      GAIA.altTriGx[base + 0] = gN.gx;
+      GAIA.altTriGy[base + 0] = gN.gy;
+      GAIA.altTriSlope[base + 0] = Math.hypot(gN.gx, gN.gy);
+
+      GAIA.altTriGx[base + 1] = gE.gx;
+      GAIA.altTriGy[base + 1] = gE.gy;
+      GAIA.altTriSlope[base + 1] = Math.hypot(gE.gx, gE.gy);
+
+      GAIA.altTriGx[base + 2] = gS.gx;
+      GAIA.altTriGy[base + 2] = gS.gy;
+      GAIA.altTriSlope[base + 2] = Math.hypot(gS.gx, gS.gy);
+
+      GAIA.altTriGx[base + 3] = gW.gx;
+      GAIA.altTriGy[base + 3] = gW.gy;
+      GAIA.altTriSlope[base + 3] = Math.hypot(gW.gx, gW.gy);
+
+      const xW = Math.max(cx - 1, 0);
+      const xE = Math.min(cx + 1, cols - 1);
+      const yN = Math.max(cy - 1, 0);
+      const yS = Math.min(cy + 1, rows - 1);
+      const hW = GAIA.altitudeGrid[gaiaTileIndex(xW, cy)] || 0;
+      const hE = GAIA.altitudeGrid[gaiaTileIndex(xE, cy)] || 0;
+      const hN = GAIA.altitudeGrid[gaiaTileIndex(cx, yN)] || 0;
+      const hS = GAIA.altitudeGrid[gaiaTileIndex(cx, yS)] || 0;
+      const roughRaw = Math.abs((4 * hC) - (hW + hE + hN + hS));
+      GAIA.altRough01[ti] = _clamp01(roughRaw * KR_ROUGH_ALT);
+    }
+  }
+}
+
+function gaiaAltTriIdAtWorldXY(x, y){
+  if (!GAIA || !GAIA.cols || !GAIA.rows) return 0;
+  const T = GAIA.tile || 30;
+  const cols = GAIA.cols | 0;
+  const rows = GAIA.rows | 0;
+  let cx = Math.floor((x || 0) / T);
+  let cy = Math.floor((y || 0) / T);
+  cx = Math.max(0, Math.min(cols - 1, cx));
+  cy = Math.max(0, Math.min(rows - 1, cy));
+  const u = (((x || 0) - (cx * T)) / T);
+  const v = (((y || 0) - (cy * T)) / T);
+  const d1 = u - v;
+  const d2 = (u + v) - 1;
+  if (d1 >= 0) return (d2 >= 0) ? 1 : 0;
+  return (d2 >= 0) ? 2 : 3;
 }
 
 /* === BUILDER_BLOCK: GAIA_ENV30_END ======================================= */
@@ -15205,7 +15321,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     };
                     uiFarmObsMini.textContent = '';
                     const climate = mkGroup('Climate', ['temperature', 'humidity']);
-                    const geography = mkGroup('Geography', ['altitude', 'coastDist', 'oceanicity']);
+                    const geography = mkGroup('Geography', ['altitude', 'Slope (per tile N/E/S/W)', 'Rough', 'coastDist', 'oceanicity']);
                     const clamor = mkGroup('Clamor', ['cF', 'cS', 'vF', 'vS']);
                     const agriculture = mkGroup('Agriculture', ['crop', 'tilth', 'stage']);
                     const hintRow = document.createElement('div');
@@ -15232,6 +15348,8 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.temperature, '—');
                     _setTextIfChanged(rows.humidity, '—');
                     _setTextIfChanged(rows.altitude, '—');
+                    _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
+                    _setTextIfChanged(rows['Rough'], '—');
                     _setTextIfChanged(rows.coastDist, '—');
                     _setTextIfChanged(rows.oceanicity, '0.00');
                     _setTextIfChanged(rows.cF, '—');
@@ -15254,6 +15372,39 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.temperature, `${tBase.toFixed(2)} → ${tNow.toFixed(2)}`);
                     _setTextIfChanged(rows.humidity, `${humid01At(wx, wy).toFixed(2)}`);
                     _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
+                    try {
+                        const gIdx = gaiaTileAtXY(wx, wy);
+                        if (gIdx >= 0 && GAIA && GAIA.altTriGx && GAIA.altTriGy && GAIA.altRough01) {
+                            const base = gIdx * 4;
+                            const gxN = GAIA.altTriGx[base + 0] || 0;
+                            const gyN = GAIA.altTriGy[base + 0] || 0;
+                            const gxE = GAIA.altTriGx[base + 1] || 0;
+                            const gyE = GAIA.altTriGy[base + 1] || 0;
+                            const gxS = GAIA.altTriGx[base + 2] || 0;
+                            const gyS = GAIA.altTriGy[base + 2] || 0;
+                            const gxW = GAIA.altTriGx[base + 3] || 0;
+                            const gyW = GAIA.altTriGy[base + 3] || 0;
+                            const rough = GAIA.altRough01[gIdx] || 0;
+                            const T = (GAIA && GAIA.tile) ? GAIA.tile : 30;
+                            const fmt = (v) => {
+                                const z = (Math.abs(v) < 0.005) ? 0 : v;
+                                const sgn = z > 0 ? '+' : '';
+                                return `${sgn}${z.toFixed(2)}`;
+                            };
+                            const tN = (-gyN) * T;
+                            const tE = (gxE) * T;
+                            const tS = (gyS) * T;
+                            const tW = (-gxW) * T;
+                            _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], `${fmt(tN)} / ${fmt(tE)} / ${fmt(tS)} / ${fmt(tW)}`);
+                            _setTextIfChanged(rows['Rough'], `${rough.toFixed(2)}`);
+                        } else {
+                            _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
+                            _setTextIfChanged(rows['Rough'], '—');
+                        }
+                    } catch (_) {
+                        _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
+                        _setTextIfChanged(rows['Rough'], '—');
+                    }
                     const coastD = coastDistAt(wx, wy);
                     _setTextIfChanged(rows.coastDist, coastD < 0 ? '—' : `${coastD | 0}`);
                     _setTextIfChanged(rows.oceanicity, `${oceanicity01At(wx, wy).toFixed(2)}`);
