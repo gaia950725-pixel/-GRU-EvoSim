@@ -1,3 +1,20 @@
+### 27.05 — season lag + dr SOT + repIdx normalize
+- **What**: Added season lag constants per tile in GAIA as `seasonLagSin30` / `seasonLagCos30` built inside `gaiaBuildSeasonAmp30()` (LAG_MAX=0.08, oceanicity-based).
+- **What**: Season core now caches cosine (`_seasonCore_cacheCos`) in the same per-tick cache path.
+- **What**: Added `seasonSinLaggedAtTileIdx(ti,tick)` helper using sin/cos identity to avoid per-tile trig in runtime lookups.
+- **What**: `tempSeasoned01At()` now uses lagged season signal (`sinL * seasonAmp`) while keeping base formula and clamp policy.
+- **What**: Farm stage=1 growth-mul path keeps same structure, but local seasonal signal source is switched to lagged helper only.
+- **What**: Added GAIA SOT field `distToRiver30` (Int16Array) populated from humidity BFS `distMap` without changing humidity equation/output.
+- **What**: Normalized repIdx API usage by replacing `agroRepIdxForTileIdx` callsites with `agroRepIdxFromTileIdx` across `index.html`.
+- **Why**: Apply lagged-season design consistently while preserving policy constraints (no mean-shift, no NN input change, humidity output unchanged).
+- **Risk**: Seasonal phase at highly maritime tiles is intentionally delayed; farming timing behavior can shift locally.
+- **Risk**: Any overlooked UI callsite could read wrong representative tile; full-string replacement was rechecked.
+- **Verify**: Confirm no `agroRepIdxForTileIdx` string remains in `index.html`.
+- **Verify**: Confirm `GAIA.seasonLagSin30/seasonLagCos30` allocation occurs in `gaiaBuildSeasonAmp30()` loop path.
+- **Verify**: Confirm `tempSeasoned01At()` and `agroSeasonLocalAtTileIdx()` both read `seasonSinLaggedAtTileIdx()`.
+- **Verify**: Confirm humidity formula stays `Math.exp(-d / 8)` and `GAIA.distToRiver30` is filled from `distMap` in the same loop.
+- **Verify**: Confirm repIdx/crop reads keep bounds guards (`repIdx < AGRO.repStage.length`, `rep2 < AGRO.crop.length`).
+
 ### 27.04 — season spatial amp
 - **What**: Added global season core helpers `seasonPhase01()` and `seasonSin()` with per-tick cache near time narrative constants.
 - **What**: Added constants `SEASON_LAT_POW=1.4`, `SEASON_AMP_COAST=0.35`, `TEMP_SEASON_DELTA=0.15`, `FARM_SEASON_MUL=0.25`.
