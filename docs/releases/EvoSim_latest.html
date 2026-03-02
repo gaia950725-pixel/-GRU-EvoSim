@@ -4377,7 +4377,7 @@ function agroStageLabel(stage) {
 function agroSeasonMul() { return 1 + seasonSin() * 0.10; }
 function agroSeasonLocalAtTileIdx(ti, tick = simulatedTicks){
   if (!(GAIA && GAIA.seasonAmp30)) return 0;
-  return seasonSin(tick) * (GAIA.seasonAmp30[ti] || 0);
+  return seasonSinLaggedAtTileIdx(ti, tick) * (GAIA.seasonAmp30[ti] || 0);
 }
 function agroSeasonGrowMulAtTileIdx(ti, tick = simulatedTicks){
   const local = agroSeasonLocalAtTileIdx(ti, tick);
@@ -5320,9 +5320,12 @@ for(let i=0; i<RIVER_COUNT; i++) {
                 }
             }
             
+            GAIA.distToRiver30 = new Int16Array(cols * rows);
             for(let i=0; i<cols*rows; i++) {
+                const dRaw = distMap[i];
+                GAIA.distToRiver30[i] = (dRaw < 0 ? -1 : (dRaw > 32767 ? 32767 : dRaw));
                 if (AGRO.landMask[i]) {
-                    const d = (distMap[i] === -1) ? 50 : distMap[i];
+                    const d = (dRaw === -1) ? 50 : dRaw;
                     AGRO.humidity[i] = Math.exp(-d / 8); 
                 } else {
                     AGRO.humidity[i] = 0;
@@ -5623,7 +5626,8 @@ function tempSeasoned01At(x, y, tick = simulatedTicks){
   if (!(CFG && CFG.climateEnabled)) return base;
   if (!(GAIA && GAIA.seasonAmp30)) return base;
   const ti = gaiaTileAtXY(x, y);
-  const local = seasonSin(tick) * (GAIA.seasonAmp30[ti] || 0);
+  const sinL = seasonSinLaggedAtTileIdx(ti, tick);
+  const local = sinL * (GAIA.seasonAmp30[ti] || 0);
   return _clamp01(base + TEMP_SEASON_DELTA * local);
 }
 
@@ -5740,6 +5744,7 @@ const FARM_SEASON_MUL = 0.25;
 let _seasonCore_cacheTick = -1;
 let _seasonCore_cachePhase01 = 0;
 let _seasonCore_cacheSin = 0;
+let _seasonCore_cacheCos = 0;
 
 function _seasonCore_ensure(tick){
   const t = (typeof tick === 'number' && Number.isFinite(tick)) ? (tick | 0) : 0;
@@ -5750,9 +5755,18 @@ function _seasonCore_ensure(tick){
   _seasonCore_cacheTick = t;
   _seasonCore_cachePhase01 = ph;
   _seasonCore_cacheSin = Math.sin(ph * 2 * Math.PI);
+  _seasonCore_cacheCos = Math.cos(ph * 2 * Math.PI);
 }
 function seasonPhase01(tick = simulatedTicks){ _seasonCore_ensure(tick); return _seasonCore_cachePhase01; }
 function seasonSin(tick = simulatedTicks){ _seasonCore_ensure(tick); return _seasonCore_cacheSin; }
+function seasonSinLaggedAtTileIdx(ti, tick = simulatedTicks){
+  _seasonCore_ensure(tick);
+  const s = _seasonCore_cacheSin;
+  const c = _seasonCore_cacheCos;
+  const sl = (GAIA && GAIA.seasonLagSin30) ? (GAIA.seasonLagSin30[ti] || 0) : 0;
+  const cl = (GAIA && GAIA.seasonLagCos30) ? (GAIA.seasonLagCos30[ti] || 1) : 1;
+  return s * cl - c * sl;
+}
 
 
 const COLLISION_CHILD_START_ENERGY = 1200;
@@ -5898,7 +5912,7 @@ function _bsGet(bs, i){ return (bs[i>>>5] >>> (i & 31)) & 1; }
 function _bsSet1(bs, i){ bs[i>>>5] |= (1 << (i & 31)); }
 function _bsSet0(bs, i){ bs[i>>>5] &= ~(1 << (i & 31)); }
 
-const GAIA = { ready:false, stage:0, stagePrev:0, stageWhy:"", debugStages:false, debugBounds:false, _boundsWarned:0, w:0, h:0, land:null, pass:null, mountain:null, spec:null, debugCanvas:null, debugScale:1, distToCoast30:null, oceanicity30:null };
+const GAIA = { ready:false, stage:0, stagePrev:0, stageWhy:"", debugStages:false, debugBounds:false, _boundsWarned:0, w:0, h:0, land:null, pass:null, mountain:null, spec:null, debugCanvas:null, debugScale:1, distToCoast30:null, oceanicity30:null, seasonLagSin30:null, seasonLagCos30:null, distToRiver30:null };
 
 function setGaiaStage(next, why){
   if (!GAIA) return;
@@ -6020,6 +6034,9 @@ function gaiaBuildLandBitsOnly(){
   GAIA.spec = null;
   GAIA.distToCoast30 = null;
   GAIA.oceanicity30 = null;
+  GAIA.seasonLagSin30 = null;
+  GAIA.seasonLagCos30 = null;
+  GAIA.distToRiver30 = null;
 
   // Square: whole world is landmass (mountains/inland seas may be applied in later steps)
   if (CFG.mapType === 'SQUARE'){
@@ -6898,6 +6915,8 @@ function gaiaBuildSeasonAmp30(){
     const cols = GAIA.cols|0, rows = GAIA.rows|0;
     const N = cols * rows;
     const seasonAmp30 = new Float32Array(N);
+    GAIA.seasonLagSin30 = new Float32Array(N);
+    GAIA.seasonLagCos30 = new Float32Array(N);
 
     const denom = Math.max(1, rows - 1);
     for (let i = 0; i < N; i++){
@@ -6906,6 +6925,10 @@ function gaiaBuildSeasonAmp30(){
         const hemiSign = (lat01 < 0.5 ? 1 : -1);
         const latAmp = Math.pow(Math.abs(lat01 - 0.5) * 2, SEASON_LAT_POW);
         const o = (GAIA && GAIA.oceanicity30) ? (GAIA.oceanicity30[i] || 0) : 0;
+        const lag01 = 0.08 * o;
+        const phi = 2 * Math.PI * lag01;
+        GAIA.seasonLagSin30[i] = Math.sin(phi);
+        GAIA.seasonLagCos30[i] = Math.cos(phi);
         const ampOcean = SEASON_AMP_COAST + (1 - SEASON_AMP_COAST) * (1 - o);
         seasonAmp30[i] = hemiSign * latAmp * ampOcean;
     }
@@ -15250,7 +15273,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                         const peek = agroPeekTile(iRaw);
                         const crop = (peek ? peek.crop : 0);
                         const tilth = (peek ? peek.tilth : 0);
-                        const repIdx = (typeof agroRepIdxForTileIdx === 'function') ? agroRepIdxForTileIdx(iRaw) : -1;
+                        const repIdx = (typeof agroRepIdxFromTileIdx === 'function') ? agroRepIdxFromTileIdx(iRaw) : -1;
                         const hasStage = !!(AGRO.repStage && repIdx >= 0);
                         const stage = hasStage ? (AGRO.repStage[repIdx] | 0) : 0;
                         _setTextIfChanged(rows.crop, `${crop.toFixed(2)}`);
