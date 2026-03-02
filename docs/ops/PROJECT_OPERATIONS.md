@@ -14,9 +14,9 @@
 - `fix/<task>`
 - `docs/<task>`
 
-### AI working branch
-- 세션마다 시스템 프롬프트가 `claude/<slug>` 패턴으로 지정한다.
-- 이 문서에 특정 브랜치명을 하드코딩하지 않는다.
+### AI 실행팀 브랜치 (Claude / Codex)
+- AI 실행팀도 동일한 네이밍 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다.
+- 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`)는 세션 전용이므로 **이 문서에 특정 브랜치명을 기재하지 않는다.** 현재 작업 브랜치는 시스템 프롬프트를 확인한다.
 
 ### Ops-only / docs-only 변경 규칙
 - 시뮬 버전 번프 없는 순수 운영 변경(CHANGELOG 채우기, 거버넌스 문서 수정, CLAUDE.md 규칙 추가 등)은 **AI 워킹 브랜치에 직접 커밋**한다.
