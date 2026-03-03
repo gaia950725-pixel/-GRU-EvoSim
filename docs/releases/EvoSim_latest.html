@@ -5038,11 +5038,6 @@ function initClimate() {
         function initAgro() {
             if (!CFG.climateEnabled) { AGRO = null; return; }
 
-// Phase 2: sub-seed for rivers (keeps rivers isolated from mountains)
-if (typeof GAIA !== 'undefined' && GAIA && GAIA._seedRiver != null){
-    GAIA.rand = _mulberry32(GAIA._seedRiver >>> 0);
-}
-
             const TILE = AGRO_TILE;
             const cols = Math.ceil(CFG.worldWidth / TILE);
             const rows = Math.ceil(CFG.worldHeight / TILE);
@@ -5062,7 +5057,6 @@ const idxOf = (x, y) => y * cols + x;
             const inBounds = (x, y) => x >= 0 && x < cols && y >= 0 && y < rows;
 
             let landIndices = [];
-            let coastIndices = [];
             
             for(let y=0; y<rows; y++) {
                 for(let x=0; x<cols; x++) {
@@ -5076,284 +5070,18 @@ const idxOf = (x, y) => y * cols + x;
                         if (!(typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && AGRO.temp === GAIA.tempGrid)) {
                     AGRO.temp[idx] = tempNormAt(wx, wy);
                 }
-let isCoast = false;
-                        if (CFG.mapType === 'SQUARE') {
-                            if (x===0 || x===cols-1 || y===0 || y===rows-1) isCoast = true;
-                        } else {
-                            // Coast is defined by landmass edge (not by passable edge), so mountains don't create fake coasts.
-                            if (isLandmass(wx, wy) && (
-                                !isLandmass(wx+TILE, wy) || !isLandmass(wx-TILE, wy) || 
-                                !isLandmass(wx, wy+TILE) || !isLandmass(wx, wy-TILE)
-                            )) {
-                                isCoast = true;    
-                            }
-                        }
-                        if (isCoast && isLandmass(wx, wy)) coastIndices.push({x,y,idx});
                     }
 }
             }
             
-            const _riverMax = (CFG.mapType === 'TSL_XL_7200x4800') ? 8 : 6;
-            const RIVER_COUNT = Math.max(0, Math.min(_riverMax, (CFG.riverCount|0)));
-            const _r01 = (GAIA && typeof GAIA.rand === 'function') ? GAIA.rand : Math.random;
-            const chosenMouths = [];
-            
-            
-// Phase 3 (earthTopo): template-driven rivers for this mapType (TSL XL authored first).
-const _topo = (typeof TOPO_TEMPLATES !== 'undefined' && GAIA && GAIA.earthTopo) ? (TOPO_TEMPLATES[CFG.mapType] || null) : null;
 
-function _clampi(v, lo, hi){ v = v|0; if(v<lo) return lo; if(v>hi) return hi; return v; }
-
-function _findLandTileNear(tx,ty){
-  if(inBounds(tx,ty)){
-    const ii = idxOf(tx,ty);
-    if (AGRO.landMask[ii]) return {x:tx,y:ty,idx:ii};
-  }
-  // small spiral search (worldgen-only)
-  for(let r=1;r<=6;r++){
-    for(let dy=-r; dy<=r; dy++){
-      for(let dx=-r; dx<=r; dx++){
-        if (Math.abs(dx)!==r && Math.abs(dy)!==r) continue;
-        const nx=tx+dx, ny=ty+dy;
-        if(!inBounds(nx,ny)) continue;
-        const ii = idxOf(nx,ny);
-        if (AGRO.landMask[ii]) return {x:nx,y:ny,idx:ii};
-      }
-    }
-  }
-  return null;
-}
-
-function _bresenhamTiles(x0,y0,x1,y1){
-  x0|=0; y0|=0; x1|=0; y1|=0;
-  const out=[];
-  let dx=Math.abs(x1-x0), sx=x0<x1?1:-1;
-  let dy=-Math.abs(y1-y0), sy=y0<y1?1:-1;
-  let err=dx+dy;
-  while(true){
-    out.push([x0,y0]);
-    if(x0===x1 && y0===y1) break;
-    const e2=2*err;
-    if(e2>=dy){ err+=dy; x0+=sx; }
-    if(e2<=dx){ err+=dx; y0+=sy; }
-    if(out.length > (cols+rows)*4) break;
-  }
-  return out;
-}
-
-function _goalWalkTiles(sx,sy,ex,ey,maxSteps){
-  const vis = new Uint8Array(cols*rows);
-  const path=[];
-  let cx=sx|0, cy=sy|0;
-  for(let step=0; step<maxSteps; step++){
-    path.push([cx,cy]);
-    if(cx===ex && cy===ey) return path;
-    vis[idxOf(cx,cy)] = 1;
-
-    let best=null, bestScore=1e30;
-    const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
-    for(let di=0; di<4; di++){
-      const nx=cx+dirs[di][0], ny=cy+dirs[di][1];
-      if(!inBounds(nx,ny)) continue;
-      const ii=idxOf(nx,ny);
-      if(!AGRO.landMask[ii]) continue;
-      if(vis[ii]) continue;
-      if(AGRO.riverMask[ii]) continue;
-      const ddx=ex-nx, ddy=ey-ny;
-      let score = ddx*ddx + ddy*ddy;
-      score += (_r01()*0.25); // tiny jitter
-      if(score < bestScore){ bestScore=score; best={x:nx,y:ny,idx:ii}; }
-    }
-    if(!best) return null;
-    cx=best.x; cy=best.y;
-  }
-  return null;
-}
-
-if (_topo && _topo.rivers && _topo.rivers.length){
-  const wantTopo = Math.min(RIVER_COUNT, _topo.rivers.length);
-  for(let i=0; i<wantTopo; i++){
-    const def = _topo.rivers[i];
-
-    const ax = (def.a[0] * CFG.worldWidth)|0;
-    const ay = (def.a[1] * CFG.worldHeight)|0;
-    const bx = (def.b[0] * CFG.worldWidth)|0;
-    const by = (def.b[1] * CFG.worldHeight)|0;
-
-    const stx = _clampi((ax / TILE)|0, 0, cols-1);
-    const sty = _clampi((ay / TILE)|0, 0, rows-1);
-    const edx = _clampi((bx / TILE)|0, 0, cols-1);
-    const edy = _clampi((by / TILE)|0, 0, rows-1);
-
-    const S = _findLandTileNear(stx,sty);
-    const E = _findLandTileNear(edx,edy);
-    if(!S || !E) continue;
-
-    let tiles = _goalWalkTiles(S.x,S.y,E.x,E.y, Math.max(160, cols+rows));
-    if(!tiles){
-      // straight-line fallback (policy)
-      tiles = _bresenhamTiles(S.x,S.y,E.x,E.y);
-    }
-
-    const path = [];
-    for(let t=0;t<tiles.length;t++){
-      const tx=tiles[t][0], ty=tiles[t][1];
-      if(!inBounds(tx,ty)) continue;
-      const ii=idxOf(tx,ty);
-      if(!AGRO.landMask[ii]) continue;
-      AGRO.riverMask[ii] = 1;
-      path.push(new Vec2((tx+0.5)*TILE, (ty+0.5)*TILE));
-    }
-    // enforce end anchor if land (policy: end anchor fixed)
-    if (AGRO.landMask[E.idx]){
-      AGRO.riverMask[E.idx] = 1;
-      path.push(new Vec2((E.x+0.5)*TILE, (E.y+0.5)*TILE));
-    }
-    if (path.length > 2) AGRO.riverPolylines.push(path);
-  }
-} else {
-for(let i=0; i<RIVER_COUNT; i++) {
-                if(coastIndices.length === 0) break;
-                
-                let bestCand = null;
-                let maxMinDist = -1;
-                
-                for(let k=0; k<20; k++) {
-                    const cand = coastIndices[(coastIndices.length * _r01())|0];
-                    let minDist = Infinity;
-                    if (chosenMouths.length === 0) minDist = Infinity;
-                    else {
-                        for(let m of chosenMouths) {
-                            const d = Math.abs(cand.x - m.x) + Math.abs(cand.y - m.y);
-                            if (d < minDist) minDist = d;
-                        }
-                    }
-                    if (minDist > maxMinDist) {
-                        maxMinDist = minDist;
-                        bestCand = cand;
-                    }
-                }
-                
-                if (bestCand) {
-                    chosenMouths.push(bestCand);
-                    const localVisited = new Uint8Array(cols * rows);
-                    const path = [new Vec2((bestCand.x+0.5)*TILE, (bestCand.y+0.5)*TILE)];
-                    let cx = bestCand.x;
-                    let cy = bestCand.y;
-                    AGRO.riverMask[bestCand.idx] = 1;
-                    localVisited[bestCand.idx] = 1;
-                    const centerX = cols / 2;
-                    const centerY = rows / 2;
-                    const steps = 30 + ((15 * _r01())|0);
-                    for(let s=0; s<steps; s++) {
-                        let validNext = null;
-                        for(let attempt=0; attempt<8; attempt++) {
-                            let dx = 0, dy = 0;
-                            if (attempt === 0) {
-                                dx = (centerX - cx) > 0 ? 1 : -1;
-                                dy = (centerY - cy) > 0 ? 1 : -1;
-                                if (_r01() < 0.3) dx = (_r01() < 0.5 ? 1 : -1);
-                                if (_r01() < 0.3) dy = (_r01() < 0.5 ? 1 : -1);
-                            } else {
-                                const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
-                                const d = dirs[((dirs.length * _r01())|0)];
-                                dx = d[0]; dy = d[1];
-                            }
-                            const nx = cx + dx;
-                            const ny = cy + dy;
-                            if (inBounds(nx, ny)) {
-                                const nidx = idxOf(nx, ny);
-                                if (AGRO.landMask[nidx] && !localVisited[nidx] && !AGRO.riverMask[nidx]) {
-                                    validNext = {x: nx, y: ny, idx: nidx};
-                                    break;
-                                }
-                            }
-                        }
-                        if (validNext) {
-                            cx = validNext.x;
-                            cy = validNext.y;
-                            AGRO.riverMask[validNext.idx] = 1;
-                            localVisited[validNext.idx] = 1;
-                            path.push(new Vec2((cx+0.5)*TILE, (cy+0.5)*TILE));
-                        } else {
-                            break;
-                        }
-                    }
-                    if (path.length > 2) AGRO.riverPolylines.push(path);
-                }
-            }
-            
-} // end earthTopo template override
-
-            const queue = [];
-            const distMap = new Int32Array(cols * rows).fill(-1);
-            
-            for(let i=0; i<cols*rows; i++) {
-                if(AGRO.riverMask[i]) {
-                    distMap[i] = 0;
-                    queue.push(i);
-                }
-            }
-            if (queue.length === 0 && landIndices.length > 0) {
-                 const rnd = landIndices[((landIndices.length * _r01())|0)].idx;
-                 distMap[rnd] = 0;
-                 queue.push(rnd);
-            }
-            
-            let head = 0;
-            while(head < queue.length) {
-                const curr = queue[head++];
-                const cx = curr % cols;
-                const cy = Math.floor(curr / cols);
-                const d = distMap[curr];
-                const nbs = [[1,0],[-1,0],[0,1],[0,-1]];
-                for(let dir of nbs) {
-                    const nx = cx + dir[0];
-                    const ny = cy + dir[1];
-                    if (inBounds(nx, ny)) {
-                        const nidx = idxOf(nx, ny);
-                        if (AGRO.landMask[nidx] && distMap[nidx] === -1) {
-                            distMap[nidx] = d + 1;
-                            queue.push(nidx);
-                        }
-                    }
-                }
-            }
-            
-            GAIA.distToRiver30 = new Int16Array(cols * rows);
-            for(let i=0; i<cols*rows; i++) {
-                const dRaw = distMap[i];
-                GAIA.distToRiver30[i] = (dRaw < 0 ? -1 : (dRaw > 32767 ? 32767 : dRaw));
-                if (AGRO.landMask[i]) {
-                    const d = (dRaw === -1) ? 50 : dRaw;
-                    AGRO.humidity[i] = Math.exp(-d / 8); 
-                } else {
-                    AGRO.humidity[i] = 0;
-                }
-            }
-            
-            
-            // GAIA Phase2: register river/humidity ownership in SOT + altitude humidity adjustment (k=0.4)
-            try {
-                GAIA.riverMask = AGRO.riverMask;
-                GAIA.riverPolylines = AGRO.riverPolylines;
-                GAIA.humidGrid = AGRO.humidity;
-
-                const k = 0.4; // humidity multiplicative adjustment by altitude (policy)
-                if (GAIA.altitudeGrid && GAIA.humidGrid && GAIA.altitudeGrid.length === GAIA.humidGrid.length) {
-                    for (let i=0; i<GAIA.humidGrid.length; i++){
-                        let h = GAIA.humidGrid[i];
-                        const alt = GAIA.altitudeGrid[i] || 0;
-                        h = h * (1 + k * (0.5 - alt));
-                        if (h < 0) h = 0; else if (h > 1) h = 1;
-                        GAIA.humidGrid[i] = h;
-                    }
-                }
-                // keep AGRO.humidity as alias for compatibility
+            if (GAIA && GAIA.humidGrid && GAIA.humidGrid.length === (cols*rows)) {
                 AGRO.humidity = GAIA.humidGrid;
-            } catch (e) {
-                console.warn("GAIA humidGrid registration/adjust failed", e);
+            } else {
+                console.warn('[AGRO] GAIA.humidGrid missing or size mismatch; humidity stays local');
             }
+            if (GAIA && GAIA.riverMask && GAIA.riverMask.length === (cols*rows)) AGRO.riverMask = GAIA.riverMask;
+            if (GAIA && GAIA.riverPolylines) AGRO.riverPolylines = GAIA.riverPolylines;
 
 const landCount = landIndices.length;
             if (landCount > 100) {
@@ -5913,7 +5641,7 @@ function _bsGet(bs, i){ return (bs[i>>>5] >>> (i & 31)) & 1; }
 function _bsSet1(bs, i){ bs[i>>>5] |= (1 << (i & 31)); }
 function _bsSet0(bs, i){ bs[i>>>5] &= ~(1 << (i & 31)); }
 
-const GAIA = { ready:false, stage:0, stagePrev:0, stageWhy:"", debugStages:false, debugBounds:false, _boundsWarned:0, w:0, h:0, land:null, pass:null, mountain:null, spec:null, debugCanvas:null, debugScale:1, distToCoast30:null, oceanicity30:null, seasonLagSin30:null, seasonLagCos30:null, distToRiver30:null };
+const GAIA = { ready:false, stage:0, stagePrev:0, stageWhy:"", debugStages:false, debugBounds:false, _boundsWarned:0, w:0, h:0, land:null, pass:null, mountain:null, spec:null, debugCanvas:null, debugScale:1, distToCoast30:null, oceanicity30:null, seasonLagSin30:null, seasonLagCos30:null, distToRiver30:null, riverMask:null, riverPolylines:null, freshwater30:null, humidGrid:null };
 
 function setGaiaStage(next, why){
   if (!GAIA) return;
@@ -6038,6 +5766,10 @@ function gaiaBuildLandBitsOnly(){
   GAIA.seasonLagSin30 = null;
   GAIA.seasonLagCos30 = null;
   GAIA.distToRiver30 = null;
+  GAIA.riverMask = null;
+  GAIA.riverPolylines = null;
+  GAIA.freshwater30 = null;
+  GAIA.humidGrid = null;
 
   // Square: whole world is landmass (mountains/inland seas may be applied in later steps)
   if (CFG.mapType === 'SQUARE'){
@@ -6936,6 +6668,282 @@ function gaiaBuildSeasonAmp30(){
     GAIA.seasonAmp30 = seasonAmp30;
 }
 
+
+function gaiaBuildHydrologySOT30(){
+  if (!CFG.climateEnabled){
+    GAIA.riverMask = null;
+    GAIA.riverPolylines = null;
+    GAIA.distToRiver30 = null;
+    GAIA.freshwater30 = null;
+    GAIA.humidGrid = null;
+    return;
+  }
+
+  gaiaInitTiles30();
+  const cols = GAIA.cols|0, rows = GAIA.rows|0;
+  const N = cols * rows;
+  const TILE = (GAIA.tile || 30);
+  const idxOf = (x, y) => y * cols + x;
+  const inBounds = (x, y) => x >= 0 && x < cols && y >= 0 && y < rows;
+
+  const prevRand = GAIA.rand;
+  try {
+    if (GAIA && GAIA._seedRiver != null) GAIA.rand = _mulberry32(GAIA._seedRiver >>> 0);
+
+    const landMask = new Uint8Array(N);
+    const coastIndices = [];
+    const landIndices = [];
+    for (let y = 0; y < rows; y++) {
+      for (let x = 0; x < cols; x++) {
+        const wx = (x + 0.5) * TILE;
+        const wy = (y + 0.5) * TILE;
+        const idx = idxOf(x, y);
+        const onPassable = isPassable(wx, wy);
+        if (!onPassable) continue;
+        landMask[idx] = 1;
+        landIndices.push({x, y, idx});
+        let isCoast = false;
+        if (CFG.mapType === 'SQUARE') {
+          if (x===0 || x===cols-1 || y===0 || y===rows-1) isCoast = true;
+        } else {
+          if (isLandmass(wx, wy) && (
+            !isLandmass(wx+TILE, wy) || !isLandmass(wx-TILE, wy) ||
+            !isLandmass(wx, wy+TILE) || !isLandmass(wx, wy-TILE)
+          )) {
+            isCoast = true;
+          }
+        }
+        if (isCoast && isLandmass(wx, wy)) coastIndices.push({x, y, idx});
+      }
+    }
+
+    const riverMask = new Uint8Array(N);
+    const riverPolylines = [];
+    const _riverMax = (CFG.mapType === 'TSL_XL_7200x4800') ? 8 : 6;
+    const RIVER_COUNT = Math.max(0, Math.min(_riverMax, (CFG.riverCount|0)));
+    const _r01 = (GAIA && typeof GAIA.rand === 'function') ? GAIA.rand : Math.random;
+    const chosenMouths = [];
+
+    const _topo = (typeof TOPO_TEMPLATES !== 'undefined' && GAIA && GAIA.earthTopo) ? (TOPO_TEMPLATES[CFG.mapType] || null) : null;
+    function _clampi(v, lo, hi){ v = v|0; if(v<lo) return lo; if(v>hi) return hi; return v; }
+    function _findLandTileNear(tx,ty){
+      if(inBounds(tx,ty)){
+        const ii = idxOf(tx,ty);
+        if (landMask[ii]) return {x:tx,y:ty,idx:ii};
+      }
+      for(let r=1;r<=6;r++){
+        for(let dy=-r; dy<=r; dy++){
+          for(let dx=-r; dx<=r; dx++){
+            if (Math.abs(dx)!==r && Math.abs(dy)!==r) continue;
+            const nx=tx+dx, ny=ty+dy;
+            if(!inBounds(nx,ny)) continue;
+            const ii = idxOf(nx,ny);
+            if (landMask[ii]) return {x:nx,y:ny,idx:ii};
+          }
+        }
+      }
+      return null;
+    }
+    function _bresenhamTiles(x0,y0,x1,y1){
+      x0|=0; y0|=0; x1|=0; y1|=0;
+      const out=[];
+      let dx=Math.abs(x1-x0), sx=x0<x1?1:-1;
+      let dy=-Math.abs(y1-y0), sy=y0<y1?1:-1;
+      let err=dx+dy;
+      while(true){
+        out.push([x0,y0]);
+        if(x0===x1 && y0===y1) break;
+        const e2=2*err;
+        if(e2>=dy){ err+=dy; x0+=sx; }
+        if(e2<=dx){ err+=dx; y0+=sy; }
+        if(out.length > (cols+rows)*4) break;
+      }
+      return out;
+    }
+    function _goalWalkTiles(sx,sy,ex,ey,maxSteps){
+      const vis = new Uint8Array(N);
+      const path=[];
+      let cx=sx|0, cy=sy|0;
+      for(let step=0; step<maxSteps; step++){
+        path.push([cx,cy]);
+        if(cx===ex && cy===ey) return path;
+        vis[idxOf(cx,cy)] = 1;
+        let best=null, bestScore=1e30;
+        const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+        for(let di=0; di<4; di++){
+          const nx=cx+dirs[di][0], ny=cy+dirs[di][1];
+          if(!inBounds(nx,ny)) continue;
+          const ii=idxOf(nx,ny);
+          if(!landMask[ii] || vis[ii] || riverMask[ii]) continue;
+          const ddx=ex-nx, ddy=ey-ny;
+          let score = ddx*ddx + ddy*ddy;
+          score += (_r01()*0.25);
+          if(score < bestScore){ bestScore=score; best={x:nx,y:ny,idx:ii}; }
+        }
+        if(!best) return null;
+        cx=best.x; cy=best.y;
+      }
+      return null;
+    }
+
+    if (_topo && _topo.rivers && _topo.rivers.length){
+      const wantTopo = Math.min(RIVER_COUNT, _topo.rivers.length);
+      for(let i=0; i<wantTopo; i++){
+        const def = _topo.rivers[i];
+        const ax = (def.a[0] * CFG.worldWidth)|0;
+        const ay = (def.a[1] * CFG.worldHeight)|0;
+        const bx = (def.b[0] * CFG.worldWidth)|0;
+        const by = (def.b[1] * CFG.worldHeight)|0;
+        const stx = _clampi((ax / TILE)|0, 0, cols-1);
+        const sty = _clampi((ay / TILE)|0, 0, rows-1);
+        const edx = _clampi((bx / TILE)|0, 0, cols-1);
+        const edy = _clampi((by / TILE)|0, 0, rows-1);
+        const S = _findLandTileNear(stx,sty);
+        const E = _findLandTileNear(edx,edy);
+        if(!S || !E) continue;
+        let tiles = _goalWalkTiles(S.x,S.y,E.x,E.y, Math.max(160, cols+rows));
+        if(!tiles) tiles = _bresenhamTiles(S.x,S.y,E.x,E.y);
+        const path = [];
+        for(let t=0;t<tiles.length;t++){
+          const tx=tiles[t][0], ty=tiles[t][1];
+          if(!inBounds(tx,ty)) continue;
+          const ii=idxOf(tx,ty);
+          if(!landMask[ii]) continue;
+          riverMask[ii] = 1;
+          path.push(new Vec2((tx+0.5)*TILE, (ty+0.5)*TILE));
+        }
+        if (landMask[E.idx]){
+          riverMask[E.idx] = 1;
+          path.push(new Vec2((E.x+0.5)*TILE, (E.y+0.5)*TILE));
+        }
+        if (path.length > 2) riverPolylines.push(path);
+      }
+    } else {
+      for(let i=0; i<RIVER_COUNT; i++) {
+        if(coastIndices.length === 0) break;
+        let bestCand = null;
+        let maxMinDist = -1;
+        for(let k=0; k<20; k++) {
+          const cand = coastIndices[(coastIndices.length * _r01())|0];
+          let minDist = Infinity;
+          if (chosenMouths.length !== 0) {
+            for(let m of chosenMouths) {
+              const d = Math.abs(cand.x - m.x) + Math.abs(cand.y - m.y);
+              if (d < minDist) minDist = d;
+            }
+          }
+          if (minDist > maxMinDist) { maxMinDist = minDist; bestCand = cand; }
+        }
+        if (bestCand) {
+          chosenMouths.push(bestCand);
+          const localVisited = new Uint8Array(N);
+          const path = [new Vec2((bestCand.x+0.5)*TILE, (bestCand.y+0.5)*TILE)];
+          let cx = bestCand.x;
+          let cy = bestCand.y;
+          riverMask[bestCand.idx] = 1;
+          localVisited[bestCand.idx] = 1;
+          const centerX = cols / 2;
+          const centerY = rows / 2;
+          const steps = 30 + ((15 * _r01())|0);
+          for(let step=0; step<steps; step++) {
+            let validNext = null;
+            for(let attempt=0; attempt<8; attempt++) {
+              let dx = 0, dy = 0;
+              if (attempt === 0) {
+                dx = (centerX - cx) > 0 ? 1 : -1;
+                dy = (centerY - cy) > 0 ? 1 : -1;
+                if (_r01() < 0.3) dx = (_r01() < 0.5 ? 1 : -1);
+                if (_r01() < 0.3) dy = (_r01() < 0.5 ? 1 : -1);
+              } else {
+                const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+                const d = dirs[((dirs.length * _r01())|0)];
+                dx = d[0]; dy = d[1];
+              }
+              const nx = cx + dx;
+              const ny = cy + dy;
+              if (inBounds(nx, ny)) {
+                const nidx = idxOf(nx, ny);
+                if (landMask[nidx] && !localVisited[nidx] && !riverMask[nidx]) {
+                  validNext = {x: nx, y: ny, idx: nidx};
+                  break;
+                }
+              }
+            }
+            if (!validNext) break;
+            cx = validNext.x;
+            cy = validNext.y;
+            riverMask[validNext.idx] = 1;
+            localVisited[validNext.idx] = 1;
+            path.push(new Vec2((cx+0.5)*TILE, (cy+0.5)*TILE));
+          }
+          if (path.length > 2) riverPolylines.push(path);
+        }
+      }
+    }
+
+    const queue = [];
+    const distMap = new Int32Array(N).fill(-1);
+    for(let i=0; i<N; i++) {
+      if(riverMask[i]) { distMap[i] = 0; queue.push(i); }
+    }
+    if (queue.length === 0 && landIndices.length > 0) {
+      const rnd = landIndices[((landIndices.length * _r01())|0)].idx;
+      distMap[rnd] = 0;
+      queue.push(rnd);
+    }
+    let head = 0;
+    while(head < queue.length) {
+      const curr = queue[head++];
+      const cx = curr % cols;
+      const cy = (curr / cols) | 0;
+      const d = distMap[curr];
+      const nbs = [[1,0],[-1,0],[0,1],[0,-1]];
+      for(let dir of nbs) {
+        const nx = cx + dir[0];
+        const ny = cy + dir[1];
+        if (!inBounds(nx, ny)) continue;
+        const nidx = idxOf(nx, ny);
+        if (landMask[nidx] && distMap[nidx] === -1) {
+          distMap[nidx] = d + 1;
+          queue.push(nidx);
+        }
+      }
+    }
+
+    GAIA.riverMask = riverMask;
+    GAIA.riverPolylines = riverPolylines;
+    GAIA.distToRiver30 = new Int16Array(N);
+    GAIA.freshwater30 = new Float32Array(N);
+    for (let i = 0; i < N; i++) {
+      const dRaw = distMap[i];
+      GAIA.distToRiver30[i] = (dRaw < 0 ? -1 : (dRaw > 32767 ? 32767 : dRaw));
+      if (!landMask[i]) { GAIA.freshwater30[i] = 0; continue; }
+      const d = (dRaw === -1) ? 50 : dRaw;
+      GAIA.freshwater30[i] = Math.exp(-d / 8);
+    }
+  } finally {
+    GAIA.rand = prevRand;
+  }
+}
+
+function gaiaBuildHumidGrid30(){
+  if (!CFG.climateEnabled){ GAIA.humidGrid = null; return; }
+  if (!GAIA.freshwater30){ GAIA.humidGrid = null; return; }
+  const N = GAIA.freshwater30.length|0;
+  const out = new Float32Array(N);
+  const altG = GAIA.altitudeGrid;
+  const k = 0.4;
+  for (let i=0;i<N;i++){
+    let h = GAIA.freshwater30[i] || 0;
+    if (altG && altG.length===N){
+      h = h * (1 + k*(0.5 - (altG[i]||0)));
+    }
+    out[i] = _clamp01(h);
+  }
+  GAIA.humidGrid = out;
+}
+
+
 function gaiaBuildAltitudeGrid(){
   gaiaInitTiles30();
   const cols = GAIA.cols|0, rows = GAIA.rows|0;
@@ -6973,12 +6981,17 @@ function gaiaBuildAltitudeGrid(){
     if (!landT[i]){ GAIA.altitudeGrid[i] = 0; continue; }
     if (mtnT[i]){ GAIA.altitudeGrid[i] = 1; continue; }
 
+    const ALT_BASE = 0.16;
+    const MTN_MUL  = 0.9;
+    const OCEAN_CUT = 0.40;
+    const RIVER_CUT = 0.15;
+
     const dm = (dM[i] < 0) ? 999 : dM[i];
     const m = Math.exp(-dm / 4.0);
     const o = (GAIA && GAIA.oceanicity30) ? (GAIA.oceanicity30[i] || 0) : 0;
+    const fw = (GAIA && GAIA.freshwater30) ? (GAIA.freshwater30[i] || 0) : 0;
 
-    const alt = _clamp01(0.16 + 0.9 * m - 0.55 * o);
-    GAIA.altitudeGrid[i] = alt;
+    GAIA.altitudeGrid[i] = _clamp01(ALT_BASE + MTN_MUL*m - OCEAN_CUT*o - RIVER_CUT*fw);
   }
 
   const T = GAIA.tile || 30;
@@ -10480,10 +10493,20 @@ document.getElementById('disp-era').textContent = "구석기";
                 try { if (typeof gaiaBuildSeasonAmp30 === 'function') gaiaBuildSeasonAmp30(); }
                 catch(e){ console.warn("GAIA seasonAmp build failed", e); }
 
+                setWorldGenState('generating', 'hydrology', 'Building rivers & riverDist...', 0.362);
+                await nextFrame();
+                try { if (typeof gaiaBuildHydrologySOT30 === 'function') gaiaBuildHydrologySOT30(); }
+                catch(e){ console.warn('GAIA hydrology failed', e); }
+
                 setWorldGenState('generating', 'altitude', 'Building altitude grid...', 0.37);
                 await nextFrame();
                 try { if (typeof gaiaBuildAltitudeGrid === 'function') gaiaBuildAltitudeGrid(); }
                 catch(e){ console.warn("GAIA altitude build failed", e); }
+
+                setWorldGenState('generating', 'humidity', 'Finalizing humidGrid...', 0.382);
+                await nextFrame();
+                try { if (typeof gaiaBuildHumidGrid30 === 'function') gaiaBuildHumidGrid30(); }
+                catch(e){ console.warn('GAIA humidGrid failed', e); }
 
                 setWorldGenState('generating', 'climate', 'Init climate...', 0.40);
                 await nextFrame();
@@ -10494,7 +10517,7 @@ document.getElementById('disp-era').textContent = "구석기";
                 try { if (typeof gaiaBuildTempGrid === 'function') gaiaBuildTempGrid(); }
                 catch(e){ console.warn("GAIA temp build failed", e); }
 
-                setWorldGenState('generating', 'agro', 'Generating rivers & farms...', 0.52);
+                setWorldGenState('generating', 'agro', 'Generating farms...', 0.52);
                 await nextFrame();
                 initAgro();
 
@@ -13125,14 +13148,14 @@ if (ribbons.length){
 
 /* === BUILDER_BLOCK: ATLAS_P1_STATICMAP_CLIP_END === */
 
-                if (AGRO && AGRO.riverPolylines && AGRO.riverPolylines.length > 0) {
+                if (GAIA && GAIA.riverPolylines && GAIA.riverPolylines.length > 0) {
                     bgCtx.save();
                     bgCtx.strokeStyle = 'rgba(100, 150, 255, 0.4)';
                     bgCtx.lineWidth = 5;
                     bgCtx.lineCap = 'round';
                     bgCtx.lineJoin = 'round';
                     
-                    for (const pts of AGRO.riverPolylines) {
+                    for (const pts of GAIA.riverPolylines) {
                         bgCtx.beginPath();
                         for(let i=0; i<pts.length; i++) {
                             const p = pts[i];
@@ -15321,7 +15344,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     };
                     uiFarmObsMini.textContent = '';
                     const climate = mkGroup('Climate', ['temperature', 'humidity']);
-                    const geography = mkGroup('Geography', ['altitude', 'Slope (per tile N/E/S/W)', 'Rough', 'coastDist', 'oceanicity']);
+                    const geography = mkGroup('Geography', ['altitude', 'Slope (per tile N/E/S/W)', 'Rough', 'coastDist', 'oceanicity', 'riverDist', 'freshwater']);
                     const clamor = mkGroup('Clamor', ['cF', 'cS', 'vF', 'vS']);
                     const agriculture = mkGroup('Agriculture', ['crop', 'tilth', 'stage']);
                     const hintRow = document.createElement('div');
@@ -15352,6 +15375,8 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows['Rough'], '—');
                     _setTextIfChanged(rows.coastDist, '—');
                     _setTextIfChanged(rows.oceanicity, '0.00');
+                    _setTextIfChanged(rows.riverDist, '—');
+                    _setTextIfChanged(rows.freshwater, '0.00');
                     _setTextIfChanged(rows.cF, '—');
                     _setTextIfChanged(rows.cS, '—');
                     _setTextIfChanged(rows.vF, '—');
@@ -15408,6 +15433,11 @@ _setTextIfChanged(uiPredCount, predators.length);
                     const coastD = coastDistAt(wx, wy);
                     _setTextIfChanged(rows.coastDist, coastD < 0 ? '—' : `${coastD | 0}`);
                     _setTextIfChanged(rows.oceanicity, `${oceanicity01At(wx, wy).toFixed(2)}`);
+                    const gIdx = gaiaTileAtXY(wx, wy);
+                    const rd = (GAIA && GAIA.distToRiver30 && gIdx >= 0) ? (GAIA.distToRiver30[gIdx] ?? -1) : -1;
+                    const fw = (GAIA && GAIA.freshwater30 && gIdx >= 0) ? (GAIA.freshwater30[gIdx] || 0) : 0;
+                    _setTextIfChanged(rows.riverDist, rd < 0 ? '—' : String(rd | 0));
+                    _setTextIfChanged(rows.freshwater, fw.toFixed(2));
                     try {
                         const z = _clamorPeekAtWorldXY(wx, wy);
                         _setTextIfChanged(rows.cF, `${z[0].toFixed(2)}`);
