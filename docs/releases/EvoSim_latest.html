@@ -4373,15 +4373,23 @@ function agroStageLabel(stage) {
   return AGRO_STAGE_LABELS[(stage | 0)] || AGRO_STAGE_LABELS[0];
 }
 
-// season multiplier for stage=1 only. Uses CAL_TICKS_PER_YR (240 ticks/year after timeline patch).
-function agroSeasonMul() { return 1 + seasonSin() * 0.10; }
-function agroSeasonLocalAtTileIdx(ti, tick = simulatedTicks){
-  if (!(GAIA && GAIA.seasonAmp30)) return 0;
-  return seasonSinLaggedAtTileIdx(ti, tick) * (GAIA.seasonAmp30[ti] || 0);
-}
-function agroSeasonGrowMulAtTileIdx(ti, tick = simulatedTicks){
-  const local = agroSeasonLocalAtTileIdx(ti, tick);
-  const v = 1 + FARM_SEASON_MUL * local;
+// stage=1 growth multiplier using temperature delta (seasoned - base) at tile index.
+// dT is derived from the same seasoning logic as tempSeasoned01At (sinLag * seasonAmp30 * TEMP_SEASON_DELTA).
+function agroTempGrowMulAtTileIdx(ti, tick = simulatedTicks){
+  // default: no seasonal effect if climate disabled or missing grids
+  if (!(CFG && CFG.climateEnabled)) return 1.0;
+  if (!(GAIA && GAIA.tempGrid && GAIA.seasonAmp30)) return 1.0;
+
+  const baseRaw = GAIA.tempGrid[ti];
+  const base = (typeof baseRaw === 'number' && Number.isFinite(baseRaw)) ? baseRaw : 0.5;
+
+  const sinL = seasonSinLaggedAtTileIdx(ti, tick);
+  const local = sinL * (GAIA.seasonAmp30[ti] || 0);
+
+  const seasoned = _clamp01(base + TEMP_SEASON_DELTA * local);
+  const dT = seasoned - base;
+
+  const v = 1 + FARM_TEMP_MUL * dT; // policy: FARM_TEMP_MUL = 2
   return Math.max(0, Math.min(2, v));
 }
 
@@ -4796,7 +4804,7 @@ function agroHarvestTileIfReady(idx) {
             let mul = 1.0;
             const st = (AGRO.repStage ? (AGRO.repStage[idx] | 0) : 0);
             if (st === 1) {
-                mul *= agroSeasonGrowMulAtTileIdx(idxRaw);
+                mul *= agroTempGrowMulAtTileIdx(idxRaw);
                 if (AGRO.repSeedMode && AGRO.repSeedMode[idx]) mul *= 1.4;
             }
             const growth = CFG.farmG * suit * effDelta * tilthFactor * mul;
@@ -5045,11 +5053,8 @@ function initClimate() {
             AGRO = {
                 tile: TILE, cols, rows,
                 landMask: new Uint8Array(cols * rows),
-                riverMask: new Uint8Array(cols * rows),
-                humidity: new Float32Array(cols * rows),
                 temp: ((typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && GAIA.tempGrid.length === (cols*rows)) ? GAIA.tempGrid : new Float32Array(cols*rows)),
-                farmMask: new Uint8Array(cols * rows), // 0:None, 1:Big, 2:Small1, 3:Small2
-                riverPolylines: []
+                farmMask: new Uint8Array(cols * rows) // 0:None, 1:Big, 2:Small1, 3:Small2
             };
 
             if (!(typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && AGRO.temp === GAIA.tempGrid)) AGRO.temp.fill(0.5);
@@ -5075,13 +5080,15 @@ const idxOf = (x, y) => y * cols + x;
             }
             
 
-            if (GAIA && GAIA.humidGrid && GAIA.humidGrid.length === (cols*rows)) {
-                AGRO.humidity = GAIA.humidGrid;
-            } else {
-                console.warn('[AGRO] GAIA.humidGrid missing or size mismatch; humidity stays local');
+            const N = cols * rows;
+            if (!(GAIA && GAIA.humidGrid && GAIA.humidGrid.length === N &&
+                  GAIA.riverMask && GAIA.riverMask.length === N &&
+                  Array.isArray(GAIA.riverPolylines))) {
+                throw new Error('initAgro: climateEnabled but GAIA hydrology/humid SOT missing');
             }
-            if (GAIA && GAIA.riverMask && GAIA.riverMask.length === (cols*rows)) AGRO.riverMask = GAIA.riverMask;
-            if (GAIA && GAIA.riverPolylines) AGRO.riverPolylines = GAIA.riverPolylines;
+            AGRO.humidity = GAIA.humidGrid;
+            AGRO.riverMask = GAIA.riverMask;
+            AGRO.riverPolylines = GAIA.riverPolylines;
 
 const landCount = landIndices.length;
             if (landCount > 100) {
@@ -5467,7 +5474,7 @@ const CAL_TICKS_PER_YR = CAL_TICKS_PER_SEASON * CAL_SEASONS_PER_YR; // 240
 const SEASON_LAT_POW = 1.4;
 const SEASON_AMP_COAST = 0.35;
 const TEMP_SEASON_DELTA = 0.15;
-const FARM_SEASON_MUL = 0.25;
+const FARM_TEMP_MUL = 2.0;
 const KR_ROUGH_ALT = 1.50;
 
 let _seasonCore_cacheTick = -1;
