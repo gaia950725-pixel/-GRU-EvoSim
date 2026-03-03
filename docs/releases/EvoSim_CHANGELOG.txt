@@ -101,6 +101,19 @@ For 27.03+ updates, repeat this same checklist in the PR body under verification
 ---
 
 ## 3) Patch Log (append-only, newest first)
+### 27.07 — hydrology GAIA SOT + riverDist/freshwater
+- Change: GAIA hydrology SOT moved out of initAgro; worldgen now builds `riverMask`, `riverPolylines`, `distToRiver30`, and `freshwater30` (K=8).
+- Change: hydrology stage is inserted before altitude, and climate OFF hard-resets river/humidity SOT fields to null.
+- Change: altitude now reads `freshwater30` for river erosion (`RIVER_CUT=0.15`) and uses `OCEAN_CUT=0.40`.
+- Change: GAIA humid grid is finalized after altitude from freshwater with altitude correction (`k=0.4`).
+- Change: initAgro no longer generates rivers/dist/humidity; it consumes `GAIA.humidGrid` as farm humidity alias.
+- Change: static river rendering now uses `GAIA.riverPolylines` ownership.
+- Change: Locale Geography adds `riverDist` and `freshwater` rows.
+- Risk: medium (worldgen ownership/order moved; hydrology/altitude coupling changed).
+- Verify:
+  - Climate OFF: `GAIA.riverPolylines/distToRiver30/freshwater30/humidGrid` are null and no river render.
+  - Climate ON: rivers render; nearby tiles show low `riverDist` and high `freshwater`; humid grid length matches freshwater.
+
 ### 27.03 — maritime sot + locale geography
 - Follow-up: staged deliverables are retained as step1/step2/step3/final files for prompt-by-prompt replay and review.
 - Change: world config adds Maritime toggle (default ON) and status sync, plus “Fishing: coming soon” placeholder in settings.
