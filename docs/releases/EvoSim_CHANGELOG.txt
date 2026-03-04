@@ -1,3 +1,16 @@
+# EvoSim CHANGELOG
+
+## Rules
+- Patch Log는 **newest first**(최신순)로 유지한다.
+- 경미 패치는 CHANGELOG를 통째로 생략 가능하다(가독성 우선).
+- 중간/중요 패치는 아래 템플릿 사용(패치당 최대 7줄 권장):
+  - Change: 1~4줄
+  - Why: 1줄
+  - Impact: 1줄
+  - Verify: 0~1줄(권장)
+- Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
+
+## Patch Log
 ### 27.09 — Agent TEMP seasoned input FINAL
 - Change: Agent NN TEMP input source switched from base AGRO cache `AGRO.temp[aidx]` to `tempSeasoned01At(this.pos.x, this.pos.y)`.
 - Change: TEMP channel meaning is now local seasoned temperature (hemisphere + lag + local season amplitude), while existing sensor clamp path is unchanged.
@@ -5,230 +18,81 @@
 - Verify: with climate ON, selected agent TEMP sensor oscillates with season progression instead of staying base-only.
 - Verify: with climate OFF, `tempSeasoned01At` returns base and TEMP input remains neutral/base-like behavior.
 - Guardrails: no agro season/farm logic edits, no GAIA/AGRO ownership edits, no render/panel UI edits.
-- Artifacts: synced `docs/releases/EvoSim_latest.html` from final `index.html`.
-- Artifacts: refreshed archive snapshot `docs/releases/archive/EvoSim_27.09_agent_temp_seasoned_FINAL.html`.
+- Artifacts: synced `docs/releases/EvoSim_latest.html` from final `index.html`; refreshed archive snapshot `docs/releases/archive/EvoSim_27.09_agent_temp_seasoned_FINAL.html`.
 
 ### 27.08 — farm temp dT mul + AGRO hydrology allocation removal (mid)
-- Change: Farm stage=1 growth multiplier switched to dT-based temperature delta with `mul = clamp(1 + FARM_TEMP_MUL*dT, 0..2)`, where `dT = tempSeasoned01At - temp01At` on tile-index path and `FARM_TEMP_MUL=2.0`.
-- Change: Removed legacy season helpers `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx` and removed `FARM_SEASON_MUL`.
-- Change: `initAgro` no longer pre-allocates `humidity/riverMask/riverPolylines`; climate-on path now requires GAIA SOT (`humidGrid`, `riverMask`, `riverPolylines`) and binds AGRO by direct reference.
-- Verify: `index.html` has `agroTempGrowMulAtTileIdx()` and stage=1 growth multiplies by it.
-- Verify: `index.html` has zero matches for `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx`, and `FARM_SEASON_MUL`.
-- Verify: `initAgro` throws when climate is enabled but GAIA hydrology/humidity SOT is missing or mismatched.
-- Verify: `docs/releases/EvoSim_latest.html` synced from `index.html` and archive `EvoSim_27.08_farm_temp_dt_FINAL.html` refreshed.
+- Change: Farm stage=1 성장 배율을 `dT=tempSeasoned01At-temp01At` 기반 `agroTempGrowMulAtTileIdx()`로 전환하고 `FARM_TEMP_MUL=2.0`을 적용했다.
+- Change: `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx`, `FARM_SEASON_MUL` 등 레거시 season helper를 제거했다.
+- Change: `initAgro`에서 `humidity/riverMask/riverPolylines` 선할당을 제거하고 climate ON 시 GAIA SOT 참조를 강제했다.
+- Why: 농업 성장 계산과 수문 SOT 책임 경계를 분리해 유지보수성을 높이기 위함.
+- Impact: 농업 성장 온도 민감도와 AGRO 초기화 실패 조건이 명확해져 회귀 탐지가 쉬워졌다.
+- Verify: stage=1 경로가 `agroTempGrowMulAtTileIdx()`를 사용하고 제거 대상 심볼 검색 결과가 0건인지 확인.
 
-### 27.06 — terrain slope fix2
-- 27.06 terrain slope fix2: clear altCorner/altTri*/altRough01 when altitude disabled to prevent stale locale diagnostics
-
-### 27.06 — terrain slope fix1
-- 27.06 terrain slope fix1: locale slope shows per-tile (display-only), no new rows
+### 27.07 — hydrology GAIA SOT + riverDist/freshwater
+- Change: 수문 SOT(`riverMask`, `riverPolylines`, `distToRiver30`, `freshwater30`)를 worldgen GAIA 단계로 이관했다.
+- Change: hydrology→altitude 순서를 고정하고 climate OFF 시 수문/습도 필드를 null로 하드 리셋한다.
+- Change: altitude는 `freshwater30`를 사용해 침식량을 계산하고, humid grid는 altitude 이후 최종화한다.
+- Why: initAgro와 worldgen의 역할 분리를 통해 데이터 소유권을 단일화하기 위함.
+- Impact: 지형/수문 결합 로직의 예측 가능성이 높아지고 locale 관측항목(`riverDist`, `freshwater`)이 일관화됐다.
+- Verify: climate ON/OFF 전환 시 수문 필드 null/비null 상태와 river 렌더링 여부가 정책과 일치하는지 확인.
 
 ### 27.06 — terrain 4tri slope+rough infra (mid)
-- 27.06 terrain 4tri slope+rough infra (altCorner/triSlope/rough01 + locale debug + altitude formula tweak)
+- Change: `altCorner/triSlope/rough01` 인프라를 추가하고 locale 디버그 경로와 altitude 공식을 정리했다.
+- Change: fix1에서 locale slope를 per-tile 표시로 조정했다.
+- Change: fix2에서 altitude OFF 시 `altCorner/altTri*/altRough01`을 초기화해 stale 진단값을 제거했다.
+- Why: 경사/거칠기 관측값의 일관성과 디버그 신뢰도를 확보하기 위함.
+- Impact: locale 지형표시가 실제 타일 상태와 더 정확히 동기화된다.
 
 ### 27.05 — season lag + dr SOT + repIdx normalize
-- **What**: Added season lag constants per tile in GAIA as `seasonLagSin30` / `seasonLagCos30` built inside `gaiaBuildSeasonAmp30()` (LAG_MAX=0.08, oceanicity-based).
-- **What**: Season core now caches cosine (`_seasonCore_cacheCos`) in the same per-tick cache path.
-- **What**: Added `seasonSinLaggedAtTileIdx(ti,tick)` helper using sin/cos identity to avoid per-tile trig in runtime lookups.
-- **What**: `tempSeasoned01At()` now uses lagged season signal (`sinL * seasonAmp`) while keeping base formula and clamp policy.
-- **What**: Farm stage=1 growth-mul path keeps same structure, but local seasonal signal source is switched to lagged helper only.
-- **What**: Added GAIA SOT field `distToRiver30` (Int16Array) populated from humidity BFS `distMap` without changing humidity equation/output.
-- **What**: Normalized repIdx API usage by replacing `agroRepIdxForTileIdx` callsites with `agroRepIdxFromTileIdx` across `index.html`.
-- **Why**: Apply lagged-season design consistently while preserving policy constraints (no mean-shift, no NN input change, humidity output unchanged).
-- **Risk**: Seasonal phase at highly maritime tiles is intentionally delayed; farming timing behavior can shift locally.
-- **Risk**: Any overlooked UI callsite could read wrong representative tile; full-string replacement was rechecked.
-- **Verify**: Confirm no `agroRepIdxForTileIdx` string remains in `index.html`.
-- **Verify**: Confirm `GAIA.seasonLagSin30/seasonLagCos30` allocation occurs in `gaiaBuildSeasonAmp30()` loop path.
-- **Verify**: Confirm `tempSeasoned01At()` and `agroSeasonLocalAtTileIdx()` both read `seasonSinLaggedAtTileIdx()`.
-- **Verify**: Confirm humidity formula stays `Math.exp(-d / 8)` and `GAIA.distToRiver30` is filled from `distMap` in the same loop.
-- **Verify**: Confirm repIdx/crop reads keep bounds guards (`repIdx < AGRO.repStage.length`, `rep2 < AGRO.crop.length`).
+- Change: `seasonLagSin30/seasonLagCos30`와 `seasonSinLaggedAtTileIdx()`를 도입해 타일별 계절 위상 지연을 적용했다.
+- Change: `tempSeasoned01At()`와 농업 성장 경로가 lagged season 신호를 사용하도록 정렬됐다.
+- Change: `distToRiver30`를 humid BFS 결과로 채우고 repIdx API 호출을 `agroRepIdxFromTileIdx`로 통일했다.
+- Why: 계절 지연 설계를 성능 저하 없이 기존 파이프라인에 일관 적용하기 위함.
+- Impact: 해양성 타일의 계절 반응 타이밍이 조정되고 대표타일 API 사용 편차가 제거됐다.
 
 ### 27.04 — season spatial amp
-- **What**: Added global season core helpers `seasonPhase01()` and `seasonSin()` with per-tick cache near time narrative constants.
-- **What**: Added constants `SEASON_LAT_POW=1.4`, `SEASON_AMP_COAST=0.35`, `TEMP_SEASON_DELTA=0.15`, `FARM_SEASON_MUL=0.25`.
-- **What**: Added `gaiaBuildSeasonAmp30()` to build `GAIA.seasonAmp30` from latitude amplitude, hemisphere sign, and maritime moderation.
-- **What**: Wired worldgen seasonAmp stage between maritime and altitude generation steps.
-- **What**: Added `tempSeasoned01At(x,y,tick)` to compute local seasonal temperature (`base + TEMP_SEASON_DELTA * local`).
-- **What**: Added agro local helpers `agroSeasonLocalAtTileIdx()` / `agroSeasonGrowMulAtTileIdx()` and applied them to stage=1 crop growth.
-- **What**: Locale climate temperature now renders `base → now` without adding a new row.
-- **What**: Locale hint row moved to the bottom and kept visible as gray/italic note; removed inline green tint for text consistency.
-- **Why**: Introduce spatially-aware seasonal behavior without altering average climate baseline or NN input contracts.
-- **Risk**: Season amplitude depends on row-based hemisphere convention (top=north) and may need flip if map orientation changes.
-- **Verify**: Confirm title 27.04, worldgen includes seasonAmp stage, locale shows `base → now`, and stage=1 growth uses tile-local multiplier.
-- **Policy**: ARCHITECTURE_OVERVIEW intentionally not updated per user policy (CHANGELOG-only for this patch).
-
-
-- Policy: **Code comments are minimal (local-only). Patch history lives here.**
-- Scope note: older pre-26.xx items may be summarized (seeded from notes) and later validated against code.
-
----
-
-## 0) Non-Negotiables (do not break)
-- Fail-fast in core sim loop; no “pretend OK” fallbacks.
-- On version bumps, update the document title version together (e.g., `# EvoSim CHANGELOG vXX.XX ...`).
-- Render/UI only: defensive guards allowed, must mark `// RENDER-ONLY GUARD`.
-- No per-frame full scans added by default. Prefer caches + low-frequency refresh (0.25–1s) + event-driven invalidation.
-- BUILDER_BLOCK boundaries respected. Marker changes require explicit justification.
-- Comment policy in code:
-  - `RENDER-ONLY GUARD`, `[DEPRECATED]`, `LOCAL INVARIANT` only.
-
----
-
-## 1) Current Architecture Snapshot (keep short)
-### Tick semantics
-- Tick = one time-slice. Pipeline order: **PRE → SWEEP → COMMIT** (TS_PATCH 26.10/26.21).
-- **PRE**: time-advance (decay/regen/TTL/catch-up), rebuild E2I maps if dirty, build Snapshot.Pre grids (agent/herb/pred/food).
-- **SWEEP**: reads Snapshot.Pre only. No direct world/agent writes. Emits events (CL_voice for shout, deltas for movement/damage). Collision queries use Snapshot.Pre positions.
-- **COMMIT**: apply deltas/events/pending queue; finalize health/dead (healthFinal ≤ 0); recompute breath01; write clamor grid (voice events); flush spawn/birth/food-add pending; invalidate E2I dirty flags for next PRE.
-- Spawn/birth/respawn/food-add: queued in SWEEP → flushed in COMMIT → observed after next PRE.
-- DEAD finalized only in COMMIT; no mid-tick death latch — actors remain active through SWEEP.
-- PRE snapshot policy: `agentGridPre` / `herbGridPre` / `predGridPre` / `foodGridPre` are authoritative SOT for all SWEEP reads.
-- COMMIT policy: shout clamor writes, breath01 recompute, `TS_commitPending()` flush, E2I dirty flag invalidation.
-
-### Core data SOTs
-- World/terrain/GAIA SOT: `GAIA` const object — typed arrays (`land`, `pass`, `mountain`, `distToCoast30`, `oceanicity30`, `seasonAmp30`). Built once in worldgen (mountains→maritime→altitude→seasonAmp); read-only during simulation.
-- Agent/Entity SOT: `agents[]`, `foods[]`, `herbivores[]`, `predators[]` session-scoped arrays. Cell↔entity access via E2I maps (`_agentE2I`, `_herbE2I`, `_predE2I`); rebuilt in PRE when dirty flags are set.
-- Grid/caches SOT: Spatial grids (`AgentGrid1D`, `FoodGrid1D`, `HerbGrid1D`, `PredGrid1D`) built from Snapshot.Pre each PRE phase. Dirty flags: `_agentE2I_dirty`, `_herbE2I_dirty`, `_predE2I_dirty` (set in COMMIT, cleared in PRE rebuild).
-
----
-
-## 2) Regression checklist (copy/paste for every patch)
-When a patch lands, record:
-- **What changed (1–3 bullets)**
-- **Why (1 bullet)**
-- **Regression risk (1–2 bullets)**
-- **How to verify (copy/paste console cmds or in-game steps)**
-- **Patch application procedure (update as a set):**
-  - `Last stable version` update
-  - Title `# EvoSim CHANGELOG vXX.XX ...` update
-
-### 2-a) Importance gate (required)
-- Importance routing is owned by Planning team by default.
-- Engineers should set/override **Importance** only when it is missing from prompt or handoff context.
-- If `specoutput final` already includes severity/routing (e.g., 경미/중간), follow it as the source of truth.
-- When Importance is missing, use fallback tags: `P0` (critical), `P1` (medium+), `P2` (minor).
-- **P0/P1 only** must be recorded in changelog (PR-blocking if missing/incomplete).
-- **P2(minor)** changes are allowed to skip changelog; keep details in commit/PR body only.
-- Minimum changelog fields for P0/P1: `What`, `Why`, `Risk`, `Verify`, `Rollback hint(1 line)`.
-- Reviewer checklist (must pass before merge):
-  - `index.html` and `docs/releases/EvoSim_latest.html` parity checked for user-visible/runtime changes.
-  - archive snapshot created when version/title changes.
-  - PR body includes the same verification steps as changelog.
-
-For 27.03+ updates, repeat this same checklist in the PR body under verification items.
-
----
-
-## 3) Patch Log (append-only, newest first)
-### 27.07 — hydrology GAIA SOT + riverDist/freshwater
-- Change: GAIA hydrology SOT moved out of initAgro; worldgen now builds `riverMask`, `riverPolylines`, `distToRiver30`, and `freshwater30` (K=8).
-- Change: hydrology stage is inserted before altitude, and climate OFF hard-resets river/humidity SOT fields to null.
-- Change: altitude now reads `freshwater30` for river erosion (`RIVER_CUT=0.15`) and uses `OCEAN_CUT=0.40`.
-- Change: GAIA humid grid is finalized after altitude from freshwater with altitude correction (`k=0.4`).
-- Change: initAgro no longer generates rivers/dist/humidity; it consumes `GAIA.humidGrid` as farm humidity alias.
-- Change: static river rendering now uses `GAIA.riverPolylines` ownership.
-- Change: Locale Geography adds `riverDist` and `freshwater` rows.
-- Risk: medium (worldgen ownership/order moved; hydrology/altitude coupling changed).
-- Verify:
-  - Climate OFF: `GAIA.riverPolylines/distToRiver30/freshwater30/humidGrid` are null and no river render.
-  - Climate ON: rivers render; nearby tiles show low `riverDist` and high `freshwater`; humid grid length matches freshwater.
+- Change: `seasonPhase01()/seasonSin()` 캐시와 `gaiaBuildSeasonAmp30()`를 추가해 위도/해양성 기반 계절 진폭 SOT를 구축했다.
+- Change: worldgen에 seasonAmp 단계를 삽입하고 `tempSeasoned01At()`로 로컬 계절온도를 산출한다.
+- Change: 농업 stage=1 성장 배율 및 Locale 기후 표시를 계절 신호 기반으로 갱신했다.
+- Why: 평균 기후 baseline은 유지하면서 공간적 계절성을 도입하기 위함.
+- Impact: 타일별 계절 편차가 UI와 농업 성장에 반영된다.
 
 ### 27.03 — maritime sot + locale geography
-- Follow-up: staged deliverables are retained as step1/step2/step3/final files for prompt-by-prompt replay and review.
-- Change: world config adds Maritime toggle (default ON) and status sync, plus “Fishing: coming soon” placeholder in settings.
-- Change: GAIA adds maritime SOT fields `distToCoast30` and `oceanicity30` with a dedicated `gaiaBuildMaritimeSOT30()` stage.
-- Change: worldgen order is now mountains → maritime → altitude so altitude can consume maritime outputs.
-- Change: when maritime is OFF, maritime stage early-returns and skips coast-distance BFS entirely (no dist/oceanicity allocation).
-- Change: altitude builder no longer computes coast BFS internally; it reads `GAIA.oceanicity30` and keeps the same altitude formula.
-- Change: Locale mini-observer renames Topography → Geography and adds `coastDist`/`oceanicity` rows with OFF-safe defaults.
-- Why: separate ocean moderation into single SOT stage and avoid duplicated coast-distance computations.
-- Verify:
-  - Maritime ON: worldgen log passes maritime stage; Geography shows numeric coastDist/oceanicity.
-  - Maritime OFF: Geography shows coastDist `—`, oceanicity `0.00`, and no maritime BFS side effects.
+- Change: Maritime 토글과 `gaiaBuildMaritimeSOT30()`를 도입해 `distToCoast30/oceanicity30`를 단일 SOT로 생성한다.
+- Change: worldgen 순서를 mountains→maritime→altitude로 재배치하고 altitude 내부 coast BFS를 제거했다.
+- Change: Locale Geography에 `coastDist/oceanicity`를 추가하고 maritime OFF 기본값을 정의했다.
+- Why: 해양성 계산 중복을 제거하고 지형 단계 간 책임을 명확히 하기 위함.
+- Impact: maritime ON/OFF 동작 차이가 디버그 관측값과 일관되게 노출된다.
 
 ### 27.02 — Locale geography rows + all-tile Shift select
-- Change: Locale tab naming applied in panel (tab/button title), and the left metric header label removed for compact row-first layout.
-- Change: Geography `disp-farm-obs-mini` is now 4 rows (Climate/Topography/Clamor/Agriculture) with cached row DOM updates.
-- Change: Shift+click tile selection now accepts any tile (`tIdx !== -1`), with farmability tracked separately.
-- Change: Climate/Topography show decimal values from `temp01At/humid01At` and `altitude01At`; Agriculture shows `-` on non-farm tiles.
-- Why: remove farm-only observability and align Locale panel with tile-level data policy.
-- Risk: low-medium (UI/update-path change in system panel); no sim core write-path changes.
-- Verify:
-  - Geography default shows `Shift+클릭 타일`.
-  - Shift+click non-farm tile => Agriculture `-`, other rows update.
-  - Shift+click farm tile => Agriculture `crop / tilth` with decimals; no console errors.
+- Change: Geography 패널을 행 중심 레이아웃으로 재정리하고 metric header를 축소했다.
+- Change: Shift+클릭 타일 선택을 전 타일로 확장하고 farmability 표시를 분리했다.
+- Change: Climate/Topography/Agriculture 표시값 포맷을 정리해 비농지에서는 Agriculture를 `-`로 표기한다.
+- Why: farm tile 전용 관측 제약을 제거하고 타일 단위 관측 정책에 맞추기 위함.
+- Impact: 패널 사용성이 개선되고 비농지 디버깅 정보 접근성이 올라갔다.
 
 ### 27.00 — input27 proprio+socio
-- Change: expand inputs 23→27; reorder SENSOR indices to match 27 label order (Vis8/Aud4/Olf3/Proprio3/Intero5/Socio4).
-- Add: new slots PROPRIO_SLP / PROPRIO_KINE / PROPRIO_EMB and SOCIO_DWEL (0-filled; value generation deferred).
-- Comment: replace sensor group headers to new grouping; add 2-line `sensory type` + `cortex unit` per group (comment-only).
-- Label: replace short/long labels with `layer(mod)-target`; Δ/Σ kept as UI labels; long olf-hmn adds “(전체)” per policy.
-- Verify:
-  - CFG.inputs == 27; SENSOR_LABELS_SHORT/LONG length == 27.
-  - Search: no numeric sensor indexing (e.g., `sensors[0]`) and no `i<23` hard-codes.
-
-> Format rule: 1 patch entry = max 12 lines.  
-> Include “verify steps” every time.
+- Change: NN 입력 슬롯을 23→27로 확장하고 SENSOR 인덱스를 Vis/Aud/Olf/Proprio/Intero/Socio 순서로 재정렬했다.
+- Change: PROPRIO 3슬롯과 SOCIO_DWEL 슬롯을 추가하고 라벨 체계를 `layer(mod)-target` 기준으로 갱신했다.
+- Why: 감각 입력 계층을 확장해 후속 행태 학습 특성 추가를 위한 인터페이스를 확보하기 위함.
+- Impact: NN I/O 계약이 변경되어 후속 구조 변경의 기준선이 27입력으로 고정된다.
 
 ### 26.50 — Olf human global dual-bucket
-- Change: rival humans now add to HUMAN_SCENT as well as THREAT_SCENT; long label for olf-human adds “(전체)”; short labels unchanged.
-- Why: align olfactory “human presence” semantics with visual-human while preserving threat signal for rivals.
-- Risk: neolithic crowding/avoidance dynamics may shift slightly; NN adapts over time.
-- Verify:
-  - Neolithic: place 2 clans close → HUMAN_SCENT and THREAT_SCENT should both rise.
-  - Ctrl+F: `const isRival = (ERA === 'NEOLITHIC'` → ensure HUMAN add happens before rival THREAT add.
-- Planned opt: compute scent weight `w` once per target and distribute to both buckets (avoid duplicate w calc).
+- Change: rival human scent를 HUMAN_SCENT와 THREAT_SCENT 양쪽 버킷에 반영한다.
+- Why: 인간 존재 감지와 위협 감지 의미를 분리하면서도 데이터 누락을 줄이기 위함.
+- Impact: 초기 군집 회피/접근 반응이 소폭 변동될 수 있다.
 
 ### 26.47 — CM phase comment cleanup
-- Change: remove dev-phase/step comments ("Phase", "Step") that age like patch-notes; keep only `LOCAL INVARIANT` / `[DEPRECATED]` / `RENDER-ONLY GUARD`.
-- Why: phase-labeled comments were drifting and acting as false documentation; CHANGELOG remains SOT.
-- Risk: low (comment-only); ensure no accidental code edits.
-- Verify:
-  - Ctrl+F in HTML should return 0 hits for: `// Phase`, `/* --- Phase`, `Phase 3A`, `Phase3-3A`, `Step2` (comments only)
-  - In-game: quick boot + 60s run; no console errors.
+- Change: phase/step형 주석을 제거하고 허용 주석(`LOCAL INVARIANT`, `[DEPRECATED]`, `RENDER-ONLY GUARD`)만 유지했다.
+- Why: 오래된 단계 주석의 문서 드리프트를 줄이기 위함.
+- Impact: 코드 내 이력 정보는 CHANGELOG 중심으로 단일화됐다.
 
 ### 26.46 — CM stale comment cleanup
-- Change: remove stale patch/version/magic-number comments; keep only `LOCAL INVARIANT` / `[DEPRECATED]` / `RENDER-ONLY GUARD`.
-- Why: comment drift was misleading AI + humans after code changes; CHANGELOG is the SOT.
-- Risk: low (comment-only), but accidental deletions are possible if sweep was too broad.
-- Verify:
-  - Ctrl+F in HTML should return 0 hits for: `CHANGED FROM`, `TEMP PATCH`, `Patch 1:`, `Patch 2:`, `Patch 3:`, `Patch 4:`, `v22.17:`, `[Patch 4.5]`, `[PATCH] Legacy 2-ray`
-  - In-game: start a new session; no console errors on first 60s; basic UI/panels still render.
+- Change: 오래된 patch/version/magic-number 주석을 제거하고 정책 주석만 남겼다.
+- Why: 변경 이력의 단일 소스를 CHANGELOG로 고정하기 위함.
+- Impact: 주석 기반 오판 위험이 줄고 코드 가독성이 개선됐다.
 
 ### 26.45 — TS shout reorganize
-- Change: unify shout enqueue across MP on/off; MP becomes measure-only; remove dead loops.
-- Why: fix intermittent ‘no shout’ and reduce duplicated paths.
-- Risk: shout timing/weight changes could affect early-tick behavior.
-- Verify:
-  - In-game: observe shout behavior across several ticks (MP on/off); agents should still broadcast and react.
-  - Console: no new errors during 2–3 minutes; (optional) use existing DEV.perf(1) to confirm no major TPS drop.
-### 26.44 — <Patch name>
-- Change:
-- Why:
-- Risk:
-- Verify:
-
----
-
-## 4) Known issues / open decisions (keep actionable)
-- Issue:
-  - Symptom:
-  - Suspected area:
-  - Next step:
-- Decision needed:
-  - Option A:
-  - Option B:
-  - Recommendation:
-
----
-
-## 5) Legacy history (coarse, to be validated)
-> This section is allowed to be imperfect initially; mark uncertain items with (?) and validate later.
-
-- 15.x: …
-- 16.x: …
-- 17.x: …
-- 18.x: …
-- 19.x: …
-- 21.x–22.x: …
-- 24.53: main loop sweep change
+- Change: shout enqueue 경로를 MP on/off 공통 경로로 통합하고 dead path를 제거했다.
+- Why: 간헐적 shout 누락과 중복 경로 유지비용을 줄이기 위함.
+- Impact: 초반 tick의 shout 타이밍이 소폭 달라질 수 있다.

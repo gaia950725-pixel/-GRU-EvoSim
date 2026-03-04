@@ -2,7 +2,8 @@
 
 - update 원칙: 섹션 7(현재상태 및 청사진)만 개발 진행에 따라 갱신.
 - 정책 변경 시에만 나머지 섹션 수정 + `last update` 갱신.
-- last update: 260302, 버전 갱신 브랜치 release 고정 규칙 및 산출물 4종/실행보고 4섹션 운영 표준 반영.
+- last update: 260304, 버전 브랜치/세션 브랜치 레이어 구분, archive FINAL/fix 선택 적용, RACI 및 검수 루프 종료 판정(사용자) 규칙 반영.
+- addendum: 260304-2, CHANGELOG 단문 포맷(Change/Why/Impact/Verify), 경미 패치 기록 생략 허용, 프롬프트 세트 확정 후 일괄 패치 모드 운영 표준 반영.
 
 > 본 문서는 정책/철학 헌장이다. 운영 절차는 `docs/ops/PROJECT_OPERATIONS.md`, 산출물 형식은 `docs/spec/SPEC_OUTPUTS.md`를 따른다.
 
@@ -23,7 +24,7 @@
 - 내러티브: 선사~고대 인류 행태의 관찰 가능한 출현.
 
 ## [3] 주체 및 개발 환경
-- 사용자 총괄, 기획/검토팀, 실행팀(Codex/Claude) 분업.
+- 사용자 총괄, 기획팀(planning), 개발팀(executing: Claude Code/Codex) 분업.
 - 브랜치/PR/머지 상세는 운영문서 기준.
 
 ## [4] 개발 철학 및 코딩 규약

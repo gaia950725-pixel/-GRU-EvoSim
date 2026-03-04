@@ -29,7 +29,7 @@
 - 주석/블록 추가 지점
 
 ### 프롬프트
-- [구분] / 중요도
+- [target_version][prompt#] / 중요도
 - [목표]
 - [변경 범위]
 - [금지사항]
@@ -39,13 +39,16 @@
   2) 최종 적용 완료본을 `docs/releases/EvoSim_latest.html`로 동기화
   3) `docs/releases/archive/EvoSim_<version>_<patch>.html` 생성
   4) `docs/releases/EvoSim_CHANGELOG.txt` 최종 항목 확정(중간/중요인 경우에만 필수)
-  5) 위 필수 항목 완료 후에만 PR Ready 처리
+  5) `target_version`와 타이틀/CHANGELOG/archive 파일명 버전이 모두 일치하는지 교차검증
+  6) 위 필수 항목 완료 후에만 PR Ready 처리
 
 ### 실행보고
 - 변경내용(10문장 이내)
 - 프롬프트와 다르게 변경한 사항(4문장 이내, 있으면 작성)
 - 주석변경사항(2문장 이내, 있으면 작성)
 - 권고사항(1문장 이내, 있으면 작성)
+- 임시디버그 도입 여부(패치별: 예/아니오)
+- 임시디버그 제거 여부(패치별: 예/아니오)
 
 #### 선택 메타필드(권장)
 - 대상 파일명
@@ -59,8 +62,14 @@
 - 대안
 
 ### CHANGELOG
-- 중간 이상 패치 필수
-- `docs/releases/EvoSim_CHANGELOG.txt`에 누적
+- 경미 패치는 CHANGELOG 기록을 통째로 생략 가능(가독성 우선).
+- 중간/중요 패치는 `docs/releases/EvoSim_CHANGELOG.txt`에 누적.
+- 항목 템플릿(패치당 최대 7줄 권장):
+  - `Change`: 1~4줄
+  - `Why`: 1줄
+  - `Impact`: 1줄
+  - `Verify`: 0~1줄 (중간/중요 권장)
+- PR 본문도 동일 필드명(`Change/Why/Impact/Verify`) 사용을 권장한다.
 
 ## 3) 중요도 라우팅 통합표
 - 경미: 기록 생략 가능 (필요 시 인라인 주석)
