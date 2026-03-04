@@ -29,12 +29,11 @@
 - 주석/블록 추가 지점
 
 ### 프롬프트
-- [구분] / 중요도
+- [target_version][prompt#] / 중요도
 - [목표]
 - [변경 범위]
 - [금지사항]
 - [구현 지침]
-- [target_version] (필수, 단일 버전값)
 - [FINAL 지침] (필수)
   1) `index.html`(또는 단일 메인 HTML) 변경 반영
   2) 최종 적용 완료본을 `docs/releases/EvoSim_latest.html`로 동기화

@@ -14,13 +14,13 @@
 3. `docs/<task>` (운영/문서 전용)
 4. `feature/<task>` (버전 증가 없는 기능 탐색/실험)
 
-### AI 실행팀 브랜치 (Claude / Codex)
-- AI 실행팀도 동일한 네이밍 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 버전 갱신 작업은 예외 없이 `release/*`를 사용한다.
+### 개발팀(executing) 브랜치 (Claude Code / Codex)
+- 개발팀(executing)도 동일한 네이밍 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 버전 갱신 작업은 예외 없이 `release/*`를 사용한다.
 - 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`, `work/*`)는 세션 전용 레이어다. 세션 브랜치명은 작업자 임의 규칙이 아니며, 저장소의 표준 운영 규칙(`release/*`, `fix/*`, `docs/*`, `feature/*`)과 별도로 공존할 수 있다.
 - 버전 증가 작업은 최종 PR 기준 브랜치/제목/커밋에서 `release/<version>-<task>` 식별자가 명확히 보여야 한다.
 
 ### Ops-only / docs-only 변경 규칙
-- 시뮬 버전 번프 없는 순수 운영 변경(CHANGELOG 채우기, 거버넌스 문서 수정, CLAUDE.md 규칙 추가 등)은 **AI 워킹 브랜치에 직접 커밋**한다.
+- 시뮬 버전 번프 없는 순수 운영 변경(CHANGELOG 채우기, 거버넌스 문서 수정, CLAUDE.md 규칙 추가 등)은 **개발팀(executing) 워킹 브랜치에 직접 커밋**한다.
 - 별도 `docs/<task>` 브랜치 불필요.
 - 코드 동작 변경이 없으므로 `EvoSim_latest.html` / archive 스냅샷 갱신도 불필요.
 
@@ -74,6 +74,7 @@
 - 코드 동작 변경: `EvoSim_latest.html` + `archive` 스냅샷
 - 중간/중요 패치: 위 + `EvoSim_CHANGELOG.txt`
 - 경미 패치: CHANGELOG 항목 생략 가능(가독성 우선)
+- 중요 패치: 코드 내 `PATCH RECORD` 또는 `ARCHITECTURE_OVERVIEW` 주석 갱신을 권장한다(구조변경이면 ARCHITECTURE_OVERVIEW 우선).
 - 정책 변경: `docs/governance/MASTER_PROMPT.md`의 `last update` 갱신
 
 ## 6) Merge Gate (Definition of Done)
@@ -88,7 +89,7 @@
 ## 7) Responsibility Split
 
 ### RACI
-| 의사결정/작업 | 사용자 | 기획/검토팀 (ChatGPT/Gemini) | 개발 실행팀 (Codex/Claude) |
+| 의사결정/작업 | 사용자 | 기획팀(planning) | 개발팀(executing) |
 | --- | --- | --- | --- |
 | 정책 충돌 최종 판정 | **A** | C | C |
 | 작업명세/프롬프트 품질 기준 수립 | A | **R** | C |
@@ -96,7 +97,7 @@
 | 실행보고/검증로그 작성 | I | C | **R** |
 | PR 머지 승인 | **A/R** | C | I |
 
-- 상충이 발생하면 실행팀/기획팀은 대안과 근거를 보고하고, 사용자가 최종 판정한다.
+- 상충이 발생하면 개발팀(executing)/기획팀(planning)은 대안과 근거를 보고하고, 사용자가 최종 판정한다.
 - 검수 루프의 종료 판정은 사용자에게 있으며, 운영상 종료 이벤트는 "프롬프트 재산출본 확정"으로 본다.
 
 ## 8) Relative-path Rule (for AI prompts)
