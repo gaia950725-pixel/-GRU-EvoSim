@@ -1,3 +1,13 @@
+### 27.09 — Agent TEMP seasoned input FINAL
+- Change: Agent NN TEMP input source switched from base AGRO cache `AGRO.temp[aidx]` to `tempSeasoned01At(this.pos.x, this.pos.y)`.
+- Change: TEMP channel meaning is now local seasoned temperature (hemisphere + lag + local season amplitude), while existing sensor clamp path is unchanged.
+- Change: AGRO.temp remains base cache/SOT with no schema or ownership changes.
+- Verify: with climate ON, selected agent TEMP sensor oscillates with season progression instead of staying base-only.
+- Verify: with climate OFF, `tempSeasoned01At` returns base and TEMP input remains neutral/base-like behavior.
+- Guardrails: no agro season/farm logic edits, no GAIA/AGRO ownership edits, no render/panel UI edits.
+- Artifacts: synced `docs/releases/EvoSim_latest.html` from final `index.html`.
+- Artifacts: refreshed archive snapshot `docs/releases/archive/EvoSim_27.09_agent_temp_seasoned_FINAL.html`.
+
 ### 27.08 — farm temp dT mul + AGRO hydrology allocation removal (mid)
 - Change: Farm stage=1 growth multiplier switched to dT-based temperature delta with `mul = clamp(1 + FARM_TEMP_MUL*dT, 0..2)`, where `dT = tempSeasoned01At - temp01At` on tile-index path and `FARM_TEMP_MUL=2.0`.
 - Change: Removed legacy season helpers `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx` and removed `FARM_SEASON_MUL`.
