@@ -4465,15 +4465,14 @@ function clientToWorld(clientX, clientY) {
         // [Patch] Shift-held agro tile hover preview updater
         function updateAgroHoverFromClient(clientX, clientY) {
             if (!shiftHeld || isDragging) { hoverTileIdx = -1; hoverTileFarmable = false; return; }
-            if (!AGRO) { hoverTileIdx = -1; hoverTileFarmable = false; return; }
 
             const { wx, wy } = clientToWorld(clientX, clientY);
-            const tIdx = agroTileIndexAt(wx, wy);
+            const tIdx = gaiaTileAtXY(wx, wy);
             if (tIdx === -1) { hoverTileIdx = -1; hoverTileFarmable = false; return; }
 
             // Show tile outline always; tint indicates farmable vs not
             hoverTileIdx = tIdx;
-            hoverTileFarmable = !!(AGRO.farmMask && AGRO.farmMask[tIdx] > 0);
+            hoverTileFarmable = !!(AGRO && AGRO.farmMask && AGRO.farmMask[tIdx] > 0);
         }
 
         function updateAgroHoverFromLastMouse() {
@@ -14996,25 +14995,24 @@ isDragging = true;
 
             // [Shift + 클릭] 타일 선택 모드
             if (e.shiftKey) {
-                if (AGRO) {
-                    const tIdx = agroTileIndexAt(wx, wy);
-                    if (tIdx !== -1) {
-                        selectedTileIdx = tIdx;
-                        selectedTileFarmable = !!(AGRO.farmMask && AGRO.farmMask[tIdx] > 0);
-                        _agroSelTouchPending = true;
-                        _agroSelTouchLastTick = -1e15;
-                        selectedAgent = null;
-                        selectedPredator = null;
-                        selectedHerbivore = null;
-                        
-                        if(inspectorContent) inspectorContent.innerHTML = `<div style="text-align: center; color: var(--herb); padding: 20px; line-height:1.6;">🌱 <b>타일 선택됨</b><br><span style="font-size:11px; color:#aaa;">(시스템 현황 패널을 확인하세요)</span></div>`;
-                        if(brainCanvas) brainCanvas.style.display = 'none';
-                        if(brainOutputsEl) brainOutputsEl.style.display = 'none';
-                        return;
-                    }
+                const tIdx = gaiaTileAtXY(wx, wy);
+                if (tIdx !== -1) {
+                    selectedTileIdx = tIdx;
+                    selectedTileFarmable = !!(AGRO && AGRO.farmMask && AGRO.farmMask[tIdx] > 0);
+                    _agroSelTouchPending = !!(AGRO && selectedTileFarmable);
+                    _agroSelTouchLastTick = -1e15;
+                    selectedAgent = null;
+                    selectedPredator = null;
+                    selectedHerbivore = null;
+                    
+                    if(inspectorContent) inspectorContent.innerHTML = `<div style="text-align: center; color: var(--herb); padding: 20px; line-height:1.6;">🌱 <b>타일 선택됨</b><br><span style="font-size:11px; color:#aaa;">(시스템 현황 패널을 확인하세요)</span></div>`;
+                    if(brainCanvas) brainCanvas.style.display = 'none';
+                    if(brainOutputsEl) brainOutputsEl.style.display = 'none';
+                    return;
                 }
                 selectedTileIdx = -1;
                 selectedTileFarmable = false;
+                _agroSelTouchPending = false;
                 return;
             }
 
@@ -15374,7 +15372,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     };
                 }
                 const rows = uiFarmObsMini.__localeRows;
-                if (!(AGRO && selectedTileIdx !== -1)) {
+                if (selectedTileIdx === -1) {
                     _setTextIfChanged(rows.temperature, '—');
                     _setTextIfChanged(rows.humidity, '—');
                     _setTextIfChanged(rows.altitude, '—');
@@ -15394,11 +15392,11 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.hint, 'Shift+클릭 타일');
                 } else {
                     const iRaw = selectedTileIdx;
-                    const cols = (AGRO.cols | 0);
+                    const cols = (GAIA.cols | 0);
                     const tx = (iRaw % cols);
                     const ty = ((iRaw / cols) | 0);
-                    const wx = (tx + 0.5) * AGRO.tile;
-                    const wy = (ty + 0.5) * AGRO.tile;
+                    const wx = (tx + 0.5) * GAIA.tile;
+                    const wy = (ty + 0.5) * GAIA.tile;
                     const tBase = temp01At(wx, wy);
                     const tNow = tempSeasoned01At(wx, wy);
                     _setTextIfChanged(rows.temperature, `${tBase.toFixed(2)} → ${tNow.toFixed(2)}`);
@@ -16054,10 +16052,10 @@ function updateHistoryPanelUI(){
                         
                         
                         // [Patch] Shift-held agro tile hover highlight (tile under cursor; farmable tinted)
-                        if (AGRO && hoverTileIdx !== -1) {
-                            const TILE = AGRO.tile;
-                            const cols = AGRO.cols;
-                            const rows = AGRO.rows;
+                        if (hoverTileIdx !== -1) {
+                            const TILE = GAIA.tile;
+                            const cols = GAIA.cols;
+                            const rows = GAIA.rows;
                             const tx = hoverTileIdx % cols;
                             const ty = Math.floor(hoverTileIdx / cols);
 
