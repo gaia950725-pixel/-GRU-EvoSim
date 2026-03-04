@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.09 agent temp seasoned FINAL</title>
+    <title>EvoSim 27.10 terrain footing-load precise-alt</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -4035,7 +4035,7 @@ EvoSim.debug.setCFG = (patch) => {
     // Proprio (3)
     // sensory type: proprioceptive / body-schema
     // cortex unit: parietal↔vestibular/kinesthesia + tool-schema (parietal↔premotor)
-    PROPRIO_SLP: 15,
+    FOOTING_LOAD: 15, // 접지·지지부하 (footing load)
     PROPRIO_KINE: 16,
     PROPRIO_EMB: 17,
 
@@ -4076,7 +4076,7 @@ const SENSOR_LABELS_SHORT = Object.freeze([
   "olf-food",
   "olf-thr",
   "olf-hmn",
-  "proprio-slp",
+  "proprio-load",
   "proprio-kine",
   "proprio-emb",
   "intero-tmp",
@@ -5341,6 +5341,27 @@ function altitude01At(x, y){
   }
   return 0;
 }
+function altitude01AtPrecise(wx, wy){
+  if (!(GAIA && GAIA.altitudeGrid && GAIA.altTriGx && GAIA.altTriGy && GAIA.cols && GAIA.rows)) return 0;
+  const T = GAIA.tile || 30;
+  const cols = GAIA.cols | 0;
+  const rows = GAIA.rows | 0;
+  const maxX = Math.max(0, (cols * T) - 1e-6);
+  const maxY = Math.max(0, (rows * T) - 1e-6);
+  const x = Math.max(0, Math.min(maxX, +wx || 0));
+  const y = Math.max(0, Math.min(maxY, +wy || 0));
+  const cx = Math.max(0, Math.min(cols - 1, Math.floor(x / T)));
+  const cy = Math.max(0, Math.min(rows - 1, Math.floor(y / T)));
+  const ti = gaiaTileIndex(cx, cy);
+  const triId = gaiaAltTriIdAtWorldXY(x, y);
+  const base = (ti * 4) + triId;
+  const hC = GAIA.altitudeGrid[ti] || 0;
+  const gx = GAIA.altTriGx[base] || 0;
+  const gy = GAIA.altTriGy[base] || 0;
+  const dx = (x - (cx * T)) - (T * 0.5);
+  const dy = (y - (cy * T)) - (T * 0.5);
+  return _clamp01(hC + gx * dx + gy * dy);
+}
 function temp01At(x, y){
   if (GAIA && GAIA.tempGrid){
     const v = GAIA.tempGrid[gaiaTileAtXY(x, y)];
@@ -5474,7 +5495,6 @@ const SEASON_LAT_POW = 1.4;
 const SEASON_AMP_COAST = 0.35;
 const TEMP_SEASON_DELTA = 0.15;
 const FARM_TEMP_MUL = 2.0;
-const KR_ROUGH_ALT = 1.50;
 
 let _seasonCore_cacheTick = -1;
 let _seasonCore_cachePhase01 = 0;
@@ -6961,7 +6981,6 @@ function gaiaBuildAltitudeGrid(){
     GAIA.altTriGx = null;
     GAIA.altTriGy = null;
     GAIA.altTriSlope = null;
-    GAIA.altRough01 = null;
     return;
   }
 
@@ -6997,6 +7016,7 @@ function gaiaBuildAltitudeGrid(){
     const o = (GAIA && GAIA.oceanicity30) ? (GAIA.oceanicity30[i] || 0) : 0;
     const fw = (GAIA && GAIA.freshwater30) ? (GAIA.freshwater30[i] || 0) : 0;
 
+    // ALTITUDE01 meaning: (고도/바위질잠재) — elevation + rockiness potential
     GAIA.altitudeGrid[i] = _clamp01(ALT_BASE + MTN_MUL*m - OCEAN_CUT*o - RIVER_CUT*fw);
   }
 
@@ -7009,7 +7029,6 @@ function gaiaBuildAltitudeGrid(){
   GAIA.altTriGx = new Float32Array(N * 4);
   GAIA.altTriGy = new Float32Array(N * 4);
   GAIA.altTriSlope = new Float32Array(N * 4);
-  GAIA.altRough01 = new Float32Array(N);
 
   for (let iy = 0; iy < cRows; iy++){
     for (let ix = 0; ix < cCols; ix++){
@@ -7080,16 +7099,6 @@ function gaiaBuildAltitudeGrid(){
       GAIA.altTriGy[base + 3] = gW.gy;
       GAIA.altTriSlope[base + 3] = Math.hypot(gW.gx, gW.gy);
 
-      const xW = Math.max(cx - 1, 0);
-      const xE = Math.min(cx + 1, cols - 1);
-      const yN = Math.max(cy - 1, 0);
-      const yS = Math.min(cy + 1, rows - 1);
-      const hW = GAIA.altitudeGrid[gaiaTileIndex(xW, cy)] || 0;
-      const hE = GAIA.altitudeGrid[gaiaTileIndex(xE, cy)] || 0;
-      const hN = GAIA.altitudeGrid[gaiaTileIndex(cx, yN)] || 0;
-      const hS = GAIA.altitudeGrid[gaiaTileIndex(cx, yS)] || 0;
-      const roughRaw = Math.abs((4 * hC) - (hW + hE + hN + hS));
-      GAIA.altRough01[ti] = _clamp01(roughRaw * KR_ROUGH_ALT);
     }
   }
 }
@@ -11325,6 +11334,7 @@ return;
                 }
                 sensors[SENSOR.TEMP]  = clamp01(temp01);
                 sensors[SENSOR.HUMID] = clamp01(humid01);
+                sensors[SENSOR.FOOTING_LOAD] = altitude01AtPrecise(this.pos.x, this.pos.y);
 
                 // --- Agro crop progress (rep tile crop 0..1; 0 if not on farm) ---
                 if (AGRO && SENSOR.ENV_CROP != null) {
@@ -15349,7 +15359,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     };
                     uiFarmObsMini.textContent = '';
                     const climate = mkGroup('Climate', ['temperature', 'humidity']);
-                    const geography = mkGroup('Geography', ['altitude', 'Slope (per tile N/E/S/W)', 'Rough', 'coastDist', 'oceanicity', 'riverDist', 'freshwater']);
+                    const geography = mkGroup('Geography', ['altitude', 'Slope (per tile N/E/S/W)', 'coastDist', 'oceanicity', 'riverDist', 'freshwater']);
                     const clamor = mkGroup('Clamor', ['cF', 'cS', 'vF', 'vS']);
                     const agriculture = mkGroup('Agriculture', ['crop', 'tilth', 'stage']);
                     const hintRow = document.createElement('div');
@@ -15377,7 +15387,6 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.humidity, '—');
                     _setTextIfChanged(rows.altitude, '—');
                     _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
-                    _setTextIfChanged(rows['Rough'], '—');
                     _setTextIfChanged(rows.coastDist, '—');
                     _setTextIfChanged(rows.oceanicity, '0.00');
                     _setTextIfChanged(rows.riverDist, '—');
@@ -15404,7 +15413,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     _setTextIfChanged(rows.altitude, `${altitude01At(wx, wy).toFixed(2)}`);
                     try {
                         const gIdx = gaiaTileAtXY(wx, wy);
-                        if (gIdx >= 0 && GAIA && GAIA.altTriGx && GAIA.altTriGy && GAIA.altRough01) {
+                        if (gIdx >= 0 && GAIA && GAIA.altTriGx && GAIA.altTriGy) {
                             const base = gIdx * 4;
                             const gxN = GAIA.altTriGx[base + 0] || 0;
                             const gyN = GAIA.altTriGy[base + 0] || 0;
@@ -15414,7 +15423,6 @@ _setTextIfChanged(uiPredCount, predators.length);
                             const gyS = GAIA.altTriGy[base + 2] || 0;
                             const gxW = GAIA.altTriGx[base + 3] || 0;
                             const gyW = GAIA.altTriGy[base + 3] || 0;
-                            const rough = GAIA.altRough01[gIdx] || 0;
                             const T = (GAIA && GAIA.tile) ? GAIA.tile : 30;
                             const fmt = (v) => {
                                 const z = (Math.abs(v) < 0.005) ? 0 : v;
@@ -15426,14 +15434,11 @@ _setTextIfChanged(uiPredCount, predators.length);
                             const tS = (gyS) * T;
                             const tW = (-gxW) * T;
                             _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], `${fmt(tN)} / ${fmt(tE)} / ${fmt(tS)} / ${fmt(tW)}`);
-                            _setTextIfChanged(rows['Rough'], `${rough.toFixed(2)}`);
                         } else {
                             _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
-                            _setTextIfChanged(rows['Rough'], '—');
                         }
                     } catch (_) {
                         _setTextIfChanged(rows['Slope (per tile N/E/S/W)'], '—');
-                        _setTextIfChanged(rows['Rough'], '—');
                     }
                     const coastD = coastDistAt(wx, wy);
                     _setTextIfChanged(rows.coastDist, coastD < 0 ? '—' : `${coastD | 0}`);

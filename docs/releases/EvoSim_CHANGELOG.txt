@@ -11,6 +11,15 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.10 — terrain footing-load precise-alt (mid)
+- Change: GAIA 4tri 경사장(`altTriGx/altTriGy`)과 tile center altitude를 이용하는 `altitude01AtPrecise(wx, wy)` O(1) 샘플 API를 추가했다.
+- Change: PROPRIO 슬롯 15를 `FOOTING_LOAD(=접지·지지부하)`로 개명하고 short label을 `proprio-load`로 교체한 뒤, 에이전트 센서 입력을 `altitude01AtPrecise(this.pos.x, this.pos.y)`로 연결했다.
+- Change: roughness 경로(`KR_ROUGH_ALT`, `GAIA.altRough01`, locale Geography의 `Rough` 행 및 갱신 코드)를 제거하고 slope 표시 조건을 `altTriGx/altTriGy` 기준으로 정리했다.
+- Why: NN 입력 의미를 접지·지지부하(연속면 정밀고도)로 통일하고 지형 관측 경로를 단순화하기 위함.
+- Impact: 입력 개수(27)는 유지되면서 slot 15 의미/라벨이 갱신되고, locale Geography에서 roughness 행이 사라진다.
+- Verify: `rg`로 `KR_ROUGH_ALT|altRough01|PROPRIO_SLP|proprio-slp`가 0건이며 `FOOTING_LOAD|proprio-load|altitude01AtPrecise`가 존재함을 확인.
+- Artifacts: synced `index.html` and `docs/releases/EvoSim_latest.html`; added `docs/releases/archive/EvoSim_27.10_terrain_footing-load_precise-alt.html`.
+
 ### 27.09 — Agent TEMP seasoned input FINAL
 - Change: Agent NN TEMP input source switched from base AGRO cache `AGRO.temp[aidx]` to `tempSeasoned01At(this.pos.x, this.pos.y)`.
 - Change: TEMP channel meaning is now local seasoned temperature (hemisphere + lag + local season amplitude), while existing sensor clamp path is unchanged.
