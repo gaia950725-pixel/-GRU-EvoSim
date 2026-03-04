@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.10 terrain footing-load precise-alt</title>
+    <title>EvoSim 27.11 boot-init strip-yield finalize-reorder</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -10538,7 +10538,7 @@ document.getElementById('disp-era').textContent = "구석기";
 
                 setWorldGenState('generating', 'rendering', 'Rendering terrain...', 0.70);
                 await nextFrame();
-                renderStaticMap();
+                await renderStaticMap();
 
                 setWorldGenState('generating', 'spawn', 'Spawning agents...', 0.80);
                 await nextFrame();
@@ -10668,9 +10668,23 @@ document.getElementById('disp-era').textContent = "구석기";
 
                 setWorldGenState('generating', 'finalize', 'Finalizing...', 0.95);
                 await nextFrame();
-                
+
                 logEvent("Sim 시작 (Gen 1)");
-                
+
+                // P3-3B+: build eid→idx indexes BEFORE entering INGAME (ensures no first-frame freeze from lazy index build)
+                setWorldGenState('generating', 'indexes', 'Building indexes...', 0.96);
+                await nextFrame();
+                try {
+                    _rebuildAgentE2I('guardedStart');
+                    _rebuildHerbE2I('guardedStart');
+                    _rebuildPredE2I('guardedStart');
+                } catch (e) {
+                    console.error('E2I init failed', e);
+                    throw e;
+                }
+
+                setWorldGenState('generating', 'entering', 'Entering world...', 0.98);
+                await nextFrame();
                 try {
                     if (typeof EvoSim !== 'undefined' && EvoSim && EvoSim.nav && EvoSim.nav.goIngame) {
                         EvoSim.nav.goIngame('INIT');
@@ -10682,18 +10696,9 @@ document.getElementById('disp-era').textContent = "구석기";
                     document.getElementById('config-overlay').style.display = 'none';
                     document.getElementById('ui-layer').style.display = 'block';
                 }
-                
-                setWorldGenState('ready', 'done', 'Done!', 1.0);
 
-                // P3-3B: ensure eid->idx maps are built before the first tick (pre-think may consume eid values)
-                try {
-                    _rebuildAgentE2I('guardedStart');
-                    _rebuildHerbE2I('guardedStart');
-                    _rebuildPredE2I('guardedStart');
-                } catch (e) {
-                    console.error('E2I init failed', e);
-                    throw e;
-                }
+                await nextFrame(); // allow DOM paint before marking ready
+                setWorldGenState('ready', 'done', 'Done!', 1.0);
 
                 __evoRafKick();
 
@@ -12578,7 +12583,7 @@ const uiEra = document.getElementById('disp-era');
         window.addEventListener('resize', resize);
         resize();
 
-        function renderStaticMap() {
+        async function renderStaticMap() {
             bgCanvas.width = CFG.worldWidth;
             bgCanvas.height = CFG.worldHeight;
             const w = CFG.worldWidth;
@@ -12670,6 +12675,7 @@ let lr = 0x1a, lg = 0x1a, lb = 0x24;
                             }
                         }
                         bgCtx.putImageData(img, 0, y0);
+                        await nextFrame(); // yield per strip — breaks long task for progress bar responsiveness
                     }
                 } else {
                     // Fallback: coarse 30px tiles only (no readback).

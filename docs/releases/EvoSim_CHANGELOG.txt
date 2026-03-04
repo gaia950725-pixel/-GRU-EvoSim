@@ -11,6 +11,15 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.11 — boot-init strip-yield finalize-reorder (mid)
+- Change: `renderStaticMap()` converted to `async function`; `await nextFrame()` inserted after each 64px strip's `putImageData` — breaks the loading-phase long task into per-strip browser yield slots.
+- Change: guardedStart finalize reordered: E2I index rebuild (`_rebuildAgentE2I/HerbE2I/PredE2I`) now runs **before** `goIngame('INIT')`; two new progress steps added (`indexes 0.96`, `entering 0.98`).
+- Change: `setWorldGenState('ready','done',...)` moved to **after** `goIngame` + one extra `await nextFrame()` for DOM paint — eliminates "overlay hides before INGAME is live" race.
+- Why: 로딩 화면 long task(renderStaticMap 동기 장블로킹)와 INGAME 진입 직후 freeze(E2I rebuild가 goIngame 이후에 실행되던 순서 오류) 두 가지를 동시에 제거.
+- Impact: 로딩 진행바 응답성 개선; 에이전트가 처음 보이는 순간 freeze 제거; 첫 animate() 프레임은 E2I 완비 상태로 진입.
+- Verify: DevTools Performance — renderStaticMap 구간에 Long task 분산 확인; goIngame 이후 Long task 없음 확인.
+- Artifacts: synced `index.html` and `docs/releases/EvoSim_latest.html`; added `docs/releases/archive/EvoSim_27.11_boot-init_strip-yield_finalize-reorder_FINAL.html`.
+
 ### 27.10 — terrain footing-load precise-alt (mid)
 - Change: GAIA 4tri 경사장(`altTriGx/altTriGy`)과 tile center altitude를 이용하는 `altitude01AtPrecise(wx, wy)` O(1) 샘플 API를 추가했다.
 - Change: PROPRIO 슬롯 15를 `FOOTING_LOAD(=접지·지지부하)`로 개명하고 short label을 `proprio-load`로 교체한 뒤, 에이전트 센서 입력을 `altitude01AtPrecise(this.pos.x, this.pos.y)`로 연결했다.
