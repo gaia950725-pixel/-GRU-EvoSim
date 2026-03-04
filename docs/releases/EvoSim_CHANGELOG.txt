@@ -1,3 +1,12 @@
+### 27.08 — farm temp dT mul + AGRO hydrology allocation removal (mid)
+- Change: Farm stage=1 growth multiplier switched to dT-based temperature delta with `mul = clamp(1 + FARM_TEMP_MUL*dT, 0..2)`, where `dT = tempSeasoned01At - temp01At` on tile-index path and `FARM_TEMP_MUL=2.0`.
+- Change: Removed legacy season helpers `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx` and removed `FARM_SEASON_MUL`.
+- Change: `initAgro` no longer pre-allocates `humidity/riverMask/riverPolylines`; climate-on path now requires GAIA SOT (`humidGrid`, `riverMask`, `riverPolylines`) and binds AGRO by direct reference.
+- Verify: `index.html` has `agroTempGrowMulAtTileIdx()` and stage=1 growth multiplies by it.
+- Verify: `index.html` has zero matches for `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx`, and `FARM_SEASON_MUL`.
+- Verify: `initAgro` throws when climate is enabled but GAIA hydrology/humidity SOT is missing or mismatched.
+- Verify: `docs/releases/EvoSim_latest.html` synced from `index.html` and archive `EvoSim_27.08_farm_temp_dt_FINAL.html` refreshed.
+
 ### 27.06 — terrain slope fix2
 - 27.06 terrain slope fix2: clear altCorner/altTri*/altRough01 when altitude disabled to prevent stale locale diagnostics
 
