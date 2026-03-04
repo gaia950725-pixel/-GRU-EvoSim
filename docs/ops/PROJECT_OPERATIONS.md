@@ -45,6 +45,15 @@
 - 사후 체크(필수): `EvoSim_latest.html`/archive/CHANGELOG 동기화 및 Merge Gate 재검증.
 - 실패 처리: 세트 단위로 되돌릴 수 있도록 커밋을 구성한다.
 
+
+## 4-2) Version Title Lock (설계 A: 버전 누락 방지)
+- 패치 실행 전 `target_version`를 단일 소스로 확정한다(예: `27.09`).
+- 완료 검증은 아래 3종 교차검증을 모두 통과해야 한다.
+  1) 타이틀/헤더 표기 버전
+  2) CHANGELOG 버전 헤더
+  3) archive 파일명 버전
+- 위 3종 중 1개라도 불일치하면 PR Ready 처리 금지(수정 후 재검증).
+
 ## 5) Artifact & File Routing
 
 ### Canonical outputs
@@ -74,6 +83,7 @@
 3. changelog 갱신 완료(`docs/releases/EvoSim_CHANGELOG.txt`, 중간/중요 패치인 경우)
 4. 실행보고가 `docs/spec/SPEC_OUTPUTS.md`의 고정 4섹션 규격을 충족함
 5. 버전 증가 작업은 `release/*` 브랜치 규칙을 준수함
+6. `target_version` 기준 3종 교차검증(타이틀/CHANGELOG/archive 파일명) 일치 확인
 
 ## 7) Responsibility Split
 

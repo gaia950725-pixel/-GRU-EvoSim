@@ -34,18 +34,22 @@
 - [변경 범위]
 - [금지사항]
 - [구현 지침]
+- [target_version] (필수, 단일 버전값)
 - [FINAL 지침] (필수)
   1) `index.html`(또는 단일 메인 HTML) 변경 반영
   2) 최종 적용 완료본을 `docs/releases/EvoSim_latest.html`로 동기화
   3) `docs/releases/archive/EvoSim_<version>_<patch>.html` 생성
   4) `docs/releases/EvoSim_CHANGELOG.txt` 최종 항목 확정(중간/중요인 경우에만 필수)
-  5) 위 필수 항목 완료 후에만 PR Ready 처리
+  5) `target_version`와 타이틀/CHANGELOG/archive 파일명 버전이 모두 일치하는지 교차검증
+  6) 위 필수 항목 완료 후에만 PR Ready 처리
 
 ### 실행보고
 - 변경내용(10문장 이내)
 - 프롬프트와 다르게 변경한 사항(4문장 이내, 있으면 작성)
 - 주석변경사항(2문장 이내, 있으면 작성)
 - 권고사항(1문장 이내, 있으면 작성)
+- 임시디버그 도입 여부(패치별: 예/아니오)
+- 임시디버그 제거 여부(패치별: 예/아니오)
 
 #### 선택 메타필드(권장)
 - 대상 파일명

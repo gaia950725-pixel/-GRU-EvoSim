@@ -46,3 +46,4 @@
 - [ ] 코드 동작 변경이면 latest + archive 동기화를 완료했는가?
 - [ ] CHANGELOG 형식(단문 템플릿)과 정렬(newest first)을 지켰는가?
 - [ ] 실행보고 4섹션을 작성했는가?
+- [ ] `target_version`와 타이틀/CHANGELOG/archive 버전이 일치하는가?
