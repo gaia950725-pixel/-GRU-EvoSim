@@ -20,7 +20,7 @@
 
 ## 3) Output sync (핵심)
 - 코드 동작 변경 시: `index.html` ↔ `docs/releases/EvoSim_latest.html` 동기화.
-- 버전/중요 패치 시: archive 스냅샷 생성.
+- 코드 동작 변경 시: archive 스냅샷 생성(중요도와 무관).
 - CHANGELOG는 중간/중요 패치만 필수, 경미 패치는 생략 가능.
 
 ## 4) CHANGELOG short format
@@ -43,6 +43,6 @@
 
 ## 7) Practical checklist
 - [ ] 변경 범위가 문서/코드 정책과 일치하는가?
-- [ ] latest/archive/changelog 동기화 조건을 충족했는가?
+- [ ] 코드 동작 변경이면 latest + archive 동기화를 완료했는가?
 - [ ] CHANGELOG 형식(단문 템플릿)과 정렬(newest first)을 지켰는가?
 - [ ] 실행보고 4섹션을 작성했는가?
