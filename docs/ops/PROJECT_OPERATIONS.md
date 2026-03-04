@@ -16,7 +16,8 @@
 
 ### AI 실행팀 브랜치 (Claude / Codex)
 - AI 실행팀도 동일한 네이밍 컨벤션(`feature/*`, `fix/*`, `docs/*`, `release/*`)을 따른다. 버전 갱신 작업은 예외 없이 `release/*`를 사용한다.
-- 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`)는 세션 전용이므로 **이 문서에 특정 브랜치명을 기재하지 않는다.** 현재 작업 브랜치는 시스템 프롬프트를 확인한다.
+- 실행 환경이 자동 배정하는 세션 브랜치(`claude/<slug>`, `codex/<slug>`, `work/*`)는 세션 전용 레이어다. 세션 브랜치명은 작업자 임의 규칙이 아니며, 저장소의 표준 운영 규칙(`release/*`, `fix/*`, `docs/*`, `feature/*`)과 별도로 공존할 수 있다.
+- 버전 증가 작업은 최종 PR 기준 브랜치/제목/커밋에서 `release/<version>-<task>` 식별자가 명확히 보여야 한다.
 
 ### Ops-only / docs-only 변경 규칙
 - 시뮬 버전 번프 없는 순수 운영 변경(CHANGELOG 채우기, 거버넌스 문서 수정, CLAUDE.md 규칙 추가 등)은 **AI 워킹 브랜치에 직접 커밋**한다.
@@ -35,6 +36,15 @@
   - `[27.02][P1/4] season core`
   - `[27.02][P2/4] locale debug`
 
+
+## 4-1) Prompt-set Batch Execution Mode (일괄 패치 모드)
+- 기본 원칙: 프롬프트를 쪼개 순차 적용하지 않고, **총 프롬프트 세트를 먼저 확정한 뒤 일괄 패치**할 수 있다.
+- 입력 단위: 확정된 프롬프트 세트 1묶음(목표/범위/금지사항/FINAL 지침 포함).
+- 실행 단위: 단일 적용 윈도우에서 일괄 반영 + 단일 실행보고 생성.
+- 사전 체크(필수): 대상 파일 목록, 충돌 가능 지점, 롤백 기준 커밋 정의.
+- 사후 체크(필수): `EvoSim_latest.html`/archive/CHANGELOG 동기화 및 Merge Gate 재검증.
+- 실패 처리: 세트 단위로 되돌릴 수 있도록 커밋을 구성한다.
+
 ## 5) Artifact & File Routing
 
 ### Canonical outputs
@@ -45,6 +55,8 @@
 ### Archive naming policy
 - archive는 `latest`를 덮어쓰지 않고, 버전별 산출물을 보존하기 위한 공간이다.
 - 파일명은 버전 + 패치명을 포함한다.
+- 기본은 `버전+패치명` 스냅샷이며, 모든 커밋마다 n1/n2를 강제하지 않는다.
+- `FINAL` / `fixN` 접미사는 릴리스급 마일스톤(최종 통합 직전 스냅샷, FINAL 이후 후속 수정)에서만 선택 적용한다.
 - 예시:
   - `EvoSim_27.03_maritime_sot_FINAL.html`
   - `EvoSim_27.02_locale.html`
@@ -52,6 +64,7 @@
 ### Update mapping (must)
 - 코드 동작 변경: `EvoSim_latest.html` + `archive` 스냅샷
 - 중간/중요 패치: 위 + `EvoSim_CHANGELOG.txt`
+- 경미 패치: CHANGELOG 항목 생략 가능(가독성 우선)
 - 정책 변경: `docs/governance/MASTER_PROMPT.md`의 `last update` 갱신
 
 ## 6) Merge Gate (Definition of Done)
@@ -63,9 +76,18 @@
 5. 버전 증가 작업은 `release/*` 브랜치 규칙을 준수함
 
 ## 7) Responsibility Split
-- 사용자: 정책 확정, 최종 머지 승인, 결과 검정
-- 개발 실행팀(Codex/Claude): 브랜치/커밋/PR 생성 및 실행
-- 기획/검토팀(ChatGPT/Gemini): 작업명세·검토·품질 리스크 제기
+
+### RACI
+| 의사결정/작업 | 사용자 | 기획/검토팀 (ChatGPT/Gemini) | 개발 실행팀 (Codex/Claude) |
+| --- | --- | --- | --- |
+| 정책 충돌 최종 판정 | **A** | C | C |
+| 작업명세/프롬프트 품질 기준 수립 | A | **R** | C |
+| 구현 적용 방식(코드/브랜치/커밋) | I | C | **R/A** |
+| 실행보고/검증로그 작성 | I | C | **R** |
+| PR 머지 승인 | **A/R** | C | I |
+
+- 상충이 발생하면 실행팀/기획팀은 대안과 근거를 보고하고, 사용자가 최종 판정한다.
+- 검수 루프의 종료 판정은 사용자에게 있으며, 운영상 종료 이벤트는 "프롬프트 재산출본 확정"으로 본다.
 
 ## 8) Relative-path Rule (for AI prompts)
 - 프롬프트 입출력 경로는 저장소 상대경로만 사용한다.

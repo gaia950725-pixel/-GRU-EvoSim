@@ -59,8 +59,14 @@
 - 대안
 
 ### CHANGELOG
-- 중간 이상 패치 필수
-- `docs/releases/EvoSim_CHANGELOG.txt`에 누적
+- 경미 패치는 CHANGELOG 기록을 통째로 생략 가능(가독성 우선).
+- 중간/중요 패치는 `docs/releases/EvoSim_CHANGELOG.txt`에 누적.
+- 항목 템플릿(패치당 최대 7줄 권장):
+  - `Change`: 1~4줄
+  - `Why`: 1줄
+  - `Impact`: 1줄
+  - `Verify`: 0~1줄 (중간/중요 권장)
+- PR 본문도 동일 필드명(`Change/Why/Impact/Verify`) 사용을 권장한다.
 
 ## 3) 중요도 라우팅 통합표
 - 경미: 기록 생략 가능 (필요 시 인라인 주석)
