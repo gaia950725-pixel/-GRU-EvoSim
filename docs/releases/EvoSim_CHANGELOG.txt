@@ -11,6 +11,15 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.09 — Agent TEMP seasoned input FINAL
+- Change: Agent NN TEMP input source switched from base AGRO cache `AGRO.temp[aidx]` to `tempSeasoned01At(this.pos.x, this.pos.y)`.
+- Change: TEMP channel meaning is now local seasoned temperature (hemisphere + lag + local season amplitude), while existing sensor clamp path is unchanged.
+- Change: AGRO.temp remains base cache/SOT with no schema or ownership changes.
+- Verify: with climate ON, selected agent TEMP sensor oscillates with season progression instead of staying base-only.
+- Verify: with climate OFF, `tempSeasoned01At` returns base and TEMP input remains neutral/base-like behavior.
+- Guardrails: no agro season/farm logic edits, no GAIA/AGRO ownership edits, no render/panel UI edits.
+- Artifacts: synced `docs/releases/EvoSim_latest.html` from final `index.html`; refreshed archive snapshot `docs/releases/archive/EvoSim_27.09_agent_temp_seasoned_FINAL.html`.
+
 ### 27.08 — farm temp dT mul + AGRO hydrology allocation removal (mid)
 - Change: Farm stage=1 성장 배율을 `dT=tempSeasoned01At-temp01At` 기반 `agroTempGrowMulAtTileIdx()`로 전환하고 `FARM_TEMP_MUL=2.0`을 적용했다.
 - Change: `agroSeasonMul`, `agroSeasonLocalAtTileIdx`, `agroSeasonGrowMulAtTileIdx`, `FARM_SEASON_MUL` 등 레거시 season helper를 제거했다.
