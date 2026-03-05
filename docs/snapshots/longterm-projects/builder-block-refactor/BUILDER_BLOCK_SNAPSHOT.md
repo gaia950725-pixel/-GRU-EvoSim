@@ -1,7 +1,7 @@
 # BUILDER_BLOCK Snapshot — EvoSim index.html
 
 **최초 작성일:** 2026-03-04
-**최종 갱신일:** 2026-03-04 (v27.11 라인번호 재동기화 · 감사 대응 · 기획안 추가)
+**최종 갱신일:** 2026-03-04 (v27.11 라인번호 재동기화 · 감사 대응 · 누락 구간 상세 분석)
 **대상 파일:** `index.html`
 **기준 버전:** EvoSim 27.11 (boot-init strip-yield finalize-reorder)
 **총 BUILDER_BLOCK 마커 수:** 214개 (START/END 쌍 포함)
@@ -18,8 +18,8 @@
 1. [전체 블록 목록](#1-전체-블록-목록)
 2. [블록 계층 구조](#2-블록-계층-구조)
 3. [누락 구간 상세 분석](#3-누락-구간-상세-분석)
-4. [구획화 기획안](#4-구획화-기획안)
-5. [부록: 이슈 목록](#5-부록-이슈-목록)
+
+> **구획화 기획안 · 이슈 트래킹**: [`BUILDER_BLOCK_REFACTOR_PLAN.md`](./BUILDER_BLOCK_REFACTOR_PLAN.md)
 
 ---
 
@@ -502,96 +502,6 @@ index.html (18,516줄 / v27.11)
 **성격:** PNREV_P2 칩탭 초기화 IIFE. `UI_DRAWER_TOGGLES_CORE`와 유사한 UI 초기화 패턴이나 별도 구분 없이 외부에 노출.
 
 **추천 블록명:** `UI_CHIP_TABS_PNREV_INIT` (18397–18453, 단일 57줄)
-
----
-
-## 4. 구획화 기획안
-
-### 4-1. 기본 원칙
-
-1. **비파괴 원칙**: 블록 마커는 주석만 삽입이며 코드 동작을 변경하지 않음.
-2. **최소 단위**: 100줄 이상이면 반드시 최상위 블록으로 명명. 50줄 이상 논리 단위는 권장.
-3. **계층 일관성**: 기존 네이밍 패턴(`SUBSYSTEM_ROLE` 또는 `HS_<phase>_<role>`) 준수.
-4. **중복명 금지**: `_1st` / `_2nd` suffix 또는 블록 분리로 해결.
-
-### 4-2. GAP 처리 우선순위 및 실행 계획
-
-우선순위 = 규모 × 편집 충돌 위험 × 기능 중요도.
-
-| 우선순위 | GAP | 규모 | 추천 블록명 | 단일/분할 | 작업 난이도 |
-|---------|-----|------|------------|---------|-----------|
-| **P0** | GAP-C | ~690줄 | `PREDATOR_CLASS_CORE` / `SOLITARY_ACTION_HELPERS` / `HERBIVORE_CLASS_CORE` | **3분할** | 중 (클래스 경계 명확) |
-| **P1** | GAP-B | ~238줄 | `UI_STARTUP_CONTROLS_INIT` → 내부 3분할 | 단일+서브 | 중 (IIFE 경계 확인 필요) |
-| **P1** | GAP-H | ~159줄 | `UI_DRAWERS_STEP1_INIT` | 단일 | 낮 (IIFE 1개) |
-| **P2** | GAP-F | ~150줄 | `UI_SYSTEM_PANELS_UPDATE` | 단일 | 낮 (함수 1개) |
-| **P2** | GAP-D | ~115줄 | `FOOD_GRID_CORE` | 단일 | 낮 (클래스+유틸 묶음) |
-| **P3** | GAP-E | ~102줄 | `BRAIN_CANVAS_DRAW` | 단일 | 낮 (함수 1개) |
-| **P3** | GAP-G | ~86줄 | `FOOD_PHASE0_SIM_UTILS` | 단일 | 중 (Phase0 정책 코드 혼합) |
-| **P4** | GAP-A | ~57줄 | `TS_SOCIAL_VOICE_GLOBALS` | 단일 | 낮 |
-| **P4** | GAP-I | ~57줄 | `UI_CHIP_TABS_PNREV_INIT` | 단일 | 낮 |
-
-### 4-3. 대형 기존 블록 내부 분할 권장
-
-기존 블록 중 1,000줄 내외 미분할 대형 블록 4개는 **별도 이슈**로 관리 권장.
-
-| 블록명 | 현재 규모 | 분할 제안 |
-|--------|---------|---------|
-| `UI_NAV_ROUTING` | ~1752줄 | `UI_NAV_WORLDSTART_INIT` + `UI_NAV_SIM_INIT` + `UI_NAV_RENDER_INIT` 3분할 |
-| `HS_COLLISION_LOOP` | ~1011줄 | `COLLISION_SPATIAL_QUERY` + `COLLISION_APPLY_EAT` + `COLLISION_APPLY_FIGHT` 3분할 |
-| `AGENT_GRID_CORE` | ~985줄 | `AGENT_CLASS_CORE` + `AGENT_NN_SENSOR` + `AGENT_GENETICS_CORE` 3분할 |
-| `HS_PHASE1_HELPERS` | ~893줄 | `PHASE1_PREFRAME_HELPERS` + 기존 `HS_FITTER_P4_1_SIM_LOOP` 2분할 (SIM_LOOP 이미 존재) |
-
-### 4-4. 중복 블록명 정리
-
-`HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`가 두 위치에 존재 (18082, 18239). 해결 방안:
-
-- **방안 A (권장):** GAP-H 작업 시 외부 IIFE를 `UI_DRAWERS_STEP1_INIT`으로 감싸고, 내부 마커는 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_STEP1`로 rename.
-- **방안 B:** 두 마커 모두 `_1` / `_2` suffix 추가 (`...DIRTY_1`, `...DIRTY_2`).
-- **방안 C (최소변경):** AUDIT.md에 발생 원인 기록하고 다음 대형 리팩터까지 현상 유지.
-
-### 4-5. 블록명 네이밍 컨벤션 정리
-
-기존 코드에서 발견된 패턴 3종:
-
-| 패턴 | 예시 | 사용 용도 |
-|------|------|---------|
-| `SUBSYSTEM_ROLE` | `FOOD_GRID_CORE`, `GAIA_SOT_CORE` | 신규 서브시스템 블록 (권장) |
-| `HS_<phase>_<role>` | `HS_AGRO_HARVEST`, `HS_COLLISION_LOOP` | 핫픽스/이식 기원 블록 |
-| `HS_FITTER_P<n>_<n2>_<role>` | `HS_FITTER_P4_1_INPUT_BINDINGS` | Fitter 패치 기원 블록 |
-
-**신규 GAP 블록에는 `SUBSYSTEM_ROLE` 패턴을 권장.** `HS_` prefix는 핫픽스·이식 맥락에서만 사용.
-
-### 4-6. 검증 체크리스트 (블록 추가 후)
-
-```
-[ ] 신규 START/END 마커 쌍이 대칭인지 확인
-[ ] 기존 코드가 마커 주석 삽입 이외에 변경되지 않았는지 확인
-[ ] 총 BUILDER_BLOCK 마커 수 재계산 (현재 214 → 추가 후 N)
-[ ] 블록명 중복 없는지 grep으로 확인
-[ ] 본 스냅샷 문서 라인번호 재갱신
-[ ] BUILDER_BLOCK_SNAPSHOT_AUDIT.md에 변경 이력 기재
-```
-
----
-
-## 5. 부록: 이슈 목록
-
-| 이슈 ID | 유형 | 블록명 | 위치 | 상태 |
-|---------|------|--------|------|------|
-| ISS-01 | 중복 블록명 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | 18082 & 18239 | 미해결 — 4-4절 참조 |
-| ISS-02 | 대형 미분할 | `UI_NAV_ROUTING` | 9717–11469 (1752줄) | 중기 분할 권장 |
-| ISS-03 | 대형 미분할 | `HS_COLLISION_LOOP` | 13715–14726 (1011줄) | 중기 분할 권장 |
-| ISS-04 | 대형 미분할 | `AGENT_GRID_CORE` | 8094–9079 (985줄) | 중기 분할 권장 |
-| ISS-05 | 대형 미분할 | `HS_PHASE1_HELPERS` | 16200–17093 (893줄) | 중기 분할 권장 |
-| ISS-06 | GAP 누락 | *GAP-C* | 11714–12403 (690줄) | P0 — 즉시 처리 권장 |
-| ISS-07 | GAP 누락 | *GAP-B* | 9479–9716 (238줄) | P1 |
-| ISS-08 | GAP 누락 | *GAP-H* | 17923–18081 (159줄) | P1 |
-| ISS-09 | GAP 누락 | *GAP-F* | 15186–15335 (150줄) | P2 |
-| ISS-10 | GAP 누락 | *GAP-D* | 13600–13714 (115줄) | P2 |
-| ISS-11 | GAP 누락 | *GAP-E* | 14727–14828 (102줄) | P3 |
-| ISS-12 | GAP 누락 | *GAP-G* | 15790–15875 (86줄) | P3 |
-| ISS-13 | GAP 누락 | *GAP-A* | 8037–8093 (57줄) | P4 |
-| ISS-14 | GAP 누락 | *GAP-I* | 18397–18453 (57줄) | P4 |
 
 ---
 
