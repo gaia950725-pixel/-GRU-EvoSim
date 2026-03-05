@@ -1,64 +1,440 @@
 # BUILDER_BLOCK Snapshot — EvoSim index.html
 
-**최초 작성일:** 2026-03-04  
-**최종 갱신일:** 2026-03-05 (v27.20_fix1 라인번호 재스캔)  
-**대상 파일:** `index.html`  
-**기준 버전:** `v27.20_fix1` (`docs/releases/archive/EvoSim_27.20_fix1.html`)  
+**최초 작성일:** 2026-03-04
+**최종 갱신일:** 2026-03-05 (v27.20_fix1 dead code 정리 · UMC 빈 블록 제거 반영)
+**대상 파일:** `index.html`
+**기준 버전:** v27.20_fix1
 **총 BUILDER_BLOCK 마커 수:** 236개 (START/END 118쌍)
 
----
+> **감사(AUDIT) 반영 노트** — `BUILDER_BLOCK_SNAPSHOT_AUDIT.md` (Codex, 2026-03-04) 지적 사항:
+> - v27.10 스냅샷 대비 9,700라인 이후 **48개 블록에서 +5~+6 라인 시프트** 발생 (v27.11 패치 삽입 영향)
+> - 본 버전에서 전체 라인번호를 v27.20_fix1 기준으로 재생성함
+> - 중복 블록명 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` (2개소) 이슈 유지·기록
 
-## 1) 재스캔 요약
 
-- 스캔 결과: **START 118 / END 118 / 고유 블록 118 / 이름별 불일치 0**
-- 최대 중첩 깊이: **4**
-- 현재 `index.html`, `docs/releases/EvoSim_latest.html`, `docs/releases/archive/EvoSim_27.20_fix1.html`는 동일 라인 수(18,534줄) 기준으로 동기화됨.
-- 기존 문서에 남아 있던 `v27.11` 기준 라인번호/카운트(119쌍)는 본 스냅샷에서 폐기.
-
----
-
-## 2) 장기 리팩토링용 핵심 앵커 블록 (v27.20_fix1)
-
-| 구분 | 블록명 | 라인 범위 | 규모(약) | 비고 |
-|---|---|---:|---:|---|
-| 대형 | `UI_NAV_ROUTING` | 9726–11471 | 1745줄 | 중기 분할 1순위 |
-| 대형 | `HS_COLLISION_LOOP` | 13729–14740 | 1011줄 | 중기 분할 1순위 |
-| 대형 | `AGENT_GRID_CORE` | 8092–9077 | 985줄 | 중기 분할 1순위 |
-| 대형 | `HS_PHASE1_HELPERS` | 16214–17107 | 893줄 | 하위 `SIM_LOOP` 보유 |
-| 핵심 | `SPAWN_AND_LOG_CORE` | 13238–13613 | 375줄 | 로그/스폰 코어 |
-| 핵심 | `UI_STARTUP_CONTROLS_INIT` | 9477–9722 | 245줄 | GAP-B 해소 블록 |
-| 핵심 | `UI_DRAWERS_STEP1_INIT` | 17938–18174 | 236줄 | GAP-H 해소 블록 |
-| 핵심 | `PREDATOR_CLASS_CORE` | 11716–12166 | 450줄 | GAP-C 해소 블록 |
-| 핵심 | `HERBIVORE_CLASS_CORE` | 12167–12407 | 240줄 | GAP-C 해소 블록 |
+> **27.20 FINAL 반영 요약**
+> - Step1 내부 중복명 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`를 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`로 개명하여 충돌 해소.
+> - 스캔 결과: START 118 / END 118 / 고유 블록 118 / 이름별 START-END 불일치 0.
 
 ---
 
-## 3) 미해소 GAP 현황 (v27.20_fix1)
+## 목차
 
-| GAP | 라인 범위 | 규모(약) | 상태 | 권장 블록명 |
-|---|---:|---:|---|---|
-| GAP-A | 8035–8091 | 57줄 | 미해소 | `TS_SOCIAL_VOICE_GLOBALS` |
-| GAP-D | 13614–13728 | 115줄 | 미해소 | `FOOD_GRID_CORE` |
-| GAP-E | 14741–14842 | 102줄 | 미해소 | `BRAIN_CANVAS_DRAW` |
-| GAP-F | 15200–15349 | 150줄 | 미해소 | `UI_SYSTEM_PANELS_UPDATE` |
-| GAP-G | 15804–15889 | 86줄 | 미해소 | `FOOD_PHASE0_SIM_UTILS` |
-| GAP-I | 18413–18469 | 57줄 | 미해소 | `UI_CHIP_TABS_PNREV_INIT` |
+1. [전체 블록 목록](#1-전체-블록-목록)
+2. [블록 계층 구조](#2-블록-계층-구조)
+3. [누락 구간 상세 분석](#3-누락-구간-상세-분석)
 
-> 참고: GAP-B/C/H는 27.20 계열에서 해소 완료.
+> **구획화 기획안 · 이슈 트래킹**: [`BUILDER_BLOCK_REFACTOR_PLAN.md`](./BUILDER_BLOCK_REFACTOR_PLAN.md)
 
 ---
 
-## 4) 중복명 이슈 상태
+## 1. 전체 블록 목록
 
-- 과거 중복 이슈였던 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`는 다음과 같이 분리되어 충돌이 해소된 상태.
-  - `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`: 18097–18102
-  - `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`: 18255–18260
+라인번호는 **v27.20_fix1 `index.html`** 기준. START 마커 라인 기준 정렬.
+
+| # | 블록명 | START | END | 규모(줄) | 계층 |
+|---|--------|-------|-----|---------|------|
+| 1 | `STYLES` | 7 | 1713 | ~1706 | 최상위 |
+| 2 | `CSS` | 9 | 1484 | ~1475 | STYLES 내 |
+| 3 | `UI_DOM` | 1767 | 18516 | ~16749 | 최상위 |
+| 4 | `HOME_OVERLAY` | 1788 | 1804 | ~16 | UI_DOM 내 |
+| 5 | `UI_HOME` | 1789 | 1803 | ~14 | HOME_OVERLAY 내 |
+| 6 | `CONFIG_OVERLAY` | 1806 | 2182 | ~376 | UI_DOM 내 |
+| 7 | `UI_CONFIG` | 1807 | 2180 | ~373 | CONFIG_OVERLAY 내 |
+| 8 | `UI_INGAME` | 2185 | 2361 | ~176 | UI_DOM 내 |
+| 9 | `ARCHITECTURE_OVERVIEW` | 2428 | 2466 | ~38 | 독립(설계 주석) |
+| 10 | `JS_TOP` | 2468 | 2472 | ~4 | 최상위 JS |
+| 11 | `JS_BOOTSTRAP_CORE` | 2473 | 2863 | ~390 | 최상위 JS |
+| 12 | `SURNAME_AUTO_CORE` | 2864 | 3284 | ~420 | 최상위 JS |
+| 13 | `SURNAME_AUTO_SANITIZE_CLAN` | 3168 | 3183 | ~15 | SURNAME_AUTO_CORE 내 |
+| 14 | `WORLDGEN_UI_INIT` | 3288 | 3748 | ~460 | 최상위 JS |
+| 15 | `CONFIG_TABS` | 3462 | 3578 | ~116 | WORLDGEN_UI_INIT 내 |
+| 16 | `HS_FITTER_P1_3_GRAPH_FLAGS` | 3697 | 3700 | ~3 | WORLDGEN_UI_INIT 내 |
+| 17 | `HS_FITTER_P1_3A_HISTORY_ADAPTER` | 3701 | 3714 | ~13 | WORLDGEN_UI_INIT 내 |
+| 18 | `HS_FITTER_P1_3_PANEL_EXPAND_DIRTY` | 3737 | 3743 | ~6 | WORLDGEN_UI_INIT 내 |
+| 19 | `CFG_DEFAULTS` | 3750 | 3998 | ~248 | 최상위 JS |
+| 20 | `NN_IO_ENUMS` | 3999 | 4108 | ~109 | 최상위 JS |
+| 21 | `VISION_CACHE_DERIVED` | 4109 | 4125 | ~16 | 최상위 JS |
+| 22 | `HS_OCCLUSION_21RAY_GLOBALS` | 4127 | 4241 | ~114 | 최상위 JS |
+| 23 | `AGRO_GLOBALS` | 4242 | 4253 | ~11 | 최상위 JS |
+| 24 | `HS_AGRO_BLOCKVIEW_UTILS` | 4262 | 4448 | ~186 | 최상위 JS |
+| 25 | `UI_INPUT_WORLD_UTILS` | 4452 | 4483 | ~31 | 최상위 JS |
+| 26 | `HS_AGRO_TOUCH_REPIDX` | 4487 | 4489 | ~2 | 최상위 JS |
+| 27 | `HS_AGRO_PEEK_TILE` | 4520 | 4541 | ~21 | 최상위 JS |
+| 28 | `HS_AGRO_TOP4_REPIDX` | 4548 | 4550 | ~2 | 최상위 JS |
+| 29 | `HS_AGRO_HARVEST` | 4608 | 4729 | ~121 | 최상위 JS |
+| 30 | `HS_AGRO_HARVEST_REPIDX` | 4611 | 4613 | ~2 | HS_AGRO_HARVEST 내 |
+| 31 | `HS_AGRO_HARVEST_FARMDROP` | 4658 | 4712 | ~54 | HS_AGRO_HARVEST 내 |
+| 32 | `AGRO_FARM_WORK_TICK` | 4732 | 4834 | ~102 | 최상위 JS |
+| 33 | `HS_AGRO_WORK_REPIDX` | 4740 | 4743 | ~3 | AGRO_FARM_WORK_TICK 내 |
+| 34 | `CORE_MATH_ENERGY_UTILS` | 4836 | 5031 | ~195 | 최상위 JS |
+| 35 | `AGRO_INIT_CORE` | 5032 | 5322 | ~290 | 최상위 JS |
+| 36 | `HS_INITAGRO_FARMBUILD_BLOCKS` | 5094 | 5243 | ~149 | AGRO_INIT_CORE 내 |
+| 37 | `HS_INITAGRO_FARMSUIT_BLOCKS` | 5269 | 5320 | ~51 | AGRO_INIT_CORE 내 |
+| 38 | `GAIA_30PX_LOOKUP_APIS` | 5327 | 5479 | ~152 | 최상위 JS |
+| 39 | `TIME_NARRATIVE_GLOBALS` | 5481 | 5566 | ~85 | 최상위 JS |
+| 40 | `MAP_PRESETS` | 5568 | 5654 | ~86 | 최상위 JS |
+| 41 | `GAIA_SOT_CORE` | 5659 | 6070 | ~411 | 최상위 JS |
+| 42 | `GAIA_MOUNTAINS` | 6072 | 6543 | ~471 | 최상위 JS |
+| 43 | `GAIA_MTN_POLICY` | 6081 | 6092 | ~11 | GAIA_MOUNTAINS 내 |
+| 44 | `GAIA_ENV30` | 6545 | 7123 | ~578 | 최상위 JS |
+| 45 | `SIM_GLOBALS_POST_GAIA_ENV30` | 7124 | 7710 | ~586 | 최상위 JS |
+| 46 | `HS_19_CLAMOR_CORE_ADD` | 7712 | 8036 | ~324 | 최상위 JS |
+| — | *(GAP-A)* | 8037 | 8093 | ~57 | **블록 없음** |
+| 47 | `AGENT_GRID_CORE` | 8094 | 9079 | ~985 | 최상위 JS |
+| 48 | `HS_18_7_GLOBALS` | 8098 | 8105 | ~7 | AGENT_GRID_CORE 내 |
+| 49 | `HS_18_7_BUILD_FUNC_REPLACE` | 8122 | 8197 | ~75 | AGENT_GRID_CORE 내 |
+| 50 | `GRID_QUERY_API` | 9080 | 9118 | ~38 | 최상위 JS |
+| 51 | `HS_QUERY_API` | 9084 | 9116 | ~32 | GRID_QUERY_API 내 |
+| 52 | `HS_18_7_ADD_AGENT_REPLACE` | 9128 | 9151 | ~23 | 최상위 JS |
+| 53 | `GRIDDBG_HELPERS` | 9152 | 9224 | ~72 | 최상위 JS |
+| 54 | `HERB_GRID_CORE` | 9225 | 9348 | ~123 | 최상위 JS |
+| 55 | `HS_A2_HERBGRID_GLOBALS` | 9246 | 9253 | ~7 | HERB_GRID_CORE 내 |
+| 56 | `HS_A2_BUILD_HERBGRID_REPLACE` | 9274 | 9331 | ~57 | HERB_GRID_CORE 내 |
+| 57 | `PRED_GRID_CORE` | 9349 | 9478 | ~129 | 최상위 JS |
+| 58 | `UI_NAV_ROUTING` | 9717 | 11469 | ~1752 | 최상위 JS (대형) |
+| 59 | `HS_19_CLAMOR_RESET_ON_START_INSERT` | 10444 | 10466 | ~22 | UI_NAV_ROUTING 내 |
+| 60 | `HS_A3_POP_RESET_REPLACE` | 10470 | 10473 | ~3 | UI_NAV_ROUTING 내 |
+| 61 | `HS_FITTER_P1_1_PATH2D_CACHE` | 10810 | 10818 | ~8 | UI_NAV_ROUTING 내 |
+| 62 | `HS_STATS_FARM_DROP_INIT` | 10877 | 10879 | ~2 | UI_NAV_ROUTING 내 |
+| 63 | `HS_AGGVIZ_UPDATE_MOVED` | 11084 | 11104 | ~20 | UI_NAV_ROUTING 내 |
+| 64 | `HS_AGENT_UPDATE` | 11471 | 11569 | ~98 | 최상위 JS |
+| 65 | `HS_FITTER_P1_1_AGENT_TRI_REPLACE` | 11686 | 11713 | ~27 | 최상위 JS |
+| 66 | `ATLAS_P1_OVERVIEW_VARS` | 12404 | 12409 | ~5 | 최상위 JS |
+| 67 | `HS_A3_POP_RING_REPLACE` | 12492 | 12576 | ~84 | 최상위 JS |
+| 68 | `HS_FITTER_P1_2_POP_SAMPLE` | 12570 | 12575 | ~5 | HS_A3_POP_RING_REPLACE 내 |
+| 69 | `ATLAS_P1_STATICMAP_CLIP` | 12608 | 13171 | ~563 | 최상위 JS |
+| 70 | `ATLAS_P1_OVERVIEW_CALL` | 13194 | 13197 | ~3 | 최상위 JS |
+| 71 | `ATLAS_P1_OVERVIEW_FN` | 13200 | 13222 | ~22 | 최상위 JS |
+| 72 | `SPAWN_AND_LOG_CORE` | 13224 | 13599 | ~375 | 최상위 JS |
+| 73 | `HS_FITTER_P1_1_RENDERLOGS_GUARD` | 13578 | 13583 | ~5 | SPAWN_AND_LOG_CORE 내 |
+| — | *(GAP-D)* | 13600 | 13714 | ~115 | **블록 없음** |
+| 74 | `HS_COLLISION_LOOP` | 13715 | 14726 | ~1011 | 최상위 JS (대형) |
+| 75 | `HS_APPLYEAT_FARM_DROP_STATS` | 14457 | 14462 | ~5 | HS_COLLISION_LOOP 내 |
+| 76 | `HS_NAT_AREA_SCALE` | 14493 | 14496 | ~3 | HS_COLLISION_LOOP 내 |
+| — | *(GAP-E)* | 14727 | 14828 | ~102 | **블록 없음** |
+| 77 | `HS_FITTER_P4_1_INPUT_BINDINGS` | 14829 | 15130 | ~301 | 최상위 JS |
+| 78 | `HS_HOTKEYS` | 14841 | 14984 | ~143 | HS_FITTER_P4_1_INPUT_BINDINGS 내 |
+| 79 | `HS_A3_KEYP_REPLACE` | 14965 | 14982 | ~17 | HS_HOTKEYS 내 |
+| 80 | `ERA_BTN_SURNAME_AUTO_WIRE` | 15133 | 15185 | ~52 | 최상위 JS |
+| — | *(GAP-F)* | 15186 | 15335 | ~150 | **블록 없음** |
+| 81 | `HS_FARM_OBS_MINI_BLOCKVIEW` | 15336 | 15486 | ~150 | 최상위 JS |
+| 82 | `HS_BRAIN_THROTTLE_HELPER` | 15509 | 15546 | ~37 | 최상위 JS |
+| 83 | `UI_INSPECTOR_PANEL_UPDATE` | 15548 | 15708 | ~160 | 최상위 JS |
+| 84 | `HS_INSPECTOR_SUBST_FARM_DROP_ROW` | 15640 | 15642 | ~2 | UI_INSPECTOR_PANEL_UPDATE 내 |
+| 85 | `HS_FITTER_P4_1_UITICK_REGION` | 15710 | 15735 | ~25 | 최상위 JS |
+| 86 | `HS_UITICK_WRAPPERS` | 15712 | 15734 | ~22 | HS_FITTER_P4_1_UITICK_REGION 내 |
+| 87 | `HS_FITTER_P1_4_UITICK500_ROUTER` | 15713 | 15729 | ~16 | HS_UITICK_WRAPPERS 내 |
+| 88 | `HS_FITTER_P1_1_PANELVISIBLE` | 15737 | 15747 | ~10 | 최상위 JS |
+| 89 | `HS_FITTER_P1_2_HISTORY_UI` | 15749 | 15789 | ~40 | 최상위 JS |
+| 90 | `HS_FITTER_P1_3_HISTORY_DRAW_CONTROL` | 15765 | 15784 | ~19 | HS_FITTER_P1_2_HISTORY_UI 내 |
+| — | *(GAP-G)* | 15790 | 15875 | ~86 | **블록 없음** |
+| 91 | `HS_A3_DEV_PERF_API` | 15876 | 15921 | ~45 | 최상위 JS |
+| 92 | `HS_FITTER_P4_1_RENDER_LOOP` | 15941 | 16195 | ~254 | 최상위 JS |
+| 93 | `HS_PHASE1_HELPERS` | 16200 | 17093 | ~893 | 최상위 JS (대형) |
+| 94 | `HS_FITTER_P4_1_SIM_LOOP` | 16201 | 16890 | ~689 | HS_PHASE1_HELPERS 내 |
+| 95 | `HS_19_SIMLOOP_DECAY_INSERT` | 16376 | 16382 | ~6 | HS_FITTER_P4_1_SIM_LOOP 내 |
+| 96 | `HS_AGRO_SELECTED_TILE_LAZY_TOUCH` | 16384 | 16398 | ~14 | HS_FITTER_P4_1_SIM_LOOP 내 |
+| 97 | `AUTOCLAN_ANIMATE_HOOK` | 16399 | 16407 | ~8 | HS_FITTER_P4_1_SIM_LOOP 내 |
+| 98 | `HS_RAF_SINGLETON_21_1` | 17095 | 17126 | ~31 | 최상위 JS |
+| 99 | `HS_DISPOSE_WORLD_21_1` | 17128 | 17191 | ~63 | 최상위 JS |
+| 100 | `HS_MONITOR_CORE` | 17222 | 17829 | ~607 | 최상위 JS |
+| 101 | `DEV_CONSOLE_HELPERS` | 17474 | 17657 | ~183 | HS_MONITOR_CORE 내 |
+| 102 | `HS_FITTER_P3_1_CORE_API` | 17891 | 17922 | ~31 | 최상위 JS |
+| 103 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` *(1st)* | 18082 | 18087 | ~5 | UI_DRAWERS IIFE 내 |
+| 104 | `UI_DRAWER_TOGGLES_CORE` | 18214 | 18396 | ~182 | 최상위 JS |
+| 105 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` *(2nd)* | 18239 | 18244 | ~5 | UI_DRAWER_TOGGLES_CORE 내 |
+| — | *(GAP-I)* | 18397 | 18453 | ~57 | **블록 없음** |
+| 106 | `HS_FITTER_P1_3_TREND_TAB_DIRTY` | 18454 | 18463 | ~9 | 최상위 JS |
 
 ---
 
-## 5) 재생성 커맨드(재현용)
+## 2. 블록 계층 구조
 
-```bash
-node -e "const fs=require('fs');const s=fs.readFileSync('docs/releases/archive/EvoSim_27.20_fix1.html','utf8');const re=/BUILDER_BLOCK:\\s*([^\\n]*?)_(START|END)\\b/g;let m,depth=0,maxDepth=0,neg=false;const sc=new Map(),ec=new Map();while((m=re.exec(s))){const n=m[1].trim(),k=m[2];if(k==='START'){sc.set(n,(sc.get(n)||0)+1);depth++;if(depth>maxDepth)maxDepth=depth;}else{ec.set(n,(ec.get(n)||0)+1);depth--;if(depth<0)neg=true;}}const mismatch=[];for(const [k,v] of sc){const ev=ec.get(k)||0;if(ev!==v)mismatch.push(k+':'+v+'/'+ev);}for(const [k,v] of ec){if(!sc.has(k))mismatch.push(k+':0/'+v);}const startTotal=[...sc.values()].reduce((a,b)=>a+b,0);const endTotal=[...ec.values()].reduce((a,b)=>a+b,0);console.log(JSON.stringify({startTotal,endTotal,uniq:sc.size,maxDepth,depthEnd:depth,negDepth:neg,mismatch},null,2));"
+```
+index.html (18,534줄 / v27.20_fix1)
+├── STYLES (7–1713)
+│   └── CSS (9–1484)
+│
+├── UI_DOM (1767–18516)                       ─── 최상위 HTML
+│   ├── HOME_OVERLAY (1788–1804)
+│   │   └── UI_HOME (1789–1803)
+│   ├── CONFIG_OVERLAY (1806–2182)
+│   │   └── UI_CONFIG (1807–2180)
+│   └── UI_INGAME (2185–2361)
+│
+│   [<script> JS 구간 시작 ~2420]
+│
+├── ARCHITECTURE_OVERVIEW (2428–2466)          ←── 설계 주석
+├── JS_TOP (2468–2472)                         ←── import · 전역 선언
+├── JS_BOOTSTRAP_CORE (2473–2863)             ←── 초기화 코어
+│
+├── SURNAME_AUTO_CORE (2864–3284)
+│   └── SURNAME_AUTO_SANITIZE_CLAN (3168–3183)
+│
+├── WORLDGEN_UI_INIT (3288–3748)              ←── 월드 생성 UI
+│   ├── CONFIG_TABS (3462–3578)
+│   ├── HS_FITTER_P1_3_GRAPH_FLAGS (3697–3700)
+│   ├── HS_FITTER_P1_3A_HISTORY_ADAPTER (3701–3714)
+│   └── HS_FITTER_P1_3_PANEL_EXPAND_DIRTY (3737–3743)
+│
+├── CFG_DEFAULTS (3750–3998)                  ←── 시뮬레이션 설정
+├── NN_IO_ENUMS (3999–4108)                   ←── NN 슬롯 열거
+├── VISION_CACHE_DERIVED (4109–4125)
+├── HS_OCCLUSION_21RAY_GLOBALS (4127–4241)    ←── 시야 차폐 전역
+├── AGRO_GLOBALS (4242–4253)
+│
+├── HS_AGRO_BLOCKVIEW_UTILS (4262–4448)
+├── UI_INPUT_WORLD_UTILS (4452–4483)
+├── HS_AGRO_TOUCH_REPIDX (4487–4489)
+├── HS_AGRO_PEEK_TILE (4520–4541)
+├── HS_AGRO_TOP4_REPIDX (4548–4550)
+│
+├── HS_AGRO_HARVEST (4608–4729)
+│   ├── HS_AGRO_HARVEST_REPIDX (4611–4613)
+│   └── HS_AGRO_HARVEST_FARMDROP (4658–4712)
+│
+├── AGRO_FARM_WORK_TICK (4732–4834)
+│   └── HS_AGRO_WORK_REPIDX (4740–4743)
+│
+├── CORE_MATH_ENERGY_UTILS (4836–5031)        ←── 에너지·수학 유틸
+│
+├── AGRO_INIT_CORE (5032–5322)
+│   ├── HS_INITAGRO_FARMBUILD_BLOCKS (5094–5243)
+│   └── HS_INITAGRO_FARMSUIT_BLOCKS (5269–5320)
+│
+├── GAIA_30PX_LOOKUP_APIS (5327–5479)         ←── GAIA 30px 조회
+├── TIME_NARRATIVE_GLOBALS (5481–5566)
+├── MAP_PRESETS (5568–5654)
+│
+├── GAIA_SOT_CORE (5659–6070)                 ←── GAIA 단일진실원천
+├── GAIA_MOUNTAINS (6072–6543)
+│   └── GAIA_MTN_POLICY (6081–6092)
+├── GAIA_ENV30 (6545–7123)                    ←── 기후·환경
+├── SIM_GLOBALS_POST_GAIA_ENV30 (7124–7710)   ←── 시뮬 전역 (GAIA 이후)
+│
+├── HS_19_CLAMOR_CORE_ADD (7712–8036)         ←── 소음·음성 이벤트
+│
+│   ⚠ [GAP-A] 8037–8093 (~57줄)
+│
+├── AGENT_GRID_CORE (8094–9079)               ←── 에이전트 그리드 [985줄]
+│   ├── HS_18_7_GLOBALS (8098–8105)
+│   └── HS_18_7_BUILD_FUNC_REPLACE (8122–8197)
+│
+├── GRID_QUERY_API (9080–9118)
+│   └── HS_QUERY_API (9084–9116)
+├── HS_18_7_ADD_AGENT_REPLACE (9128–9151)
+├── GRIDDBG_HELPERS (9152–9224)
+│
+├── HERB_GRID_CORE (9225–9348)
+│   ├── HS_A2_HERBGRID_GLOBALS (9246–9253)
+│   └── HS_A2_BUILD_HERBGRID_REPLACE (9274–9331)
+│
+├── PRED_GRID_CORE (9349–9478)
+│
+│
+├── UI_NAV_ROUTING (9717–11469)               ←── UI 라우팅 [1752줄]
+│   ├── HS_19_CLAMOR_RESET_ON_START_INSERT (10444–10466)
+│   ├── HS_A3_POP_RESET_REPLACE (10470–10473)
+│   ├── HS_FITTER_P1_1_PATH2D_CACHE (10810–10818)
+│   ├── HS_STATS_FARM_DROP_INIT (10877–10879)
+│   └── HS_AGGVIZ_UPDATE_MOVED (11084–11104)
+│
+├── HS_AGENT_UPDATE (11471–11569)
+├── HS_FITTER_P1_1_AGENT_TRI_REPLACE (11686–11713)
+│
+│
+├── ATLAS_P1_OVERVIEW_VARS (12404–12409)
+├── HS_A3_POP_RING_REPLACE (12492–12576)
+│   └── HS_FITTER_P1_2_POP_SAMPLE (12570–12575)
+├── ATLAS_P1_STATICMAP_CLIP (12608–13171)
+├── ATLAS_P1_OVERVIEW_CALL (13194–13197)
+├── ATLAS_P1_OVERVIEW_FN (13200–13222)
+│
+├── SPAWN_AND_LOG_CORE (13224–13599)
+│   └── HS_FITTER_P1_1_RENDERLOGS_GUARD (13578–13583)
+│
+│   ⚠ [GAP-D] 13600–13714 (~115줄)
+│
+├── HS_COLLISION_LOOP (13715–14726)           ←── 물리·충돌 루프 [1011줄]
+│   ├── HS_APPLYEAT_FARM_DROP_STATS (14457–14462)
+│   └── HS_NAT_AREA_SCALE (14493–14496)
+│
+│   ⚠ [GAP-E] 14727–14828 (~102줄)
+│
+├── HS_FITTER_P4_1_INPUT_BINDINGS (14829–15130)
+│   └── HS_HOTKEYS (14841–14984)
+│       └── HS_A3_KEYP_REPLACE (14965–14982)
+│
+├── ERA_BTN_SURNAME_AUTO_WIRE (15133–15185)
+│
+│   ⚠ [GAP-F] 15186–15335 (~150줄)
+│
+├── HS_FARM_OBS_MINI_BLOCKVIEW (15336–15486)
+├── HS_BRAIN_THROTTLE_HELPER (15509–15546)
+├── UI_INSPECTOR_PANEL_UPDATE (15548–15708)
+│   └── HS_INSPECTOR_SUBST_FARM_DROP_ROW (15640–15642)
+│
+├── HS_FITTER_P4_1_UITICK_REGION (15710–15735)
+│   └── HS_UITICK_WRAPPERS (15712–15734)
+│       └── HS_FITTER_P1_4_UITICK500_ROUTER (15713–15729)
+│
+├── HS_FITTER_P1_1_PANELVISIBLE (15737–15747)
+├── HS_FITTER_P1_2_HISTORY_UI (15749–15789)
+│   └── HS_FITTER_P1_3_HISTORY_DRAW_CONTROL (15765–15784)
+│
+│   ⚠ [GAP-G] 15790–15875 (~86줄)
+│
+├── HS_A3_DEV_PERF_API (15876–15921)
+├── HS_FITTER_P4_1_RENDER_LOOP (15941–16195)   ←── 렌더 루프
+│
+├── HS_PHASE1_HELPERS (16200–17093)            ←── Phase1 헬퍼 [893줄]
+│   └── HS_FITTER_P4_1_SIM_LOOP (16201–16890) ←── 시뮬 메인 루프
+│       ├── HS_19_SIMLOOP_DECAY_INSERT (16376–16382)
+│       ├── HS_AGRO_SELECTED_TILE_LAZY_TOUCH (16384–16398)
+│       └── AUTOCLAN_ANIMATE_HOOK (16399–16407)
+│
+├── HS_RAF_SINGLETON_21_1 (17095–17126)        ←── RAF 싱글턴
+├── HS_DISPOSE_WORLD_21_1 (17128–17191)        ←── 월드 해제
+│
+├── HS_MONITOR_CORE (17222–17829)
+│   └── DEV_CONSOLE_HELPERS (17474–17657)
+│
+├── HS_FITTER_P3_1_CORE_API (17891–17922)
+│
+│       └── [UI_DRAWERS Step1 IIFE — 미명명]
+│
+├── HS_FITTER_P1_3_TOGGLERIGHT_DIRTY [1st] (18082–18087)   ←── ⚠ 중복명
+├── UI_DRAWER_TOGGLES_CORE (18214–18396)
+│   └── HS_FITTER_P1_3_TOGGLERIGHT_DIRTY [2nd] (18239–18244)
+│
+│   ⚠ [GAP-I] 18397–18453 (~57줄)
+│
+└── HS_FITTER_P1_3_TREND_TAB_DIRTY (18454–18463)
 ```
 
+---
+
+## 3. 누락 구간 상세 분석
+
+6개 GAP 구간 전체를 코드 내용 기준으로 분석함.
+라인번호는 모두 **v27.20_fix1** 기준.
+
+---
+
+### GAP-A — 라인 8037–8093 (~57줄)
+
+**경계:** `HS_19_CLAMOR_CORE_ADD_END` ↔ `AGENT_GRID_CORE_START`
+
+**코드 내용 분해:**
+
+| 범위 | 식별자 / 역할 |
+|------|--------------|
+| 8038–8039 | `// [TS_PATCH 26.45]` 주석 · `const TS_CL_VOICE_EVENTS = []` 음성 이벤트 큐 전역 선언 |
+| 8040–8055 | `function TS_evalShoutEveryTick(tick)` — 외향성 기반 외침 평가, 발성 이벤트 enqueue |
+| 8056–8064 | `// [TS_PATCH 26.43]` 주석 · `let TS_solitarySkip = new Uint8Array(1024)` 외 솔리터리 스킵 typed array 전역 3종 선언 |
+| 8065–8075 | `function TS_solSkipEnsureCap(n)` — 버퍼 확장 |
+| 8076–8093 | `function TS_solSkipReset()` — 매 틱 초기화 |
+
+**성격:** 소음(CLAMOR) 시스템과 에이전트 그리드 사이의 **사회·음성 행동 전역 브릿지**. 두 서브시스템 모두에 걸치기 때문에 경계 구간에 위치.
+
+**추천 블록명:** `TS_SOCIAL_VOICE_GLOBALS` (57줄 단일 블록)
+
+---
+
+
+
+### GAP-D — 라인 13600–13714 (~115줄)
+
+**경계:** `SPAWN_AND_LOG_CORE_END` ↔ `HS_COLLISION_LOOP_START`
+
+**코드 내용 분해:**
+
+| 범위 | 식별자 / 역할 |
+|------|--------------|
+| 13600–13611 | `function _ensureFoodGridDims()` — 먹이 그리드 차원 보장 |
+| 13612–13640 | `class FoodGrid1D { constructor, add, remove, nearestInRadius, _compact }` — 1D 먹이 공간 인덱스 |
+| 13641–13651 | `function _foodCellId(x, y)` — 셀 ID 계산 |
+| 13652–13672 | `function _buildFoodGrid()`, `function _forNeighborFoodCells()` |
+| 13673–13686 | `function _forFoodCellsInRadius(ax, ay, radius, fn)` |
+| 13687–13700 | `function _compactFoodsIfNeeded()` |
+| 13701–13714 | `function _inFront180_fromAngle()`, `function _inFront180_fromVel()` |
+
+**성격:** 충돌 루프 직전에 위치한 **먹이 공간 인덱스 자료구조**. 물리 루프의 전제 조건.
+
+**추천 블록명:** `FOOD_GRID_CORE` (13600–13714, 단일 115줄)
+
+---
+
+### GAP-E — 라인 14727–14828 (~102줄)
+
+**경계:** `HS_COLLISION_LOOP_END` ↔ `HS_FITTER_P4_1_INPUT_BINDINGS_START`
+
+**코드 내용 분해:**
+
+| 범위 | 식별자 / 역할 |
+|------|--------------|
+| 14727–14828 | `function drawBrain(ctx, brain)` — `brainCanvas` 신경망 시각화 전체 렌더링 (GRU 입출력, 레이어별 뉴런, 가중치 색상) |
+
+**성격:** 물리 루프 직후, 입력 바인딩 직전에 단독으로 위치. brainCanvas 전용 렌더 함수 1개.
+
+**추천 블록명:** `BRAIN_CANVAS_DRAW` (14727–14828, 단일 102줄)
+
+---
+
+### GAP-F — 라인 15186–15335 (~150줄)
+
+**경계:** `ERA_BTN_SURNAME_AUTO_WIRE_END` ↔ `HS_FARM_OBS_MINI_BLOCKVIEW_START`
+
+**코드 내용 분해:**
+
+| 범위 | 식별자 / 역할 |
+|------|--------------|
+| 15186–15335 | `function updateSystemPanels()` — 씨족 목록, 전쟁 상태, 가계도, 레전드 이벤트 패널 갱신 |
+| ↳ 내부 섹션 | 씨족 인구 정렬 · 색상 배지 · 전쟁 카운터 · 역사 이벤트 테이블 행 생성 |
+
+**성격:** 인스펙터와 별개로 존재하는 **사회/부족 시스템 전용 패널 업데이터**.
+
+**추천 블록명:** `UI_SYSTEM_PANELS_UPDATE` (15186–15335, 단일 150줄)
+
+---
+
+### GAP-G — 라인 15790–15875 (~86줄)
+
+**경계:** `HS_FITTER_P1_2_HISTORY_UI_END` ↔ `HS_A3_DEV_PERF_API_START`
+
+**코드 내용 분해:**
+
+| 범위 | 식별자 / 역할 |
+|------|--------------|
+| 15790–15807 | `function _ensureFoodGridCurrent()` — 먹이 그리드 틱 동기화 보장 |
+| 15808–15846 | Phase0 Policy (Grid/Death/Cache Unification) 관련 인라인 로직 — 에이전트 사망 시 그리드 정리 |
+| 15847–15875 | `function _ssEnsureTickExt(n)` — 솔리터리 틱 익스텐션 배열 확장 보장 |
+
+**성격:** 히스토리 UI와 퍼포먼스 API 사이에 끼어 있는 **시뮬 상태 유틸 클러스터**. Phase0 통합 정책 코드와 먹이 그리드 현행화 함수의 혼합.
+
+**추천 블록명:** `FOOD_PHASE0_SIM_UTILS` (15790–15875, 단일 86줄)
+
+---
+
+
+### GAP-I — 라인 18397–18453 (~57줄)
+
+**경계:** `UI_DRAWER_TOGGLES_CORE_END` ↔ `HS_FITTER_P1_3_TREND_TAB_DIRTY_START`
+
+**코드 내용 분해:**
+
+| 범위 | 식별자 / 역할 |
+|------|--------------|
+| 18397–18400 | `/* === PNREV_P2: chip tabs init (Rev31 only) === */` 주석 헤더 + IIFE 개시 |
+| 18401–18425 | Dashboard chipbar — `pnrev-dash-chipbar` 버튼 탭 초기화 · `apply(tab)` 함수 |
+| 18426–18453 | Chronicle chipbar — `pnrev-chron-chipbar` 버튼 탭 초기화 · `apply(tab)` 함수 |
+
+**성격:** PNREV_P2 칩탭 초기화 IIFE. `UI_DRAWER_TOGGLES_CORE`와 유사한 UI 초기화 패턴이나 별도 구분 없이 외부에 노출.
+
+**추천 블록명:** `UI_CHIP_TABS_PNREV_INIT` (18397–18453, 단일 57줄)
+
+---
+
+*이 문서는 v27.20_fix1 코드 직접 추출 기반. 버전 변경 시 재동기화 필요.*
+*라인번호 유효 범위: v27.20_fix1 (18,534줄) 기준.*
