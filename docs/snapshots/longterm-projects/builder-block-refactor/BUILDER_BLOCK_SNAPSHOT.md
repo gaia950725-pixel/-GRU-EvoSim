@@ -8,14 +8,13 @@
 
 > **감사(AUDIT) 반영 노트** — `BUILDER_BLOCK_SNAPSHOT_AUDIT.md` (Codex, 2026-03-04) 지적 사항:
 > - v27.10 스냅샷 대비 9,700라인 이후 **48개 블록에서 +5~+6 라인 시프트** 발생 (v27.11 패치 삽입 영향)
-> - 본 버전에서 전체 라인번호를 v27.11 기준으로 재생성함
+> - 본 버전에서 전체 라인번호를 v27.20_fix1 기준으로 재생성함
 > - 중복 블록명 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` (2개소) 이슈 유지·기록
 
 
 > **27.20 FINAL 반영 요약**
-> - index.html에 GAP-C/B/H 신규 블록 12쌍 삽입 완료 (`AGENT_DRAW_TAIL`, `PREDATOR_CLASS_CORE`, `SOLITARY_ACTION_HELPERS`, `HERBIVORE_CLASS_CORE`, `CANVAS_CONTEXT_INIT`, `UI_STARTUP_CONTROLS_INIT` 및 5개 서브블록, `UI_DRAWERS_STEP1_INIT`).
 > - Step1 내부 중복명 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`를 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`로 개명하여 충돌 해소.
-> - 스캔 결과: START 119 / END 119 / 고유 블록 119 / 이름별 START-END 불일치 0.
+> - 스캔 결과: START 118 / END 118 / 고유 블록 118 / 이름별 START-END 불일치 0.
 
 ---
 
@@ -31,7 +30,7 @@
 
 ## 1. 전체 블록 목록
 
-라인번호는 **v27.11 `index.html`** 기준. START 마커 라인 기준 정렬.
+라인번호는 **v27.20_fix1 `index.html`** 기준. START 마커 라인 기준 정렬.
 
 | # | 블록명 | START | END | 규모(줄) | 계층 |
 |---|--------|-------|-----|---------|------|
@@ -93,7 +92,6 @@
 | 55 | `HS_A2_HERBGRID_GLOBALS` | 9246 | 9253 | ~7 | HERB_GRID_CORE 내 |
 | 56 | `HS_A2_BUILD_HERBGRID_REPLACE` | 9274 | 9331 | ~57 | HERB_GRID_CORE 내 |
 | 57 | `PRED_GRID_CORE` | 9349 | 9478 | ~129 | 최상위 JS |
-| ✅ | *(GAP-B)* | 9479 | 9716 | ~238 | **해소됨** (`UI_STARTUP_CONTROLS_INIT` + 5개 서브블록) |
 | 58 | `UI_NAV_ROUTING` | 9717 | 11469 | ~1752 | 최상위 JS (대형) |
 | 59 | `HS_19_CLAMOR_RESET_ON_START_INSERT` | 10444 | 10466 | ~22 | UI_NAV_ROUTING 내 |
 | 60 | `HS_A3_POP_RESET_REPLACE` | 10470 | 10473 | ~3 | UI_NAV_ROUTING 내 |
@@ -102,7 +100,6 @@
 | 63 | `HS_AGGVIZ_UPDATE_MOVED` | 11084 | 11104 | ~20 | UI_NAV_ROUTING 내 |
 | 64 | `HS_AGENT_UPDATE` | 11471 | 11569 | ~98 | 최상위 JS |
 | 65 | `HS_FITTER_P1_1_AGENT_TRI_REPLACE` | 11686 | 11713 | ~27 | 최상위 JS |
-| ✅ | *(GAP-C ★)* | 11714 | 12403 | ~690 | **해소됨** (`AGENT_DRAW_TAIL` + 4개 코어 블록) |
 | 66 | `ATLAS_P1_OVERVIEW_VARS` | 12404 | 12409 | ~5 | 최상위 JS |
 | 67 | `HS_A3_POP_RING_REPLACE` | 12492 | 12576 | ~84 | 최상위 JS |
 | 68 | `HS_FITTER_P1_2_POP_SAMPLE` | 12570 | 12575 | ~5 | HS_A3_POP_RING_REPLACE 내 |
@@ -144,7 +141,6 @@
 | 100 | `HS_MONITOR_CORE` | 17222 | 17829 | ~607 | 최상위 JS |
 | 101 | `DEV_CONSOLE_HELPERS` | 17474 | 17657 | ~183 | HS_MONITOR_CORE 내 |
 | 102 | `HS_FITTER_P3_1_CORE_API` | 17891 | 17922 | ~31 | 최상위 JS |
-| ✅ | *(GAP-H)* | 17923 | 18081 | ~159 | **해소됨** (`UI_DRAWERS_STEP1_INIT` + LEGACY_STEP1 rename) |
 | 103 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` *(1st)* | 18082 | 18087 | ~5 | UI_DRAWERS IIFE 내 |
 | 104 | `UI_DRAWER_TOGGLES_CORE` | 18214 | 18396 | ~182 | 최상위 JS |
 | 105 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` *(2nd)* | 18239 | 18244 | ~5 | UI_DRAWER_TOGGLES_CORE 내 |
@@ -156,7 +152,7 @@
 ## 2. 블록 계층 구조
 
 ```
-index.html (18,516줄 / v27.11)
+index.html (18,534줄 / v27.20_fix1)
 ├── STYLES (7–1713)
 │   └── CSS (9–1484)
 │
@@ -236,7 +232,6 @@ index.html (18,516줄 / v27.11)
 │
 ├── PRED_GRID_CORE (9349–9478)
 │
-│   ⚠ [GAP-B] 9479–9716 (~238줄)
 │
 ├── UI_NAV_ROUTING (9717–11469)               ←── UI 라우팅 [1752줄]
 │   ├── HS_19_CLAMOR_RESET_ON_START_INSERT (10444–10466)
@@ -248,7 +243,6 @@ index.html (18,516줄 / v27.11)
 ├── HS_AGENT_UPDATE (11471–11569)
 ├── HS_FITTER_P1_1_AGENT_TRI_REPLACE (11686–11713)
 │
-│   ⚠ [GAP-C ★★] 11714–12403 (~690줄)  ← 최대 누락
 │
 ├── ATLAS_P1_OVERVIEW_VARS (12404–12409)
 ├── HS_A3_POP_RING_REPLACE (12492–12576)
@@ -308,7 +302,6 @@ index.html (18,516줄 / v27.11)
 │
 ├── HS_FITTER_P3_1_CORE_API (17891–17922)
 │
-│   ⚠ [GAP-H] 17923–18081 (~159줄)
 │       └── [UI_DRAWERS Step1 IIFE — 미명명]
 │
 ├── HS_FITTER_P1_3_TOGGLERIGHT_DIRTY [1st] (18082–18087)   ←── ⚠ 중복명
@@ -324,8 +317,8 @@ index.html (18,516줄 / v27.11)
 
 ## 3. 누락 구간 상세 분석
 
-9개 GAP 구간 전체를 코드 내용 기준으로 분석함.
-라인번호는 모두 **v27.11** 기준.
+6개 GAP 구간 전체를 코드 내용 기준으로 분석함.
+라인번호는 모두 **v27.20_fix1** 기준.
 
 ---
 
@@ -349,51 +342,7 @@ index.html (18,516줄 / v27.11)
 
 ---
 
-### GAP-B — 라인 9479–9716 (~238줄)
 
-**경계:** `PRED_GRID_CORE_END` ↔ `UI_NAV_ROUTING_START`
-
-**코드 내용 분해:**
-
-| 범위 | 식별자 / 역할 |
-|------|--------------|
-| 9479–9495 | `localStorage` 복원: `pred2_threatLevel`, `leaderMode` 설정값 |
-| 9496–9530 | `speedSlider`, `regenSlider` addEventListener 이벤트 바인딩 |
-| 9531–9545 | `pauseBtn` 클릭 핸들러 (paused 토글, 텍스트/색상 반영) |
-| 9546–9620 | `function _cp_isTyping()`, `function initControlDockStep2A()` — Control Dock Step2-A 초기화 IIFE 본문 |
-| 9621–9670 | `function setExpanded(on)`, `function toggleExpanded()`, resize listener, `btnExpand` 클릭 핸들러 |
-| 9671–9716 | `function setTab(tab)`, tabWorld/tabTribe/chip `updateChips()` 초기화, `_benchBtn` 클릭 핸들러 |
-
-**성격:** 그리드 시스템 완성 후 UI 컨트롤 독 초기화 구간. **그리드(자료구조) → UI(이벤트)** 전환 경계.
-
-**추천 블록명:**
-- 단일: `UI_STARTUP_CONTROLS_INIT` (238줄 단일)
-- 분할: `LOCALSTORAGE_RESTORE` (9479–9495) + `SIM_SLIDER_BINDINGS` (9496–9545) + `CONTROL_DOCK_STEP2A_INIT` (9546–9716)
-
----
-
-### GAP-C ★★ — 라인 11714–12403 (~690줄) 최대 누락
-
-**경계:** `HS_FITTER_P1_1_AGENT_TRI_REPLACE_END` ↔ `ATLAS_P1_OVERVIEW_VARS_START`
-
-**코드 내용 분해:**
-
-| 범위 | 식별자 / 역할 |
-|------|--------------|
-| 11714–12059 | `class Predator { ... }` — 포식자 개체 클래스 전체 (약 346줄) |
-| ↳ 메서드 | `constructor`, `update(dt)`, `_applyHunger`, `_scanForPrey`, `_chaseAndAttack`, `_reproduce`, `draw(ctx, isSelected)` |
-| 12060–12159 | `function _ss_applySolitaryActions(a, simulatedTicks)` — 개체 고독 행동 시뮬레이션 (약 100줄) |
-| 12160–12403 | `class Herbivore { ... }` — 초식동물 개체 클래스 전체 (약 244줄) |
-| ↳ 메서드 | `constructor`, `update(dt)`, `_applyHerbivoreHunger`, `_scanForFood`, `_scanForPredator`, `_reproduce`, `draw(ctx, isSelected)` |
-
-**성격:** 가장 크고 핵심적인 개체 클래스 2종 + 솔리터리 행동 함수가 한데 묶여 있으나 블록이 전혀 없음. 에이전트 그리드(Agent) 이후에 위치하지만 **별도 Entity 계층** 취급이 적절.
-
-**추천 블록명 (3분할):**
-- `PREDATOR_CLASS_CORE` (11714–12059, ~346줄)
-- `SOLITARY_ACTION_HELPERS` (12060–12159, ~100줄)
-- `HERBIVORE_CLASS_CORE` (12160–12403, ~244줄)
-
----
 
 ### GAP-D — 라인 13600–13714 (~115줄)
 
@@ -468,28 +417,6 @@ index.html (18,516줄 / v27.11)
 
 ---
 
-### GAP-H — 라인 17923–18081 (~159줄)
-
-**경계:** `HS_FITTER_P3_1_CORE_API_END` ↔ `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` (1st)
-
-**코드 내용 분해:**
-
-| 범위 | 식별자 / 역할 |
-|------|--------------|
-| 17923–17931 | `/* === UI DRAWERS: Step1 === */` 주석 헤더 + `(function __initUIDrawersStep1(){` IIFE 개시 |
-| 17932–17956 | `isMobile()`, `_clampMode(v)`, `_readMode(key, defVal)` — 모바일·모드 유틸 |
-| 17957–17989 | `loadSavedState()`, `saveState(st)`, `saveModes(st)` — localStorage 퍼시스턴스 |
-| 17990–18025 | `updateOverlay()`, `syncToggleText(panelEl)` — 오버레이·토글 텍스트 동기화 |
-| 18026–18055 | `apply()` — 전체 패널 상태 일괄 적용 |
-| 18056–18075 | `cycleLeftMode()`, `cycleInspMode()`, `toggleRight()` — 패널 사이클·토글 액션 |
-| 18076–18081 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` (1st) 마커 — IIFE 내부 삽입 패치 조각 |
-
-**성격:** 드로어 Step1 초기화 IIFE 전체가 블록 없이 존재. 내부에 패치 마커(TOGGLERIGHT_DIRTY)가 부분 삽입되어 있어 **블록 경계 혼란** 발생 원인.
-
-**추천 블록명:** `UI_DRAWERS_STEP1_INIT` (17923–18081, 단일 159줄)
-> 내부의 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` (1st)는 서브블록으로 포함.
-
----
 
 ### GAP-I — 라인 18397–18453 (~57줄)
 
@@ -509,5 +436,5 @@ index.html (18,516줄 / v27.11)
 
 ---
 
-*이 문서는 v27.11 코드 직접 추출 기반. 버전 변경 시 재동기화 필요.*
-*라인번호 유효 범위: v27.11 (18,516줄) 기준.*
+*이 문서는 v27.20_fix1 코드 직접 추출 기반. 버전 변경 시 재동기화 필요.*
+*라인번호 유효 범위: v27.20_fix1 (18,534줄) 기준.*
