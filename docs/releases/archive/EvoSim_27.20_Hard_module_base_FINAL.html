@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>27.20_fix1</title>
+    <title>27.20 Hard module base FINAL</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -28,6 +28,7 @@
             font-family: var(--font-mono);
             color: var(--text-main);
             user-select: none;
+            word-break: collapse-all;
         }
 
         #simCanvas {
@@ -43,6 +44,7 @@
         }
 
         #ui-layer {
+            display:none;
             position: absolute;
             top: 0;
             left: 0;
@@ -9904,6 +9906,13 @@ setSession(EvoSim.consts.SESSION_STATES.PAUSED, reason || 'TO_CONFIG');
   }catch(e){}
 })();
 
+/* === BUILDER_BLOCK: UMC_LEGACY_WRAPPERS_REMOVED_START =========================
+REMOVED (UMC Stage1): showXXXOverlay wrappers
+- 모든 화면 전환은 EvoSim.nav.goHome/goConfig/goIngame/setScreen/setSession만 사용한다.
+- style.display 직접 토글(레거시 fallback) 경로는 폐기한다.
+=============================================================================== */
+/* (intentionally blank) */
+/* === BUILDER_BLOCK: UMC_LEGACY_WRAPPERS_REMOVED_END ========================= */
 
 function stopSimulation() {
   // Minimal: prevent sim stepping and neutralize timers/bench state.
@@ -17123,7 +17132,7 @@ function __evoRafKick(){
         simAccMs = 0;
     }catch(e){}
     try{
-        __evoRafId = requestAnimationFrame(animate);
+        __evoRafId = __evoRafId = requestAnimationFrame(animate);
     }catch(e){
         __evoRafRunning = false;
         __evoRafId = 0;

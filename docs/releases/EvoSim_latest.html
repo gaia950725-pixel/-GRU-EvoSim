@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.11 boot-init strip-yield finalize-reorder</title>
+    <title>27.20_fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -28,7 +28,6 @@
             font-family: var(--font-mono);
             color: var(--text-main);
             user-select: none;
-            word-break: collapse-all;
         }
 
         #simCanvas {
@@ -44,7 +43,6 @@
         }
 
         #ui-layer {
-            display:none;
             position: absolute;
             top: 0;
             left: 0;
@@ -9476,8 +9474,9 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
 }
         // ===================== /PREDGRID =====================
 /* === BUILDER_BLOCK: PRED_GRID_CORE_END === */
+/* === BUILDER_BLOCK: UI_STARTUP_CONTROLS_INIT_START === */
 
-
+/* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_START === */
         try {
             const storedThreat = localStorage.getItem('pred2_threatLevel');
             if(storedThreat !== null) {
@@ -9505,7 +9504,9 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
                 }
             }
         } catch(e) { console.warn("Failed to restore leaderMode", e); }
-        
+/* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_END === */
+
+/* === BUILDER_BLOCK: SIM_SLIDER_BINDINGS_START === */
         const speedSlider = document.getElementById('ctrl-speed');
         const speedLabel = document.getElementById('lbl-sim-speed');
         speedSlider.addEventListener('input', (e) => {
@@ -9530,7 +9531,9 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
             pauseBtn.textContent = paused ? "▶" : "⏸";
             pauseBtn.style.color = paused ? "var(--accent)" : "#eee";
         });
+/* === BUILDER_BLOCK: SIM_SLIDER_BINDINGS_END === */
 
+/* === BUILDER_BLOCK: CONTROL_DOCK_STEP2A_INIT_START === */
         // === Step2-A: Control Dock init (DOM move via appendChild; reuse existing listeners) ===
         function _cp_isTyping() {
             const ae = document.activeElement;
@@ -9660,8 +9663,10 @@ window.addEventListener('resize', _cp_updateDockClearance);
 
         // init immediately (DOM already present)
         initControlDockStep2A();
+/* === BUILDER_BLOCK: CONTROL_DOCK_STEP2A_INIT_END === */
 
 
+/* === BUILDER_BLOCK: BENCH_MODE_BUTTON_BINDINGS_START === */
         // Bench mode button
         {
             const _benchBtn = document.getElementById('bench-btn');
@@ -9702,8 +9707,10 @@ if (_benchOutEl) _benchOutEl.textContent = "-";
                 });
             }
         }
+/* === BUILDER_BLOCK: BENCH_MODE_BUTTON_BINDINGS_END === */
 
 
+/* === BUILDER_BLOCK: INFO_ACCORDION_TOGGLE_LOGIC_START === */
         // Accordion Toggle Logic
         document.getElementById('info-accordion-btn').addEventListener('click', (e) => {
             const content = document.getElementById('info-accordion-content');
@@ -9711,6 +9718,8 @@ if (_benchOutEl) _benchOutEl.textContent = "-";
             content.style.display = isHidden ? 'block' : 'none';
             e.target.textContent = isHidden ? "▲ 상세 정보" : "▼ 상세 정보";
         });
+/* === BUILDER_BLOCK: INFO_ACCORDION_TOGGLE_LOGIC_END === */
+/* === BUILDER_BLOCK: UI_STARTUP_CONTROLS_INIT_END === */
 
         
         //#region ========== UI_NAV_ROUTING ==========
@@ -9895,13 +9904,6 @@ setSession(EvoSim.consts.SESSION_STATES.PAUSED, reason || 'TO_CONFIG');
   }catch(e){}
 })();
 
-/* === BUILDER_BLOCK: UMC_LEGACY_WRAPPERS_REMOVED_START =========================
-REMOVED (UMC Stage1): showXXXOverlay wrappers
-- 모든 화면 전환은 EvoSim.nav.goHome/goConfig/goIngame/setScreen/setSession만 사용한다.
-- style.display 직접 토글(레거시 fallback) 경로는 폐기한다.
-=============================================================================== */
-/* (intentionally blank) */
-/* === BUILDER_BLOCK: UMC_LEGACY_WRAPPERS_REMOVED_END ========================= */
 
 function stopSimulation() {
   // Minimal: prevent sim stepping and neutralize timers/bench state.
@@ -11711,6 +11713,7 @@ if (_P_AGENT_TRI) {
                 }
 
 /* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_END === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TAIL_START === */
 
                 // Charcoal tribe halo (1px ivory outline) [disabled; replaced by cached contrast outline]
                 // Aggression indicator: red stripe on base edge only
@@ -11729,8 +11732,9 @@ if (_P_AGENT_TRI) {
             }
         }
         
-        // ... (Remaining classes Predator, Herbivore, and main logic remain unchanged) ...
+        /* === BUILDER_BLOCK: AGENT_DRAW_TAIL_END === */
 
+/* === BUILDER_BLOCK: PREDATOR_CLASS_CORE_START === */
         class Predator {
             constructor(x, y, opts = {}) {
                 this.pos = new Vec2(x, y);
@@ -12054,6 +12058,9 @@ let canSense = (!confusion);
         }
         
         
+/* === BUILDER_BLOCK: PREDATOR_CLASS_CORE_END === */
+
+/* === BUILDER_BLOCK: SOLITARY_ACTION_HELPERS_START === */
         // === SS: SolitaryAction helpers (24.3) ===
         function _ss_applySolitaryActions(a, simulatedTicks) {
             if (!a || a.dead) return;
@@ -12155,6 +12162,9 @@ let canSense = (!confusion);
             }
         }
 
+/* === BUILDER_BLOCK: SOLITARY_ACTION_HELPERS_END === */
+
+/* === BUILDER_BLOCK: HERBIVORE_CLASS_CORE_START === */
 let HERB_SEQ = 0;
 
 class Herbivore {
@@ -12394,6 +12404,9 @@ if (inBrake) speedCap = 0;
 }
         }
 
+/* === BUILDER_BLOCK: HERBIVORE_CLASS_CORE_END === */
+
+/* === BUILDER_BLOCK: CANVAS_CONTEXT_INIT_START === */
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
         const brainCanvas = document.getElementById('brainCanvas');
@@ -12401,6 +12414,7 @@ if (inBrake) speedCap = 0;
         
         let bgCanvas = document.createElement('canvas');
         let bgCtx = bgCanvas.getContext('2d');
+/* === BUILDER_BLOCK: CANVAS_CONTEXT_INIT_END === */
         /* === BUILDER_BLOCK: ATLAS_P1_OVERVIEW_VARS_START === */
         let overviewCanvas = null;
         let overviewCtx = null;
@@ -17109,7 +17123,7 @@ function __evoRafKick(){
         simAccMs = 0;
     }catch(e){}
     try{
-        __evoRafId = __evoRafId = requestAnimationFrame(animate);
+        __evoRafId = requestAnimationFrame(animate);
     }catch(e){
         __evoRafRunning = false;
         __evoRafId = 0;
@@ -17921,6 +17935,7 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 })();
 /* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_END === */
 
+/* === BUILDER_BLOCK: UI_DRAWERS_STEP1_INIT_START === */
 /* === UI DRAWERS: Step1 ==================================================
    Drawer skeleton for left(info) & right(history)
    - Toggle buttons: #drawer-left-btn / #drawer-right-btn
@@ -18079,12 +18094,12 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
       state.rightOpen = !state.rightOpen;
       apply();
       saveState(state);
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_START === */
+      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_START === */
       if (state.rightOpen) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_END === */
+      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_END === */
     }
 
     function toggleDev(){
@@ -18156,6 +18171,7 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
     // fail silent
   }
 })();
+/* === BUILDER_BLOCK: UI_DRAWERS_STEP1_INIT_END === */
 
 (function __initUIDrawers_PNREV31(){
   try{

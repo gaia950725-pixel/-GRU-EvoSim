@@ -2,6 +2,7 @@
 
 **작성일:** 2026-03-04
 **기준 버전:** EvoSim 27.11 (boot-init strip-yield finalize-reorder)
+**최신 반영:** 27.20 Hard module base FINAL (GAP-C/B/H 적용 완료)
 **연관 문서:**
 - `BUILDER_BLOCK_SNAPSHOT.md` — 블록 전수조사 및 누락 구간 상세 분석
 - `BUILDER_BLOCK_SNAPSHOT_AUDIT.md` — Codex 감사 기록
@@ -121,14 +122,14 @@ class Herbivore { ... }        ← 12160–12403 (~244줄)
 
 | 이슈 ID | 유형 | 대상 | 위치 | 상태 |
 |---------|------|------|------|------|
-| ISS-01 | 중복 블록명 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | 18082 & 18239 | 미해결 — 섹션 4 참조 |
+| ISS-01 | 중복 블록명 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | 18082 & 18239 | **해결됨** (Step1 내부를 `...LEGACY_STEP1`로 개명) |
 | ISS-02 | 대형 미분할 | `UI_NAV_ROUTING` | 9717–11469 (1752줄) | 중기 분할 권장 |
 | ISS-03 | 대형 미분할 | `HS_COLLISION_LOOP` | 13715–14726 (1011줄) | 중기 분할 권장 |
 | ISS-04 | 대형 미분할 | `AGENT_GRID_CORE` | 8094–9079 (985줄) | 중기 분할 권장 |
 | ISS-05 | 대형 미분할 | `HS_PHASE1_HELPERS` | 16200–17093 (893줄) | 중기 분할 권장 |
-| ISS-06 | GAP 누락 | GAP-C | 11714–12403 (690줄) | **P0** — 즉시 처리 권장 |
-| ISS-07 | GAP 누락 | GAP-B | 9479–9716 (238줄) | P1 |
-| ISS-08 | GAP 누락 | GAP-H | 17923–18081 (159줄) | P1 |
+| ISS-06 | GAP 누락 | GAP-C | 11714–12403 (690줄) | **해결됨 (27.20 FINAL)** |
+| ISS-07 | GAP 누락 | GAP-B | 9479–9716 (238줄) | **해결됨 (27.20 FINAL)** |
+| ISS-08 | GAP 누락 | GAP-H | 17923–18081 (159줄) | **해결됨 (27.20 FINAL)** |
 | ISS-09 | GAP 누락 | GAP-F | 15186–15335 (150줄) | P2 |
 | ISS-10 | GAP 누락 | GAP-D | 13600–13714 (115줄) | P2 |
 | ISS-11 | GAP 누락 | GAP-E | 14727–14828 (102줄) | P3 |
