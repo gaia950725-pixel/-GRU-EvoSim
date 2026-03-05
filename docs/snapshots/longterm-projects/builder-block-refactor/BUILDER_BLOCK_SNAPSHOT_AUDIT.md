@@ -1,26 +1,28 @@
 # BUILDER_BLOCK Snapshot Audit (EvoSim)
 
-**점검일자:** 2026-03-04  
+**점검일자:** 2026-03-05  
 **대상 스냅샷:** `BUILDER_BLOCK_SNAPSHOT.md`  
 **대조 기준:** 루트 `index.html`의 `BUILDER_BLOCK:*_(START|END)` 마커
 
 ## 점검 결과 요약
 
-- 전체 마커 수는 스냅샷과 실제 코드가 동일하게 **214개**로 확인됨.
-- 블록명 기준 고유 이름은 **106개**, START/END 쌍은 **107쌍**(동일 블록명 1건 중복)으로 확인됨.
-- 스냅샷 표(107행)와 실제 코드 라인 대조 시 **48개 블록의 라인 번호 불일치**가 확인됨.
-- 대표 오차:
-  - `UI_DOM` END: 스냅샷 `18510` vs 실제 `18516`
-  - `UI_NAV_ROUTING` END: 스냅샷 `11464` vs 실제 `11469`
-  - 이후 다수 블록에서 +5~+6 라인 시프트 패턴 확인
+- 27.20 Hard module base FINAL 기준 스캔 결과: **START 119 / END 119 / 고유 블록 119 / 이름별 불일치 0**.
+- GAP-C/B/H는 신규 블록 삽입으로 해소되었고, Step1 내부 DIRTY 마커는 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`로 개명되어 중복 충돌이 해소됨.
+- releases 동기화 완료: `docs/releases/EvoSim_latest.html`, `docs/releases/archive/EvoSim_27.20_Hard_module_base_FINAL.html`가 `index.html`과 동일 복사.
 
-## 진단
+## 자동 산출 근거 (복붙형 커맨드)
 
-스냅샷 작성 이후 `index.html` 중후반부(약 9.7k 라인 이후)에서 삽입/삭제가 발생했으나,
-스냅샷 라인번호가 재생성되지 않아 stale 상태가 된 것으로 보임.
+```bash
+sha256sum index.html docs/releases/EvoSim_latest.html docs/releases/archive/EvoSim_27.20_Hard_module_base_FINAL.html
 
-## 권장 조치
+node -e "const fs=require('fs');const s=fs.readFileSync('index.html','utf8');const sc=new Map(),ec=new Map();let depth=0,maxD=0,neg=false;const reTok=/BUILDER_BLOCK:\s*([^\n]*?)_(START|END)\b/g;let m;while((m=reTok.exec(s))){const name=m[1].trim(),kind=m[2];if(kind==='START'){sc.set(name,(sc.get(name)||0)+1);depth++;if(depth>maxD)maxD=depth;}else{ec.set(name,(ec.get(name)||0)+1);depth--;if(depth<0)neg=true;}}const startTotal=[...sc.values()].reduce((a,b)=>a+b,0);const endTotal=[...ec.values()].reduce((a,b)=>a+b,0);const mismatch=[];for(const [k,v] of sc){const ev=ec.get(k)||0;if(ev!==v)mismatch.push(k+':'+v+'/'+ev);}for(const [k,v] of ec){if(!sc.has(k))mismatch.push(k+':0/'+v);}console.log(JSON.stringify({startTotal,endTotal,uniq:sc.size,maxDepth:maxD,depthEnd:depth,negDepth:neg,mismatch},null,2));"
+```
 
-1. 스냅샷 테이블/계층도 라인번호를 자동 추출 스크립트로 재생성.
-2. 중복 블록명(`HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`)은 occurrence suffix를 표준화해 관리.
-3. 변경이 큰 릴리즈마다 본 감사 문서를 갱신해 stale 여부를 먼저 확인.
+## 체크리스트
+
+- [x] START/END 총수 일치 (119/119)
+- [x] depthEnd=0, negDepth=false
+- [x] 이름별 START/END 불일치 0개
+- [x] `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_*` 1쌍
+- [x] `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_*` (Rev31) 1쌍
+- [x] `AGENT_DRAW_TAIL`, `CANVAS_CONTEXT_INIT`, `UI_DRAWERS_STEP1_INIT` 존재 확인

@@ -1,15 +1,21 @@
 # BUILDER_BLOCK Snapshot — EvoSim index.html
 
 **최초 작성일:** 2026-03-04
-**최종 갱신일:** 2026-03-04 (v27.11 라인번호 재동기화 · 감사 대응 · 누락 구간 상세 분석)
+**최종 갱신일:** 2026-03-05 (27.20 Hard module base FINAL 반영 · GAP-B/C/H 해소 · releases 동기화)
 **대상 파일:** `index.html`
-**기준 버전:** EvoSim 27.11 (boot-init strip-yield finalize-reorder)
-**총 BUILDER_BLOCK 마커 수:** 214개 (START/END 쌍 포함)
+**기준 버전:** 27.20 Hard module base FINAL
+**총 BUILDER_BLOCK 마커 수:** 238개 (START/END 119쌍)
 
 > **감사(AUDIT) 반영 노트** — `BUILDER_BLOCK_SNAPSHOT_AUDIT.md` (Codex, 2026-03-04) 지적 사항:
 > - v27.10 스냅샷 대비 9,700라인 이후 **48개 블록에서 +5~+6 라인 시프트** 발생 (v27.11 패치 삽입 영향)
 > - 본 버전에서 전체 라인번호를 v27.11 기준으로 재생성함
 > - 중복 블록명 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` (2개소) 이슈 유지·기록
+
+
+> **27.20 FINAL 반영 요약**
+> - index.html에 GAP-C/B/H 신규 블록 12쌍 삽입 완료 (`AGENT_DRAW_TAIL`, `PREDATOR_CLASS_CORE`, `SOLITARY_ACTION_HELPERS`, `HERBIVORE_CLASS_CORE`, `CANVAS_CONTEXT_INIT`, `UI_STARTUP_CONTROLS_INIT` 및 5개 서브블록, `UI_DRAWERS_STEP1_INIT`).
+> - Step1 내부 중복명 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`를 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`로 개명하여 충돌 해소.
+> - 스캔 결과: START 119 / END 119 / 고유 블록 119 / 이름별 START-END 불일치 0.
 
 ---
 
@@ -87,7 +93,7 @@
 | 55 | `HS_A2_HERBGRID_GLOBALS` | 9246 | 9253 | ~7 | HERB_GRID_CORE 내 |
 | 56 | `HS_A2_BUILD_HERBGRID_REPLACE` | 9274 | 9331 | ~57 | HERB_GRID_CORE 내 |
 | 57 | `PRED_GRID_CORE` | 9349 | 9478 | ~129 | 최상위 JS |
-| — | *(GAP-B)* | 9479 | 9716 | ~238 | **블록 없음** |
+| ✅ | *(GAP-B)* | 9479 | 9716 | ~238 | **해소됨** (`UI_STARTUP_CONTROLS_INIT` + 5개 서브블록) |
 | 58 | `UI_NAV_ROUTING` | 9717 | 11469 | ~1752 | 최상위 JS (대형) |
 | 59 | `UMC_LEGACY_WRAPPERS_REMOVED` | 9898 | 9904 | ~6 | UI_NAV_ROUTING 내 |
 | 60 | `HS_19_CLAMOR_RESET_ON_START_INSERT` | 10444 | 10466 | ~22 | UI_NAV_ROUTING 내 |
@@ -97,7 +103,7 @@
 | 64 | `HS_AGGVIZ_UPDATE_MOVED` | 11084 | 11104 | ~20 | UI_NAV_ROUTING 내 |
 | 65 | `HS_AGENT_UPDATE` | 11471 | 11569 | ~98 | 최상위 JS |
 | 66 | `HS_FITTER_P1_1_AGENT_TRI_REPLACE` | 11686 | 11713 | ~27 | 최상위 JS |
-| — | *(GAP-C ★)* | 11714 | 12403 | ~690 | **블록 없음** |
+| ✅ | *(GAP-C ★)* | 11714 | 12403 | ~690 | **해소됨** (`AGENT_DRAW_TAIL` + 4개 코어 블록) |
 | 67 | `ATLAS_P1_OVERVIEW_VARS` | 12404 | 12409 | ~5 | 최상위 JS |
 | 68 | `HS_A3_POP_RING_REPLACE` | 12492 | 12576 | ~84 | 최상위 JS |
 | 69 | `HS_FITTER_P1_2_POP_SAMPLE` | 12570 | 12575 | ~5 | HS_A3_POP_RING_REPLACE 내 |
@@ -139,7 +145,7 @@
 | 101 | `HS_MONITOR_CORE` | 17222 | 17829 | ~607 | 최상위 JS |
 | 102 | `DEV_CONSOLE_HELPERS` | 17474 | 17657 | ~183 | HS_MONITOR_CORE 내 |
 | 103 | `HS_FITTER_P3_1_CORE_API` | 17891 | 17922 | ~31 | 최상위 JS |
-| — | *(GAP-H)* | 17923 | 18081 | ~159 | **블록 없음** |
+| ✅ | *(GAP-H)* | 17923 | 18081 | ~159 | **해소됨** (`UI_DRAWERS_STEP1_INIT` + LEGACY_STEP1 rename) |
 | 104 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` *(1st)* | 18082 | 18087 | ~5 | UI_DRAWERS IIFE 내 |
 | 105 | `UI_DRAWER_TOGGLES_CORE` | 18214 | 18396 | ~182 | 최상위 JS |
 | 106 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` *(2nd)* | 18239 | 18244 | ~5 | UI_DRAWER_TOGGLES_CORE 내 |
