@@ -1,0 +1,1182 @@
+[
+  {
+    "line": 7,
+    "name": "STYLES",
+    "kind": "START"
+  },
+  {
+    "line": 9,
+    "name": "CSS",
+    "kind": "START"
+  },
+  {
+    "line": 1482,
+    "name": "CSS",
+    "kind": "END"
+  },
+  {
+    "line": 1711,
+    "name": "STYLES",
+    "kind": "END"
+  },
+  {
+    "line": 1765,
+    "name": "UI_DOM",
+    "kind": "START"
+  },
+  {
+    "line": 1786,
+    "name": "HOME_OVERLAY",
+    "kind": "START"
+  },
+  {
+    "line": 1787,
+    "name": "UI_HOME",
+    "kind": "START"
+  },
+  {
+    "line": 1801,
+    "name": "UI_HOME",
+    "kind": "END"
+  },
+  {
+    "line": 1802,
+    "name": "HOME_OVERLAY",
+    "kind": "END"
+  },
+  {
+    "line": 1804,
+    "name": "CONFIG_OVERLAY",
+    "kind": "START"
+  },
+  {
+    "line": 1805,
+    "name": "UI_CONFIG",
+    "kind": "START"
+  },
+  {
+    "line": 2178,
+    "name": "UI_CONFIG",
+    "kind": "END"
+  },
+  {
+    "line": 2180,
+    "name": "CONFIG_OVERLAY",
+    "kind": "END"
+  },
+  {
+    "line": 2183,
+    "name": "UI_INGAME",
+    "kind": "START"
+  },
+  {
+    "line": 2359,
+    "name": "UI_INGAME",
+    "kind": "END"
+  },
+  {
+    "line": 2426,
+    "name": "ARCHITECTURE_OVERVIEW",
+    "kind": "START"
+  },
+  {
+    "line": 2464,
+    "name": "ARCHITECTURE_OVERVIEW",
+    "kind": "END"
+  },
+  {
+    "line": 2466,
+    "name": "JS_TOP",
+    "kind": "START"
+  },
+  {
+    "line": 2470,
+    "name": "JS_TOP",
+    "kind": "END"
+  },
+  {
+    "line": 2471,
+    "name": "JS_BOOTSTRAP_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 2861,
+    "name": "JS_BOOTSTRAP_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 2862,
+    "name": "SURNAME_AUTO_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 3166,
+    "name": "SURNAME_AUTO_SANITIZE_CLAN",
+    "kind": "START"
+  },
+  {
+    "line": 3181,
+    "name": "SURNAME_AUTO_SANITIZE_CLAN",
+    "kind": "END"
+  },
+  {
+    "line": 3282,
+    "name": "SURNAME_AUTO_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 3286,
+    "name": "WORLDGEN_UI_INIT",
+    "kind": "START"
+  },
+  {
+    "line": 3460,
+    "name": "CONFIG_TABS",
+    "kind": "START"
+  },
+  {
+    "line": 3576,
+    "name": "CONFIG_TABS",
+    "kind": "END"
+  },
+  {
+    "line": 3695,
+    "name": "HS_FITTER_P1_3_GRAPH_FLAGS",
+    "kind": "START"
+  },
+  {
+    "line": 3698,
+    "name": "HS_FITTER_P1_3_GRAPH_FLAGS",
+    "kind": "END"
+  },
+  {
+    "line": 3699,
+    "name": "HS_FITTER_P1_3A_HISTORY_ADAPTER",
+    "kind": "START"
+  },
+  {
+    "line": 3712,
+    "name": "HS_FITTER_P1_3A_HISTORY_ADAPTER",
+    "kind": "END"
+  },
+  {
+    "line": 3735,
+    "name": "HS_FITTER_P1_3_PANEL_EXPAND_DIRTY",
+    "kind": "START"
+  },
+  {
+    "line": 3741,
+    "name": "HS_FITTER_P1_3_PANEL_EXPAND_DIRTY",
+    "kind": "END"
+  },
+  {
+    "line": 3746,
+    "name": "WORLDGEN_UI_INIT",
+    "kind": "END"
+  },
+  {
+    "line": 3748,
+    "name": "CFG_DEFAULTS",
+    "kind": "START"
+  },
+  {
+    "line": 3996,
+    "name": "CFG_DEFAULTS",
+    "kind": "END"
+  },
+  {
+    "line": 3997,
+    "name": "NN_IO_ENUMS",
+    "kind": "START"
+  },
+  {
+    "line": 4106,
+    "name": "NN_IO_ENUMS",
+    "kind": "END"
+  },
+  {
+    "line": 4107,
+    "name": "VISION_CACHE_DERIVED",
+    "kind": "START"
+  },
+  {
+    "line": 4123,
+    "name": "VISION_CACHE_DERIVED",
+    "kind": "END"
+  },
+  {
+    "line": 4125,
+    "name": "HS_OCCLUSION_21RAY_GLOBALS",
+    "kind": "START"
+  },
+  {
+    "line": 4239,
+    "name": "HS_OCCLUSION_21RAY_GLOBALS",
+    "kind": "END"
+  },
+  {
+    "line": 4240,
+    "name": "AGRO_GLOBALS",
+    "kind": "START"
+  },
+  {
+    "line": 4251,
+    "name": "AGRO_GLOBALS",
+    "kind": "END"
+  },
+  {
+    "line": 4260,
+    "name": "HS_AGRO_BLOCKVIEW_UTILS",
+    "kind": "START"
+  },
+  {
+    "line": 4446,
+    "name": "HS_AGRO_BLOCKVIEW_UTILS",
+    "kind": "END"
+  },
+  {
+    "line": 4450,
+    "name": "UI_INPUT_WORLD_UTILS",
+    "kind": "START"
+  },
+  {
+    "line": 4481,
+    "name": "UI_INPUT_WORLD_UTILS",
+    "kind": "END"
+  },
+  {
+    "line": 4485,
+    "name": "HS_AGRO_TOUCH_REPIDX",
+    "kind": "START"
+  },
+  {
+    "line": 4487,
+    "name": "HS_AGRO_TOUCH_REPIDX",
+    "kind": "END"
+  },
+  {
+    "line": 4518,
+    "name": "HS_AGRO_PEEK_TILE",
+    "kind": "START"
+  },
+  {
+    "line": 4539,
+    "name": "HS_AGRO_PEEK_TILE",
+    "kind": "END"
+  },
+  {
+    "line": 4546,
+    "name": "HS_AGRO_TOP4_REPIDX",
+    "kind": "START"
+  },
+  {
+    "line": 4548,
+    "name": "HS_AGRO_TOP4_REPIDX",
+    "kind": "END"
+  },
+  {
+    "line": 4606,
+    "name": "HS_AGRO_HARVEST",
+    "kind": "START"
+  },
+  {
+    "line": 4609,
+    "name": "HS_AGRO_HARVEST_REPIDX",
+    "kind": "START"
+  },
+  {
+    "line": 4611,
+    "name": "HS_AGRO_HARVEST_REPIDX",
+    "kind": "END"
+  },
+  {
+    "line": 4656,
+    "name": "HS_AGRO_HARVEST_FARMDROP",
+    "kind": "START"
+  },
+  {
+    "line": 4710,
+    "name": "HS_AGRO_HARVEST_FARMDROP",
+    "kind": "END"
+  },
+  {
+    "line": 4727,
+    "name": "HS_AGRO_HARVEST",
+    "kind": "END"
+  },
+  {
+    "line": 4730,
+    "name": "AGRO_FARM_WORK_TICK",
+    "kind": "START"
+  },
+  {
+    "line": 4738,
+    "name": "HS_AGRO_WORK_REPIDX",
+    "kind": "START"
+  },
+  {
+    "line": 4741,
+    "name": "HS_AGRO_WORK_REPIDX",
+    "kind": "END"
+  },
+  {
+    "line": 4832,
+    "name": "AGRO_FARM_WORK_TICK",
+    "kind": "END"
+  },
+  {
+    "line": 4834,
+    "name": "CORE_MATH_ENERGY_UTILS",
+    "kind": "START"
+  },
+  {
+    "line": 5029,
+    "name": "CORE_MATH_ENERGY_UTILS",
+    "kind": "END"
+  },
+  {
+    "line": 5030,
+    "name": "AGRO_INIT_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 5092,
+    "name": "HS_INITAGRO_FARMBUILD_BLOCKS",
+    "kind": "START"
+  },
+  {
+    "line": 5241,
+    "name": "HS_INITAGRO_FARMBUILD_BLOCKS",
+    "kind": "END"
+  },
+  {
+    "line": 5267,
+    "name": "HS_INITAGRO_FARMSUIT_BLOCKS",
+    "kind": "START"
+  },
+  {
+    "line": 5318,
+    "name": "HS_INITAGRO_FARMSUIT_BLOCKS",
+    "kind": "END"
+  },
+  {
+    "line": 5320,
+    "name": "AGRO_INIT_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 5325,
+    "name": "GAIA_30PX_LOOKUP_APIS",
+    "kind": "START"
+  },
+  {
+    "line": 5477,
+    "name": "GAIA_30PX_LOOKUP_APIS",
+    "kind": "END"
+  },
+  {
+    "line": 5479,
+    "name": "TIME_NARRATIVE_GLOBALS",
+    "kind": "START"
+  },
+  {
+    "line": 5564,
+    "name": "TIME_NARRATIVE_GLOBALS",
+    "kind": "END"
+  },
+  {
+    "line": 5566,
+    "name": "MAP_PRESETS",
+    "kind": "START"
+  },
+  {
+    "line": 5652,
+    "name": "MAP_PRESETS",
+    "kind": "END"
+  },
+  {
+    "line": 5657,
+    "name": "GAIA_SOT_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 6068,
+    "name": "GAIA_SOT_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 6070,
+    "name": "GAIA_MOUNTAINS",
+    "kind": "START"
+  },
+  {
+    "line": 6079,
+    "name": "GAIA_MTN_POLICY",
+    "kind": "START"
+  },
+  {
+    "line": 6090,
+    "name": "GAIA_MTN_POLICY",
+    "kind": "END"
+  },
+  {
+    "line": 6541,
+    "name": "GAIA_MOUNTAINS",
+    "kind": "END"
+  },
+  {
+    "line": 6543,
+    "name": "GAIA_ENV30",
+    "kind": "START"
+  },
+  {
+    "line": 7121,
+    "name": "GAIA_ENV30",
+    "kind": "END"
+  },
+  {
+    "line": 7122,
+    "name": "SIM_GLOBALS_POST_GAIA_ENV30",
+    "kind": "START"
+  },
+  {
+    "line": 7708,
+    "name": "SIM_GLOBALS_POST_GAIA_ENV30",
+    "kind": "END"
+  },
+  {
+    "line": 7710,
+    "name": "HS_19_CLAMOR_CORE_ADD",
+    "kind": "START"
+  },
+  {
+    "line": 8034,
+    "name": "HS_19_CLAMOR_CORE_ADD",
+    "kind": "END"
+  },
+  {
+    "line": 8092,
+    "name": "AGENT_GRID_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 8096,
+    "name": "HS_18_7_GLOBALS",
+    "kind": "START"
+  },
+  {
+    "line": 8103,
+    "name": "HS_18_7_GLOBALS",
+    "kind": "END"
+  },
+  {
+    "line": 8120,
+    "name": "HS_18_7_BUILD_FUNC_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 8195,
+    "name": "HS_18_7_BUILD_FUNC_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 9077,
+    "name": "AGENT_GRID_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 9078,
+    "name": "GRID_QUERY_API",
+    "kind": "START"
+  },
+  {
+    "line": 9082,
+    "name": "HS_QUERY_API",
+    "kind": "START"
+  },
+  {
+    "line": 9114,
+    "name": "HS_QUERY_API",
+    "kind": "END"
+  },
+  {
+    "line": 9116,
+    "name": "GRID_QUERY_API",
+    "kind": "END"
+  },
+  {
+    "line": 9126,
+    "name": "HS_18_7_ADD_AGENT_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 9149,
+    "name": "HS_18_7_ADD_AGENT_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 9150,
+    "name": "GRIDDBG_HELPERS",
+    "kind": "START"
+  },
+  {
+    "line": 9222,
+    "name": "GRIDDBG_HELPERS",
+    "kind": "END"
+  },
+  {
+    "line": 9223,
+    "name": "HERB_GRID_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 9244,
+    "name": "HS_A2_HERBGRID_GLOBALS",
+    "kind": "START"
+  },
+  {
+    "line": 9251,
+    "name": "HS_A2_HERBGRID_GLOBALS",
+    "kind": "END"
+  },
+  {
+    "line": 9272,
+    "name": "HS_A2_BUILD_HERBGRID_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 9329,
+    "name": "HS_A2_BUILD_HERBGRID_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 9346,
+    "name": "HERB_GRID_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 9347,
+    "name": "PRED_GRID_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 9476,
+    "name": "PRED_GRID_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 9477,
+    "name": "UI_STARTUP_CONTROLS_INIT",
+    "kind": "START"
+  },
+  {
+    "line": 9479,
+    "name": "LOCALSTORAGE_RESTORE",
+    "kind": "START"
+  },
+  {
+    "line": 9507,
+    "name": "LOCALSTORAGE_RESTORE",
+    "kind": "END"
+  },
+  {
+    "line": 9509,
+    "name": "SIM_SLIDER_BINDINGS",
+    "kind": "START"
+  },
+  {
+    "line": 9534,
+    "name": "SIM_SLIDER_BINDINGS",
+    "kind": "END"
+  },
+  {
+    "line": 9536,
+    "name": "CONTROL_DOCK_STEP2A_INIT",
+    "kind": "START"
+  },
+  {
+    "line": 9666,
+    "name": "CONTROL_DOCK_STEP2A_INIT",
+    "kind": "END"
+  },
+  {
+    "line": 9669,
+    "name": "BENCH_MODE_BUTTON_BINDINGS",
+    "kind": "START"
+  },
+  {
+    "line": 9710,
+    "name": "BENCH_MODE_BUTTON_BINDINGS",
+    "kind": "END"
+  },
+  {
+    "line": 9713,
+    "name": "INFO_ACCORDION_TOGGLE_LOGIC",
+    "kind": "START"
+  },
+  {
+    "line": 9721,
+    "name": "INFO_ACCORDION_TOGGLE_LOGIC",
+    "kind": "END"
+  },
+  {
+    "line": 9722,
+    "name": "UI_STARTUP_CONTROLS_INIT",
+    "kind": "END"
+  },
+  {
+    "line": 9726,
+    "name": "UI_NAV_ROUTING",
+    "kind": "START"
+  },
+  {
+    "line": 10446,
+    "name": "HS_19_CLAMOR_RESET_ON_START_INSERT",
+    "kind": "START"
+  },
+  {
+    "line": 10468,
+    "name": "HS_19_CLAMOR_RESET_ON_START_INSERT",
+    "kind": "END"
+  },
+  {
+    "line": 10472,
+    "name": "HS_A3_POP_RESET_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 10475,
+    "name": "HS_A3_POP_RESET_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 10812,
+    "name": "HS_FITTER_P1_1_PATH2D_CACHE",
+    "kind": "START"
+  },
+  {
+    "line": 10820,
+    "name": "HS_FITTER_P1_1_PATH2D_CACHE",
+    "kind": "END"
+  },
+  {
+    "line": 10879,
+    "name": "HS_STATS_FARM_DROP_INIT",
+    "kind": "START"
+  },
+  {
+    "line": 10881,
+    "name": "HS_STATS_FARM_DROP_INIT",
+    "kind": "END"
+  },
+  {
+    "line": 11086,
+    "name": "HS_AGGVIZ_UPDATE_MOVED",
+    "kind": "START"
+  },
+  {
+    "line": 11106,
+    "name": "HS_AGGVIZ_UPDATE_MOVED",
+    "kind": "END"
+  },
+  {
+    "line": 11471,
+    "name": "UI_NAV_ROUTING",
+    "kind": "END"
+  },
+  {
+    "line": 11473,
+    "name": "HS_AGENT_UPDATE",
+    "kind": "START"
+  },
+  {
+    "line": 11571,
+    "name": "HS_AGENT_UPDATE",
+    "kind": "END"
+  },
+  {
+    "line": 11688,
+    "name": "HS_FITTER_P1_1_AGENT_TRI_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 11715,
+    "name": "HS_FITTER_P1_1_AGENT_TRI_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 11716,
+    "name": "AGENT_DRAW_TAIL",
+    "kind": "START"
+  },
+  {
+    "line": 11735,
+    "name": "AGENT_DRAW_TAIL",
+    "kind": "END"
+  },
+  {
+    "line": 11737,
+    "name": "PREDATOR_CLASS_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 12061,
+    "name": "PREDATOR_CLASS_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 12063,
+    "name": "SOLITARY_ACTION_HELPERS",
+    "kind": "START"
+  },
+  {
+    "line": 12165,
+    "name": "SOLITARY_ACTION_HELPERS",
+    "kind": "END"
+  },
+  {
+    "line": 12167,
+    "name": "HERBIVORE_CLASS_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 12407,
+    "name": "HERBIVORE_CLASS_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 12409,
+    "name": "CANVAS_CONTEXT_INIT",
+    "kind": "START"
+  },
+  {
+    "line": 12417,
+    "name": "CANVAS_CONTEXT_INIT",
+    "kind": "END"
+  },
+  {
+    "line": 12418,
+    "name": "ATLAS_P1_OVERVIEW_VARS",
+    "kind": "START"
+  },
+  {
+    "line": 12423,
+    "name": "ATLAS_P1_OVERVIEW_VARS",
+    "kind": "END"
+  },
+  {
+    "line": 12506,
+    "name": "HS_A3_POP_RING_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 12584,
+    "name": "HS_FITTER_P1_2_POP_SAMPLE",
+    "kind": "START"
+  },
+  {
+    "line": 12589,
+    "name": "HS_FITTER_P1_2_POP_SAMPLE",
+    "kind": "END"
+  },
+  {
+    "line": 12590,
+    "name": "HS_A3_POP_RING_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 12622,
+    "name": "ATLAS_P1_STATICMAP_CLIP",
+    "kind": "START"
+  },
+  {
+    "line": 13185,
+    "name": "ATLAS_P1_STATICMAP_CLIP",
+    "kind": "END"
+  },
+  {
+    "line": 13208,
+    "name": "ATLAS_P1_OVERVIEW_CALL",
+    "kind": "START"
+  },
+  {
+    "line": 13211,
+    "name": "ATLAS_P1_OVERVIEW_CALL",
+    "kind": "END"
+  },
+  {
+    "line": 13214,
+    "name": "ATLAS_P1_OVERVIEW_FN",
+    "kind": "START"
+  },
+  {
+    "line": 13236,
+    "name": "ATLAS_P1_OVERVIEW_FN",
+    "kind": "END"
+  },
+  {
+    "line": 13238,
+    "name": "SPAWN_AND_LOG_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 13592,
+    "name": "HS_FITTER_P1_1_RENDERLOGS_GUARD",
+    "kind": "START"
+  },
+  {
+    "line": 13597,
+    "name": "HS_FITTER_P1_1_RENDERLOGS_GUARD",
+    "kind": "END"
+  },
+  {
+    "line": 13613,
+    "name": "SPAWN_AND_LOG_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 13729,
+    "name": "HS_COLLISION_LOOP",
+    "kind": "START"
+  },
+  {
+    "line": 14471,
+    "name": "HS_APPLYEAT_FARM_DROP_STATS",
+    "kind": "START"
+  },
+  {
+    "line": 14476,
+    "name": "HS_APPLYEAT_FARM_DROP_STATS",
+    "kind": "END"
+  },
+  {
+    "line": 14507,
+    "name": "HS_NAT_AREA_SCALE",
+    "kind": "START"
+  },
+  {
+    "line": 14510,
+    "name": "HS_NAT_AREA_SCALE",
+    "kind": "END"
+  },
+  {
+    "line": 14740,
+    "name": "HS_COLLISION_LOOP",
+    "kind": "END"
+  },
+  {
+    "line": 14843,
+    "name": "HS_FITTER_P4_1_INPUT_BINDINGS",
+    "kind": "START"
+  },
+  {
+    "line": 14855,
+    "name": "HS_HOTKEYS",
+    "kind": "START"
+  },
+  {
+    "line": 14979,
+    "name": "HS_A3_KEYP_REPLACE",
+    "kind": "START"
+  },
+  {
+    "line": 14996,
+    "name": "HS_A3_KEYP_REPLACE",
+    "kind": "END"
+  },
+  {
+    "line": 14998,
+    "name": "HS_HOTKEYS",
+    "kind": "END"
+  },
+  {
+    "line": 15144,
+    "name": "HS_FITTER_P4_1_INPUT_BINDINGS",
+    "kind": "END"
+  },
+  {
+    "line": 15147,
+    "name": "ERA_BTN_SURNAME_AUTO_WIRE",
+    "kind": "START"
+  },
+  {
+    "line": 15199,
+    "name": "ERA_BTN_SURNAME_AUTO_WIRE",
+    "kind": "END"
+  },
+  {
+    "line": 15350,
+    "name": "HS_FARM_OBS_MINI_BLOCKVIEW",
+    "kind": "START"
+  },
+  {
+    "line": 15500,
+    "name": "HS_FARM_OBS_MINI_BLOCKVIEW",
+    "kind": "END"
+  },
+  {
+    "line": 15523,
+    "name": "HS_BRAIN_THROTTLE_HELPER",
+    "kind": "START"
+  },
+  {
+    "line": 15560,
+    "name": "HS_BRAIN_THROTTLE_HELPER",
+    "kind": "END"
+  },
+  {
+    "line": 15562,
+    "name": "UI_INSPECTOR_PANEL_UPDATE",
+    "kind": "START"
+  },
+  {
+    "line": 15654,
+    "name": "HS_INSPECTOR_SUBST_FARM_DROP_ROW",
+    "kind": "START"
+  },
+  {
+    "line": 15656,
+    "name": "HS_INSPECTOR_SUBST_FARM_DROP_ROW",
+    "kind": "END"
+  },
+  {
+    "line": 15722,
+    "name": "UI_INSPECTOR_PANEL_UPDATE",
+    "kind": "END"
+  },
+  {
+    "line": 15724,
+    "name": "HS_FITTER_P4_1_UITICK_REGION",
+    "kind": "START"
+  },
+  {
+    "line": 15726,
+    "name": "HS_UITICK_WRAPPERS",
+    "kind": "START"
+  },
+  {
+    "line": 15727,
+    "name": "HS_FITTER_P1_4_UITICK500_ROUTER",
+    "kind": "START"
+  },
+  {
+    "line": 15743,
+    "name": "HS_FITTER_P1_4_UITICK500_ROUTER",
+    "kind": "END"
+  },
+  {
+    "line": 15748,
+    "name": "HS_UITICK_WRAPPERS",
+    "kind": "END"
+  },
+  {
+    "line": 15749,
+    "name": "HS_FITTER_P4_1_UITICK_REGION",
+    "kind": "END"
+  },
+  {
+    "line": 15751,
+    "name": "HS_FITTER_P1_1_PANELVISIBLE",
+    "kind": "START"
+  },
+  {
+    "line": 15761,
+    "name": "HS_FITTER_P1_1_PANELVISIBLE",
+    "kind": "END"
+  },
+  {
+    "line": 15763,
+    "name": "HS_FITTER_P1_2_HISTORY_UI",
+    "kind": "START"
+  },
+  {
+    "line": 15779,
+    "name": "HS_FITTER_P1_3_HISTORY_DRAW_CONTROL",
+    "kind": "START"
+  },
+  {
+    "line": 15798,
+    "name": "HS_FITTER_P1_3_HISTORY_DRAW_CONTROL",
+    "kind": "END"
+  },
+  {
+    "line": 15803,
+    "name": "HS_FITTER_P1_2_HISTORY_UI",
+    "kind": "END"
+  },
+  {
+    "line": 15890,
+    "name": "HS_A3_DEV_PERF_API",
+    "kind": "START"
+  },
+  {
+    "line": 15935,
+    "name": "HS_A3_DEV_PERF_API",
+    "kind": "END"
+  },
+  {
+    "line": 15955,
+    "name": "HS_FITTER_P4_1_RENDER_LOOP",
+    "kind": "START"
+  },
+  {
+    "line": 16209,
+    "name": "HS_FITTER_P4_1_RENDER_LOOP",
+    "kind": "END"
+  },
+  {
+    "line": 16214,
+    "name": "HS_PHASE1_HELPERS",
+    "kind": "START"
+  },
+  {
+    "line": 16215,
+    "name": "HS_FITTER_P4_1_SIM_LOOP",
+    "kind": "START"
+  },
+  {
+    "line": 16390,
+    "name": "HS_19_SIMLOOP_DECAY_INSERT",
+    "kind": "START"
+  },
+  {
+    "line": 16396,
+    "name": "HS_19_SIMLOOP_DECAY_INSERT",
+    "kind": "END"
+  },
+  {
+    "line": 16398,
+    "name": "HS_AGRO_SELECTED_TILE_LAZY_TOUCH",
+    "kind": "START"
+  },
+  {
+    "line": 16412,
+    "name": "HS_AGRO_SELECTED_TILE_LAZY_TOUCH",
+    "kind": "END"
+  },
+  {
+    "line": 16413,
+    "name": "AUTOCLAN_ANIMATE_HOOK",
+    "kind": "START"
+  },
+  {
+    "line": 16421,
+    "name": "AUTOCLAN_ANIMATE_HOOK",
+    "kind": "END"
+  },
+  {
+    "line": 16904,
+    "name": "HS_FITTER_P4_1_SIM_LOOP",
+    "kind": "END"
+  },
+  {
+    "line": 17107,
+    "name": "HS_PHASE1_HELPERS",
+    "kind": "END"
+  },
+  {
+    "line": 17109,
+    "name": "HS_RAF_SINGLETON_21_1",
+    "kind": "START"
+  },
+  {
+    "line": 17140,
+    "name": "HS_RAF_SINGLETON_21_1",
+    "kind": "END"
+  },
+  {
+    "line": 17142,
+    "name": "HS_DISPOSE_WORLD_21_1",
+    "kind": "START"
+  },
+  {
+    "line": 17205,
+    "name": "HS_DISPOSE_WORLD_21_1",
+    "kind": "END"
+  },
+  {
+    "line": 17236,
+    "name": "HS_MONITOR_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 17488,
+    "name": "DEV_CONSOLE_HELPERS",
+    "kind": "START"
+  },
+  {
+    "line": 17671,
+    "name": "DEV_CONSOLE_HELPERS",
+    "kind": "END"
+  },
+  {
+    "line": 17843,
+    "name": "HS_MONITOR_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 17905,
+    "name": "HS_FITTER_P3_1_CORE_API",
+    "kind": "START"
+  },
+  {
+    "line": 17936,
+    "name": "HS_FITTER_P3_1_CORE_API",
+    "kind": "END"
+  },
+  {
+    "line": 17938,
+    "name": "UI_DRAWERS_STEP1_INIT",
+    "kind": "START"
+  },
+  {
+    "line": 18097,
+    "name": "HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1",
+    "kind": "START"
+  },
+  {
+    "line": 18102,
+    "name": "HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1",
+    "kind": "END"
+  },
+  {
+    "line": 18174,
+    "name": "UI_DRAWERS_STEP1_INIT",
+    "kind": "END"
+  },
+  {
+    "line": 18230,
+    "name": "UI_DRAWER_TOGGLES_CORE",
+    "kind": "START"
+  },
+  {
+    "line": 18255,
+    "name": "HS_FITTER_P1_3_TOGGLERIGHT_DIRTY",
+    "kind": "START"
+  },
+  {
+    "line": 18260,
+    "name": "HS_FITTER_P1_3_TOGGLERIGHT_DIRTY",
+    "kind": "END"
+  },
+  {
+    "line": 18412,
+    "name": "UI_DRAWER_TOGGLES_CORE",
+    "kind": "END"
+  },
+  {
+    "line": 18470,
+    "name": "HS_FITTER_P1_3_TREND_TAB_DIRTY",
+    "kind": "START"
+  },
+  {
+    "line": 18479,
+    "name": "HS_FITTER_P1_3_TREND_TAB_DIRTY",
+    "kind": "END"
+  },
+  {
+    "line": 18532,
+    "name": "UI_DOM",
+    "kind": "END"
+  }
+]
