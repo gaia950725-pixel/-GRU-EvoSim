@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>27.20_fix1</title>
+    <title>EvoSim 27.21 builder block refactor</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3692,11 +3692,17 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
         
         document.querySelectorAll('.panel').forEach(makeDraggable);
         
-        /* === BUILDER_BLOCK: HS_FITTER_P1_3_GRAPH_FLAGS_START === */
+        /* === BUILDER_BLOCK: UI_CFG_GRAPH_FLAGS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_3_GRAPH_FLAGS
+   === */
 let _popGraphDirty = true;
 let _popGraphLastDrawMs = 0;
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_GRAPH_FLAGS_END === */
-/* === BUILDER_BLOCK: HS_FITTER_P1_3A_HISTORY_ADAPTER_START === */
+/* === BUILDER_BLOCK: UI_CFG_GRAPH_FLAGS_END === */
+/* === BUILDER_BLOCK: UI_CFG_HISTORY_ADAPTER_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_3A_HISTORY_ADAPTER
+   === */
 // Minimal adapter for future History-panel redesign (no UX change).
 // Keeps an internal notion of the Chronicle active tab, decoupled from DOM structure.
 let _histChronTab = (function(){
@@ -3709,7 +3715,7 @@ window.__hsHistory.setChronTab = function(tab){
 };
 window.__hsHistory.markGraphDirty = function(){ _popGraphDirty = true; };
 window.__hsHistory.redrawHistory = function(){ try { updateHistoryPanelUI(); } catch(_) {} };
-/* === BUILDER_BLOCK: HS_FITTER_P1_3A_HISTORY_ADAPTER_END === */
+/* === BUILDER_BLOCK: UI_CFG_HISTORY_ADAPTER_END === */
 
 
 document.querySelectorAll('.panel-toggle').forEach(toggle => {
@@ -3732,13 +3738,16 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
                 }
 
                 toggle.textContent = panel.classList.contains('collapsed') ? '+' : '−';
-                /* === BUILDER_BLOCK: HS_FITTER_P1_3_PANEL_EXPAND_DIRTY_START === */
+                /* === BUILDER_BLOCK: UI_CFG_PANEL_EXPAND_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_3_PANEL_EXPAND_DIRTY
+   === */
                 if (panel && panel.id === 'history-panel' && !panel.classList.contains('collapsed')) {
                     _popGraphDirty = true;
                     try { if (window.__hsHistory && window.__hsHistory.markGraphDirty) window.__hsHistory.markGraphDirty(); } catch(_) {}
                     try { updateHistoryPanelUI(); } catch(_) {}
                 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_PANEL_EXPAND_DIRTY_END === */
+/* === BUILDER_BLOCK: UI_CFG_PANEL_EXPAND_END === */
                 e.stopPropagation();
             });
         });
@@ -4122,7 +4131,10 @@ const OUTPUT = Object.freeze({
         
 /* === BUILDER_BLOCK: VISION_CACHE_DERIVED_END === */
 
-/* === BUILDER_BLOCK: HS_OCCLUSION_21RAY_GLOBALS_START === */
+/* === BUILDER_BLOCK: VISION_OCCLUSION_GLOBALS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_OCCLUSION_21RAY_GLOBALS
+   === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  */
@@ -4236,7 +4248,7 @@ function occSectorIndex(dot, cross) {
   return lo;
 }
 
-/* === BUILDER_BLOCK: HS_OCCLUSION_21RAY_GLOBALS_END === */
+/* === BUILDER_BLOCK: VISION_OCCLUSION_GLOBALS_END === */
 /* === BUILDER_BLOCK: AGRO_GLOBALS_START ===
 [PATCH RECORD]
  - 26.23 (CM): addblock (confirmed split)
@@ -4257,7 +4269,10 @@ function agroTileIndexAt(x, y) {
             return cy * AGRO.cols + cx;
         }
 
-        /* === BUILDER_BLOCK: HS_AGRO_BLOCKVIEW_UTILS_START === */
+        /* === BUILDER_BLOCK: AGRO_BLOCKVIEW_UTILS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_BLOCKVIEW_UTILS
+   === */
 
 function agroRepIdxFromTileIdx(tileIdx) {
   if (!AGRO || tileIdx == null || tileIdx < 0) return -1;
@@ -4443,7 +4458,7 @@ function agroMaybeConsumeSeedOnStageEnter(repIdx, prevStage, newStage) {
   return mode;
 }
 
-/* === BUILDER_BLOCK: HS_AGRO_BLOCKVIEW_UTILS_END === */
+/* === BUILDER_BLOCK: AGRO_BLOCKVIEW_UTILS_END === */
 
         
         // [Patch] Client(px in viewport) -> World coordinates (handles DPR/canvas scaling)
@@ -4482,9 +4497,12 @@ function clientToWorld(clientX, clientY) {
 
         function agroTouchTileLazy(idx, nowTick) {
             if(!AGRO || idx < 0) return;
-            /* === BUILDER_BLOCK: HS_AGRO_TOUCH_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_TOUCH_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_TOUCH_REPIDX
+   === */
             idx = agroRepIdxFromTileIdx(idx);
-            /* === BUILDER_BLOCK: HS_AGRO_TOUCH_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_TOUCH_REPIDX_END === */
             const last = AGRO.lastTick[idx];
             
             // First touch or reset
@@ -4515,7 +4533,10 @@ function clientToWorld(clientX, clientY) {
             AGRO.lastTick[idx] = nowTick;
         }
 
-/* === BUILDER_BLOCK: HS_AGRO_PEEK_TILE_START === */
+/* === BUILDER_BLOCK: AGRO_PEEK_TILE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_PEEK_TILE
+   === */
 // Read-only tile peek: NEVER mutate AGRO/world state here.
 // Accepts either (tileIdx) or (worldX, worldY).
 const __agroPeekTmp = { idx:-1, crop:0, tilth:0, lastTick:0 };
@@ -4536,16 +4557,19 @@ function agroPeekTile(a, b) {
   __agroPeekTmp.lastTick = (AGRO.lastTick && AGRO.lastTick[i] != null) ? AGRO.lastTick[i] : 0;
   return __agroPeekTmp;
 }
-/* === BUILDER_BLOCK: HS_AGRO_PEEK_TILE_END === */
+/* === BUILDER_BLOCK: AGRO_PEEK_TILE_END === */
 
 
 
         // ### PATCH 4: Farm Helper Functions (Phase 3B)
         function agroUpdateTop4(idx, agent, val) {
             if(!AGRO) return;
-            /* === BUILDER_BLOCK: HS_AGRO_TOP4_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_TOP4_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_TOP4_REPIDX
+   === */
             idx = agroRepIdxFromTileIdx(idx);
-            /* === BUILDER_BLOCK: HS_AGRO_TOP4_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_TOP4_REPIDX_END === */
             
             // Read current state
             let r0 = AGRO.topRef0[idx], v0 = AGRO.topVal0[idx];
@@ -4603,12 +4627,18 @@ function agroPeekTile(a, b) {
         }
 
         //#region ========== HS_AGRO_HARVEST ==========
-        /* === BUILDER_BLOCK: HS_AGRO_HARVEST_START === */
+        /* === BUILDER_BLOCK: AGRO_HARVEST_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_HARVEST
+   === */
 function agroHarvestTileIfReady(idx) {
             if (!AGRO) return;
-            /* === BUILDER_BLOCK: HS_AGRO_HARVEST_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_HARVEST_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_HARVEST_REPIDX
+   === */
             idx = agroRepIdxFromTileIdx(idx);
-            /* === BUILDER_BLOCK: HS_AGRO_HARVEST_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_HARVEST_REPIDX_END === */
             const crop = AGRO.crop[idx];
             if (crop < 1.0 - 1e-6) return;
             if (AGRO.harvestTick[idx] === simulatedTicks) return;
@@ -4653,7 +4683,10 @@ function agroHarvestTileIfReady(idx) {
                 });
                 
 
-                /* === BUILDER_BLOCK: HS_AGRO_HARVEST_FARMDROP_START === */
+                /* === BUILDER_BLOCK: AGRO_HARVEST_FARMDROP_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_HARVEST_FARMDROP
+   === */
 // Phase 5: drop FARM foods on successful harvest (after direct payout)
 // v2b: base=2 + farmsuit chance(+1) + seed bonus(+1 fixed +1 chance), and next-tick foodGrid rebuild (via _foodDirtyNextTick).
 {
@@ -4707,7 +4740,7 @@ function agroHarvestTileIfReady(idx) {
         }
     }
 }
-/* === BUILDER_BLOCK: HS_AGRO_HARVEST_FARMDROP_END === */
+/* === BUILDER_BLOCK: AGRO_HARVEST_FARMDROP_END === */
 
                 if(Math.random() < 0.05) logEvent(`농사 수확: ${n}명 참여, 총 ${(E_total/100).toFixed(0)}*100 에너지`, 'event');
             }
@@ -4724,7 +4757,7 @@ function agroHarvestTileIfReady(idx) {
             // Update lastTick to prevent immediate decay logic issues if any
             agroTouchTileLazy(idx, simulatedTicks);
         }
-/* === BUILDER_BLOCK: HS_AGRO_HARVEST_END === */
+/* === BUILDER_BLOCK: AGRO_HARVEST_END === */
 //#endregion
 
         /* === BUILDER_BLOCK: AGRO_FARM_WORK_TICK_START ===
@@ -4735,10 +4768,13 @@ function agroHarvestTileIfReady(idx) {
         function agroFarmWorkTick(agent, idx) {
             if(!AGRO || idx < 0) return;
 
-            /* === BUILDER_BLOCK: HS_AGRO_WORK_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_WORK_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_WORK_REPIDX
+   === */
             const idxRaw = idx;
             idx = agroRepIdxFromTileIdx(idxRaw);
-            /* === BUILDER_BLOCK: HS_AGRO_WORK_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_WORK_REPIDX_END === */
             
             // 1. Lazy update first (catch up idle time)
             agroTouchTileLazy(idx, simulatedTicks);
@@ -5089,7 +5125,10 @@ const idxOf = (x, y) => y * cols + x;
 
 const landCount = landIndices.length;
             if (landCount > 100) {
-                /* === BUILDER_BLOCK: HS_INITAGRO_FARMBUILD_BLOCKS_START === */
+                /* === BUILDER_BLOCK: AGRO_FARM_BUILD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_INITAGRO_FARMBUILD_BLOCKS
+   === */
                 // Build 2x2 (60x60) land-only candidate blocks (exclude any sea tile)
                 const blockScores = [];
                 const blockScoreMap = new Float32Array(cols * rows).fill(-1);
@@ -5238,7 +5277,7 @@ const landCount = landIndices.length;
                 for (let sepB of sepsBlocks) {
                     if (tryBuildBlocks(sepB)) break;
                 }
-                /* === BUILDER_BLOCK: HS_INITAGRO_FARMBUILD_BLOCKS_END === */
+                /* === BUILDER_BLOCK: AGRO_FARM_BUILD_END === */
             }
 
             // ### PATCH B: Init Tile State & Calculate FarmSuit (Phase 3A)
@@ -5264,7 +5303,10 @@ const landCount = landIndices.length;
             AGRO.topVal2 = new Float32Array(cols * rows);
             AGRO.topVal3 = new Float32Array(cols * rows);
 
-            /* === BUILDER_BLOCK: HS_INITAGRO_FARMSUIT_BLOCKS_START === */
+            /* === BUILDER_BLOCK: AGRO_FARM_SUIT_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_INITAGRO_FARMSUIT_BLOCKS
+   === */
             let minS = Infinity, maxS = -Infinity;
             const rawBlock = new Float32Array(cols * rows);
 
@@ -5315,7 +5357,7 @@ if (!AGRO.repStage || AGRO.repStage.length !== (cols * rows)) {
 AGRO.repStage.fill(0);
 AGRO.repSeedMode.fill(0);
 AGRO.repLastSeedTick.fill(-1);
-            /* === BUILDER_BLOCK: HS_INITAGRO_FARMSUIT_BLOCKS_END === */
+            /* === BUILDER_BLOCK: AGRO_FARM_SUIT_END === */
         }
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_END === */
 
@@ -7707,7 +7749,10 @@ function _natAreaScale() {
 
 /* === BUILDER_BLOCK: SIM_GLOBALS_POST_GAIA_ENV30_END === */
 
-/* === BUILDER_BLOCK: HS_19_CLAMOR_CORE_ADD_START === */
+/* === BUILDER_BLOCK: SOCIAL_CLAMOR_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_19_CLAMOR_CORE_ADD
+   === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  */
@@ -8031,7 +8076,7 @@ function _fillHearingSensors(agent, sensors) {
 }
 
 // [TS_PATCH 26.41] _clamorShoutLegacyRemoved removed (was clamor immediate write).
-/* === BUILDER_BLOCK: HS_19_CLAMOR_CORE_ADD_END === */
+/* === BUILDER_BLOCK: SOCIAL_CLAMOR_CORE_END === */
 
 // [TS_PATCH 26.45] Shout enqueue is unified: SWEEP emits events; COMMIT writes clamor.
 const TS_CL_VOICE_EVENTS = []; // {x,y,amp}
@@ -8093,14 +8138,17 @@ function TS_solSkipReset(){
    [PATCH RECORD]
    - 26.24 (CM): addblock agent grid core (clamor/query excluded)
    === */
-        /* === BUILDER_BLOCK: HS_18_7_GLOBALS_START === */
+        /* === BUILDER_BLOCK: AGENT_GRID_GLOBALS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_18_7_GLOBALS
+   === */
         // [Optimization] AgentGrid 재사용을 위한 더블 버퍼 및 배열 풀
         let _agentGridBuf0 = null;
         let _agentGridBuf1 = null;
         const _agentCellPool = [];
         const _AGENT_CELL_POOL_MAX = 8192; // 풀 개수 상한
         const _AGENT_CELL_CAP_LIMIT = 128; // 비만 배열 방지(직전 사용량 컷)
-        /* === BUILDER_BLOCK: HS_18_7_GLOBALS_END === */
+        /* === BUILDER_BLOCK: AGENT_GRID_GLOBALS_END === */
 
 
         class AgentGrid1D {
@@ -8117,7 +8165,10 @@ function TS_solSkipReset(){
             set(id, v) { this.cells[id] = v; }
         }
 
-                /* === BUILDER_BLOCK: HS_18_7_BUILD_FUNC_REPLACE_START === */
+                /* === BUILDER_BLOCK: AGENT_GRID_BUILD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_18_7_BUILD_FUNC_REPLACE
+   === */
         function _buildAgentGrid(agents) {
             _ensureAgentGridDims();
             const cols = AGENT_GRID_COLS, rows = AGENT_GRID_ROWS;
@@ -8192,7 +8243,7 @@ function TS_solSkipReset(){
 
             return grid;
         }
-        /* === BUILDER_BLOCK: HS_18_7_BUILD_FUNC_REPLACE_END === */
+        /* === BUILDER_BLOCK: AGENT_GRID_BUILD_END === */
 function _forNeighborAgentCells(ax, ay, fn) {
   _ensureAgentGridDims();
   const cols = AGENT_GRID_COLS, rows = AGENT_GRID_ROWS;
@@ -9079,7 +9130,10 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
    [PATCH RECORD]
    - 26.24 (CM): elevate HS_QUERY_API as standalone grid query API
    === */
-        /* === BUILDER_BLOCK: HS_QUERY_API_START === */
+        /* === BUILDER_BLOCK: AGENT_QUERY_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_QUERY_API
+   === */
         // HS-2: Query API (non-alloc convenience wrappers; keep small & frozen)
         EvoSim.query = EvoSim.query || Object.freeze({
             forEachFoodCell(foodGrid, x, y, cbArr) {
@@ -9111,7 +9165,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
                 });
             },
         });
-/* === BUILDER_BLOCK: HS_QUERY_API_END === */
+/* === BUILDER_BLOCK: AGENT_QUERY_CORE_END === */
 
 /* === BUILDER_BLOCK: GRID_QUERY_API_END === */
         //#endregion
@@ -9123,7 +9177,10 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
   _forCellsInRadiusCore(ax, ay, radius, AGENT_CELL, cols, rows, fn);
 }
 
-                /* === BUILDER_BLOCK: HS_18_7_ADD_AGENT_REPLACE_START === */
+                /* === BUILDER_BLOCK: AGENT_GRID_ADD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_18_7_ADD_AGENT_REPLACE
+   === */
         function _addAgentToGrid(grid, idx, a) {
             if (!a || a.dead) return;
             _ensureAgentGridDims();
@@ -9146,7 +9203,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
             }
             arr.push((a.uid|0));
         }
-        /* === BUILDER_BLOCK: HS_18_7_ADD_AGENT_REPLACE_END === */
+        /* === BUILDER_BLOCK: AGENT_GRID_ADD_END === */
 /* === BUILDER_BLOCK: GRIDDBG_HELPERS_START ===
    [PATCH RECORD]
    - 26.24 (CM): addblock grid debug helpers
@@ -9241,14 +9298,17 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
         }
 
 
-        /* === BUILDER_BLOCK: HS_A2_HERBGRID_GLOBALS_START === */
+        /* === BUILDER_BLOCK: HERB_GRID_GLOBALS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A2_HERBGRID_GLOBALS
+   === */
         // [Optimization] HerbGrid 재사용(더블 버퍼 + 배열 풀)
         let _herbGridBuf0 = null;
         let _herbGridBuf1 = null;
         const _herbCellPool = [];
         const _HERB_CELL_POOL_MAX = 8192;  // 풀 개수 상한
         const _HERB_CELL_CAP_LIMIT = 128;  // 비만 배열 방지(직전 사용량 컷)
-        /* === BUILDER_BLOCK: HS_A2_HERBGRID_GLOBALS_END === */
+        /* === BUILDER_BLOCK: HERB_GRID_GLOBALS_END === */
 
         class HerbGrid1D {
             constructor(cols, rows) {
@@ -9269,7 +9329,10 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
             return cy * HERB_GRID_COLS + cx;
         }
 
-        /* === BUILDER_BLOCK: HS_A2_BUILD_HERBGRID_REPLACE_START === */
+        /* === BUILDER_BLOCK: HERB_GRID_BUILD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A2_BUILD_HERBGRID_REPLACE
+   === */
         function _buildHerbivoreGrid(list) {
           _ensureHerbGridDims();
           const cols = HERB_GRID_COLS, rows = HERB_GRID_ROWS;
@@ -9326,7 +9389,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
 
           return grid;
         }
-        /* === BUILDER_BLOCK: HS_A2_BUILD_HERBGRID_REPLACE_END === */
+        /* === BUILDER_BLOCK: HERB_GRID_BUILD_END === */
 
 
         function _forNeighborHerbCells(ax, ay, fn) {
@@ -11470,7 +11533,10 @@ this.stats.totalAggro += this.aggression;
             //#region ========== HS_AGENT_UPDATE ==========
             /* === BUILDER_BLOCK: UI_NAV_ROUTING_END === */
             //#endregion
-            /* === BUILDER_BLOCK: HS_AGENT_UPDATE_START === */
+            /* === BUILDER_BLOCK: UI_AGENT_UPDATE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGENT_UPDATE
+   === */
 update() {
                 if(this.dead) return;
 
@@ -11568,7 +11634,7 @@ let force = new Vec2(cosA, sinA);
 
 
 
-/* === BUILDER_BLOCK: HS_AGENT_UPDATE_END === */
+/* === BUILDER_BLOCK: UI_AGENT_UPDATE_END === */
 //#endregion
 
             draw(ctx, isSelected) {
@@ -12503,7 +12569,10 @@ const uiEra = document.getElementById('disp-era');
         const inspectorContent = document.getElementById('inspector-content');
         const brainOutputsEl = document.getElementById('brain-outputs');
         
-                /* === BUILDER_BLOCK: HS_A3_POP_RING_REPLACE_START === */
+                /* === BUILDER_BLOCK: POP_RING_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_POP_RING_REPLACE
+   === */
         const popGraphCanvas = document.getElementById('popGraphCanvas');
         const popGraphCtx = popGraphCanvas.getContext('2d');
         const MAX_HISTORY_LEN = 150;
@@ -12581,13 +12650,16 @@ const uiEra = document.getElementById('disp-era');
           popGraphCtx.fillText(last, w - 2, h / 2);
         }
 
-        /* === BUILDER_BLOCK: HS_FITTER_P1_2_POP_SAMPLE_START === */
+        /* === BUILDER_BLOCK: POP_SAMPLE_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_2_POP_SAMPLE
+   === */
         function _samplePopHistory500(){
           // collect only (no draw)
           try { _popHistPush(agents.length); } catch(_) {}
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P1_2_POP_SAMPLE_END === */
-        /* === BUILDER_BLOCK: HS_A3_POP_RING_REPLACE_END === */
+        /* === BUILDER_BLOCK: POP_SAMPLE_CORE_END === */
+        /* === BUILDER_BLOCK: POP_RING_CORE_END === */
 
 
         function resize() {
@@ -14840,7 +14912,10 @@ if (d2 < COLLIDE_R2) {
         }
 
         
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_INPUT_BINDINGS_START === */
+        /* === BUILDER_BLOCK: UI_INPUT_BINDINGS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_INPUT_BINDINGS
+   === */
         /* (INPUT BINDINGS REGION) DOM listeners only */
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -14852,7 +14927,10 @@ if (d2 < COLLIDE_R2) {
         
         // --- Debug hotkeys (Grid Overlay) ---
         //#region ========== HS_HOTKEYS ==========
-        /* === BUILDER_BLOCK: HS_HOTKEYS_START === */
+        /* === BUILDER_BLOCK: UI_HOTKEYS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_HOTKEYS
+   === */
 window.addEventListener('keydown', (e) => {
             const ae = document.activeElement;
             if (ae) {
@@ -14976,7 +15054,10 @@ else if (e.code === 'Digit1') {
 if (e.code === 'KeyG') { GRIDDBG.enabled = !GRIDDBG.enabled; }
             else if (e.code === 'KeyN') { GRIDDBG.showNeighbors = !GRIDDBG.showNeighbors; }
             else if (e.code === 'KeyR') { GRIDDBG.showRadius = !GRIDDBG.showRadius; }
-            /* === BUILDER_BLOCK: HS_A3_KEYP_REPLACE_START === */
+            /* === BUILDER_BLOCK: UI_HOTKEYS_KEYP_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_KEYP_REPLACE
+   === */
             // KeyP: mini-profiler toggle (single command)
             else if (e.code === 'KeyP') {
               try {
@@ -14993,9 +15074,9 @@ if (e.code === 'KeyG') { GRIDDBG.enabled = !GRIDDBG.enabled; }
               } catch(_) {}
               return;
             }
-            /* === BUILDER_BLOCK: HS_A3_KEYP_REPLACE_END === */
+            /* === BUILDER_BLOCK: UI_HOTKEYS_KEYP_END === */
         }, { capture: true });
-/* === BUILDER_BLOCK: HS_HOTKEYS_END === */
+/* === BUILDER_BLOCK: UI_HOTKEYS_END === */
 //#endregion
 
         // [Patch] Clear Shift-hover agro preview when Shift is released (even if mouse doesn't move)
@@ -15141,7 +15222,7 @@ isDragging = true;
         // [Patch] Safety: if touch ends outside canvas, stop dragging
         window.addEventListener('touchend', () => { isDragging = false; });
 
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_INPUT_BINDINGS_END === */
+        /* === BUILDER_BLOCK: UI_INPUT_BINDINGS_END === */
         document.getElementById('era-btn').addEventListener('click', () => {
             const btn = document.getElementById('era-btn');
                         /* === BUILDER_BLOCK: ERA_BTN_SURNAME_AUTO_WIRE_START === */
@@ -15347,7 +15428,10 @@ _setTextIfChanged(uiPredCount, predators.length);
              _setTextIfChanged(uiLife, cachedUiLifeText);
 
              if (uiFarmObsMini) {
-                /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_START === */
+                /* === BUILDER_BLOCK: UI_FARM_OBS_BLOCKVIEW_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FARM_OBS_MINI_BLOCKVIEW
+   === */
                 if (!uiFarmObsMini.__localeRows) {
                     const mkSubRow = (k) => {
                         const row = document.createElement('div');
@@ -15497,7 +15581,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     }
                     _setTextIfChanged(rows.hint, 'Shift+클릭 타일');
                 }
-                /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_END === */
+                /* === BUILDER_BLOCK: UI_FARM_OBS_BLOCKVIEW_END === */
             }
             }
 
@@ -15520,7 +15604,10 @@ _setTextIfChanged(uiPredCount, predators.length);
             }
         }
 
-        /* === BUILDER_BLOCK: HS_BRAIN_THROTTLE_HELPER_START === */
+        /* === BUILDER_BLOCK: SIM_BRAIN_THROTTLE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_BRAIN_THROTTLE_HELPER
+   === */
         let _brainLastDrawMs = 0;
         let _brainLastUid = -1;
         let _brainLastSig = 0;
@@ -15557,7 +15644,7 @@ _setTextIfChanged(uiPredCount, predators.length);
           _brainLastDrawMs = now;
           drawBrain(ctx, agent.brain);
         }
-        /* === BUILDER_BLOCK: HS_BRAIN_THROTTLE_HELPER_END === */
+        /* === BUILDER_BLOCK: SIM_BRAIN_THROTTLE_END === */
 
         /* === BUILDER_BLOCK: UI_INSPECTOR_PANEL_UPDATE_START ===
    [PATCH RECORD]
@@ -15887,7 +15974,10 @@ function updateHistoryPanelUI(){
         }
 
 
-        /* === BUILDER_BLOCK: HS_A3_DEV_PERF_API_START === */
+        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_DEV_PERF_API
+   === */
         (function(){
           const root = (typeof window !== 'undefined') ? window : globalThis;
           root.DEV = root.DEV || {};
@@ -15932,7 +16022,7 @@ function updateHistoryPanelUI(){
             }
           } catch(_) {}
         })();
-        /* === BUILDER_BLOCK: HS_A3_DEV_PERF_API_END === */
+        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_END === */
 
         // --- Bench Mode (30s) ---
         let _bench_running = false;
@@ -15952,7 +16042,10 @@ function updateHistoryPanelUI(){
         let _bench_birth1 = 0, _bench_death1 = 0, _bench_influx1 = 0;
 
         // --- Render-only (used while paused to allow zoom/pan without sim stepping) ---
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_RENDER_LOOP_START === */
+        /* === BUILDER_BLOCK: RENDER_LOOP_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_RENDER_LOOP
+   === */
         /* (RENDER ONLY REGION) must be draw-only */
 
         // [ATLAS-9K] Overview LOD state (hysteresis; draw-only)
@@ -16206,13 +16299,16 @@ if (GRIDDBG.enabled && selectedAgent) {
             
             if (doMeasure) _mp_render += (performance.now() - __tRender);
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_RENDER_LOOP_END === */
+        /* === BUILDER_BLOCK: RENDER_LOOP_CORE_END === */
 
 
 
 
 /* === BUILDER_BLOCK: HS_PHASE1_HELPERS_START === */
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_SIM_LOOP_START === */
+/* === BUILDER_BLOCK: SIM_LOOP_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_SIM_LOOP
+   === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  */
@@ -16387,13 +16483,16 @@ function _simStepWhileAccumulated(dt, time) {
       // v26.02: World.Pre food TTL compact (gated internally; ok to call each tick)
       _compactFoodsIfNeeded();
 
-/* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_START === */
+/* === BUILDER_BLOCK: SIM_LOOP_DECAY_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_19_SIMLOOP_DECAY_INSERT
+   === */
 try {
   if (_clamorComFast && _clamorHotN > 0 && (simulatedTicks % CLAMOR_DECAY_PERIOD_TICKS === 0)) {
     _clamorDecayTick(simulatedTicks);
   }
 } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_END === */
+/* === BUILDER_BLOCK: SIM_LOOP_DECAY_END === */
 
       /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_START === */
       // Selected tile: keep agro stats fresh at low frequency (moved from UI update)
@@ -16901,7 +17000,7 @@ if (
       _perf_frames = 0; _perf_ticks = 0; _perf_simTime = 0; _perf_long = 0;
   }
 }
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_SIM_LOOP_END === */
+/* === BUILDER_BLOCK: SIM_LOOP_CORE_END === */
 
 
 function _postFrameCameraFollow() {
@@ -17106,10 +17205,12 @@ function _e2i_onPredAdded(idx) {
 
 /* === BUILDER_BLOCK: HS_PHASE1_HELPERS_END === */
 
-/* === BUILDER_BLOCK: HS_RAF_SINGLETON_21_1_START ===
+/* === BUILDER_BLOCK: SIM_RAF_SINGLETON_START ===
    v21.1: RAF loop singleton guard + stop support (prevents stacked RAF chains on restart/End World)
    - __evoRafKick(): start only once
    - __evoRafStop(): cancel pending frame + prevent re-scheduling
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_RAF_SINGLETON_21_1
 === */
 let __evoRafId = 0;
 let __evoRafRunning = false;
@@ -17137,11 +17238,13 @@ function __evoRafStop(){
     }catch(e){}
     __evoRafId = 0;
 }
-/* === BUILDER_BLOCK: HS_RAF_SINGLETON_21_1_END === */
+/* === BUILDER_BLOCK: SIM_RAF_SINGLETON_END === */
 
-/* === BUILDER_BLOCK: HS_DISPOSE_WORLD_21_1_START ===
+/* === BUILDER_BLOCK: SIM_DISPOSE_WORLD_START ===
    v21.1: World dispose hook (End World) — clears large references & caches, stops RAF.
    NOTE: defensive try/catch used intentionally (dispose is rare; avoids hard crashes).
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_DISPOSE_WORLD_21_1
 === */
 (function __installDisposeWorld21_1(){
     try{
@@ -17202,7 +17305,7 @@ function __evoRafStop(){
         EvoSim.sim.disposeWorld.__evo_v21_1 = true;
     }catch(e){}
 })();
- /* === BUILDER_BLOCK: HS_DISPOSE_WORLD_21_1_END === */
+ /* === BUILDER_BLOCK: SIM_DISPOSE_WORLD_END === */
 
 function animate(time) {
             if (!__evoRafRunning) return;
@@ -17233,7 +17336,10 @@ function animate(time) {
 
 /* --- SoftMod: runtime hooks & state bridges (no behavior change) --- */
 //#region ========== HS_MONITOR_CORE ==========
-/* === BUILDER_BLOCK: HS_MONITOR_CORE_START === */
+/* === BUILDER_BLOCK: UI_MONITOR_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_MONITOR_CORE
+   === */
 /* HS-1: Gate/Non-gate occurrence monitor (NO behavior change)
    - Purpose: HS-1~HS-4에서 "행위 발생여부"만 검증 가능하도록, 핵심 상호작용 발생 여부를 누적 기록.
    - Gate(중단 기준): eat, hunt, retal, push, combat, share, repro, pred_to_human, human_to_pred
@@ -17840,7 +17946,7 @@ gate_push: (hs && hs.gate && hs.gate.push) ? (hs.gate.push|0) : 0,
   }catch(e){ try{ console.warn("[SAFESET-1] init failed", e); }catch(_){ } }
 })();
 
-/* === BUILDER_BLOCK: HS_MONITOR_CORE_END === */
+/* === BUILDER_BLOCK: UI_MONITOR_CORE_END === */
 //#endregion
 
 // Lazy entity getters (avoid copying arrays)

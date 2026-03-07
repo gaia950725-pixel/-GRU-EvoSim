@@ -11,6 +11,13 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.21 — builder block refactor (mid)
+- Change: Phase 3-A 실행 — HS_ 접두사 유물 블록 36개를 서브시스템 귀속 명칭으로 rename. 각 START 마커에 `[PATCH RECORD] - 27.21 (builder block refactor): renamed from HS_<원본명>` 한 줄 삽입.
+- Change: 23개 보류 (HS_COLLISION_LOOP 분할 선결, UI_NAV_/UITICK 클러스터 내용 검증 후 처리, 청사진 미등록 2건 포함). 보류 원인표는 실행보고 참조.
+- Why: HS_ 임시패치 접두사를 제거하고 서브시스템 경계를 블록명에 직접 반영하기 위함.
+- Impact: BUILDER_BLOCK 가독성 및 모듈 귀속 추적성 향상. 코드 동작 변경 없음(마커+주석만 수정).
+- Verify: grep "BUILDER_BLOCK: HS_" index.html 결과 23개 (보류/유지/미등록 합산)만 남아야 함.
+
 ### 27.20 — Hard module base FINAL (mid)
 - Change: `index.html` GAP-C/B/H 구간에 BUILDER_BLOCK 12쌍을 삽입(`AGENT_DRAW_TAIL`, `PREDATOR_CLASS_CORE`, `SOLITARY_ACTION_HELPERS`, `HERBIVORE_CLASS_CORE`, `CANVAS_CONTEXT_INIT`, `UI_STARTUP_CONTROLS_INIT` + 5개 서브블록, `UI_DRAWERS_STEP1_INIT`).
 - Change: Step1 IIFE 내부 중복 마커를 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`로 개명하고 Rev31 경로 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`는 유지했다.
