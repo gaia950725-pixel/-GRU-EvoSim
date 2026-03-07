@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.22 builder block refactor 3B-1</title>
+    <title>EvoSim 27.23 builder block refactor 3B-2</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -10506,7 +10506,10 @@ CFG.crisisRecoverSpeed = getCrisisRecoverSpeedFromUI();
                 cachedHerbGrid = null; // let animate rebuild from current herbivores
                 cachedPredGrid = null; // Patch PREDGRID: rebuild from current predators
                 try { if (typeof logEvent === "function") logEvent("Cache reset: food/agent/herb grids", "debug"); } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_CLAMOR_RESET_ON_START_INSERT_START === */
+/* === BUILDER_BLOCK: UI_NAV_CLAMOR_RESET_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_19_CLAMOR_RESET_ON_START_INSERT
+   === */
 try {
   // world dims are set before this block; allocate/resize if needed then clear
   _ensureClamorGridDims();
@@ -10528,14 +10531,17 @@ try {
     if (typeof window.__evoRebuildClanStrokeCache === 'function') window.__evoRebuildClanStrokeCache();
   }
 } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_CLAMOR_RESET_ON_START_INSERT_END === */
+/* === BUILDER_BLOCK: UI_NAV_CLAMOR_RESET_END === */
 
 
                 ERA = 'PALEOLITHIC'; 
-                /* === BUILDER_BLOCK: HS_A3_POP_RESET_REPLACE_START === */
+                /* === BUILDER_BLOCK: UI_NAV_POP_RESET_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_A3_POP_RESET_REPLACE
+   === */
                 // 기존: popHistory = [];
                 _popHistReset();
-                /* === BUILDER_BLOCK: HS_A3_POP_RESET_REPLACE_END === */
+                /* === BUILDER_BLOCK: UI_NAV_POP_RESET_END === */
 document.getElementById('disp-era').textContent = "구석기";
                 document.getElementById('disp-era').style.color = '#eee';
                 
@@ -10872,7 +10878,10 @@ document.getElementById('disp-era').textContent = "구석기";
         }
 
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PATH2D_CACHE_START === */
+/* === BUILDER_BLOCK: RENDER_PATH2D_CACHE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_PATH2D_CACHE; UI_NAV_→RENDER_ 귀속 수정(M11)
+   === */
 const _P_AGENT_TRI = (typeof Path2D !== 'undefined') ? new Path2D() : null;
 if (_P_AGENT_TRI) {
   _P_AGENT_TRI.moveTo(8, 0);
@@ -10880,7 +10889,7 @@ if (_P_AGENT_TRI) {
   _P_AGENT_TRI.lineTo(-5, -5);
   _P_AGENT_TRI.closePath();
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PATH2D_CACHE_END === */
+/* === BUILDER_BLOCK: RENDER_PATH2D_CACHE_END === */
 
 class Agent {
             constructor(x, y, brain) {
@@ -10939,9 +10948,12 @@ this.color = CFG.clans[0];
                     gainHuntDropE: 0,
                     gainHuntDirectE: 0,
                     gainFarmDirectE: 0,
-                    /* === BUILDER_BLOCK: HS_STATS_FARM_DROP_INIT_START === */
+                    /* === BUILDER_BLOCK: AGENT_STATS_FARMDROP_INIT_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_STATS_FARM_DROP_INIT; UI_NAV_→AGENT_ 귀속 수정
+   === */
                     gainFarmDropE: 0,
-                    /* === BUILDER_BLOCK: HS_STATS_FARM_DROP_INIT_END === */
+                    /* === BUILDER_BLOCK: AGENT_STATS_FARMDROP_INIT_END === */
                     shareGiveCount: 0,
                     shareGiveEnergy: 0,
                     shareRecvCount: 0,
@@ -11146,7 +11158,10 @@ return;
                             else if (signal > foodR2) { foodR2 = signal; }
                         }
                     
-                /* === BUILDER_BLOCK: HS_AGGVIZ_UPDATE_MOVED_START === */
+                /* === BUILDER_BLOCK: AGENT_AGGVIZ_UPDATE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_AGGVIZ_UPDATE_MOVED; UI_NAV_→AGENT_ 귀속 수정
+   === */
                 // moved from draw(): keep aggression viz hysteresis updated in update path only (viz only; gameplay unchanged)
                 if (!this.dead) {
                   if (this._aggViz == null) this._aggViz = 0;
@@ -11166,7 +11181,7 @@ return;
                     if (a >= 0.72) this._aggViz = 1;
                   }
                 }
-                /* === BUILDER_BLOCK: HS_AGGVIZ_UPDATE_MOVED_END === */
+                /* === BUILDER_BLOCK: AGENT_AGGVIZ_UPDATE_END === */
 
 } else if (type === 'THREAT') {
                         if (inOverlap || isLeft) {
@@ -11751,7 +11766,10 @@ let force = new Vec2(cosA, sinA);
 
                 // Draw agent triangle (unchanged geometry)
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_START === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TRI_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_AGENT_TRI_REPLACE; UI_AGENT_→AGENT_DRAW_ 귀속 수정(M11)
+   === */
 if (_P_AGENT_TRI) {
     ctx.fill(_P_AGENT_TRI);
     ctx.stroke(_P_AGENT_TRI);
@@ -11778,7 +11796,7 @@ if (_P_AGENT_TRI) {
                     ctx.restore();
                 }
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_END === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TRI_END === */
 /* === BUILDER_BLOCK: AGENT_DRAW_TAIL_START === */
 
                 // Charcoal tribe halo (1px ivory outline) [disabled; replaced by cached contrast outline]
@@ -13661,12 +13679,15 @@ function updateHerbivorePacks(dtTicks = 1) {
         function renderLogs(nowMs) {
             if (!_logsDirty) return;
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_RENDERLOGS_GUARD_START === */
+/* === BUILDER_BLOCK: SPAWN_RENDERLOGS_GUARD_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_RENDERLOGS_GUARD
+   === */
 // DOM-only work: skip if history drawer / log view isn't visible (data accumulation must remain elsewhere)
 if (!document.body.classList.contains('drawer-right-open')) return;
 if (!_isPanelBodyVisible('history-panel')) return;
 if (logContainer && logContainer.getClientRects && logContainer.getClientRects().length === 0) return;
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_RENDERLOGS_GUARD_END === */
+/* === BUILDER_BLOCK: SPAWN_RENDERLOGS_GUARD_END === */
 
             if (nowMs - _lastLogUIAt < LOG_UI_INTERVAL_MS) return;
             _lastLogUIAt = nowMs;
@@ -15814,10 +15835,19 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
 
         /* === BUILDER_BLOCK: UI_INSPECTOR_PANEL_UPDATE_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_START === */
+/* === BUILDER_BLOCK: UI_UITICK_REGION_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P4_1_UITICK_REGION; SIM_→UI_ 접두사 수정
+   === */
         /* (UI TICKS REGION) uiTick200/uiTick500 routers */
-        /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_START === */
-        /* === BUILDER_BLOCK: HS_FITTER_P1_4_UITICK500_ROUTER_START === */
+        /* === BUILDER_BLOCK: UI_UITICK_WRAPPERS_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_UITICK_WRAPPERS; SIM_→UI_ 접두사 수정
+   === */
+        /* === BUILDER_BLOCK: UI_UITICK500_ROUTER_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_4_UITICK500_ROUTER; SIM_→UI_ 접두사 수정
+   === */
         function _uiTick500() {
           if (paused) return;
 
@@ -15833,13 +15863,13 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
           const rightOn = document.body.classList.contains('drawer-right-open');
           if (rightOn) updateHistoryPanelUI();
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P1_4_UITICK500_ROUTER_END === */
+        /* === BUILDER_BLOCK: UI_UITICK500_ROUTER_END === */
         function _uiTick200() {
           if (paused) return;
           updateInspectorPanel();
         }
-        /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_END === */
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_END === */
+        /* === BUILDER_BLOCK: UI_UITICK_WRAPPERS_END === */
+        /* === BUILDER_BLOCK: UI_UITICK_REGION_END === */
 
 /* === BUILDER_BLOCK: UI_PANEL_VISIBLE_START
    [PATCH RECORD]
@@ -18023,7 +18053,10 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 
 
 
-/* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_START === */
+/* === BUILDER_BLOCK: JS_CORE_API_FACADE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P3_1_CORE_API; UI_→JS_ 귀속 수정(JS_TOP 전역 facade)
+   === */
 (function(){
   try{
     window.EvoSim = window.EvoSim || {};
@@ -18054,7 +18087,7 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
     };
   }catch(_){}
 })();
-/* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_END === */
+/* === BUILDER_BLOCK: JS_CORE_API_FACADE_END === */
 
 /* === BUILDER_BLOCK: UI_DRAWERS_STEP1_INIT_START === */
 /* === UI DRAWERS: Step1 ==================================================
