@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.21 builder block refactor</title>
+    <title>EvoSim 27.22 builder block refactor 3B-1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -14540,12 +14540,15 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                 }
                 if (a.stats && __dE > 0) {
                     if (__fs === FOOD_SRC_HUNT) a.stats.gainHuntDropE += __dE;
-                    /* === BUILDER_BLOCK: HS_APPLYEAT_FARM_DROP_STATS_START === */
+                    /* === BUILDER_BLOCK: SIM_APPLYEAT_FARMDROP_STAT_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_APPLYEAT_FARM_DROP_STATS
+   === */
                     else if (__fs === FOOD_SRC_FARM) {
                         // Phase 5: FARM food drop energy tracked separately
                         a.stats.gainFarmDropE = (a.stats.gainFarmDropE || 0) + __dE;
                     }
-                    /* === BUILDER_BLOCK: HS_APPLYEAT_FARM_DROP_STATS_END === */
+                    /* === BUILDER_BLOCK: SIM_APPLYEAT_FARMDROP_STAT_END === */
                     else a.stats.gainNatE += __dE;
                     // gatherCount: NAT food consumption count (only when dE>0)
                     if (__fs !== FOOD_SRC_HUNT && __fs !== FOOD_SRC_FARM) {
@@ -14576,10 +14579,13 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                     });
                 }
 
-                /* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_START === */
+                /* === BUILDER_BLOCK: SIM_NAT_REGEN_SCALE_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_NAT_AREA_SCALE
+   === */
 const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
 if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
-/* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_END === */
+/* === BUILDER_BLOCK: SIM_NAT_REGEN_SCALE_END === */
             }
             function _hs3_layerHunt(ctx, a) {
                     if (Pred.shouldTryHunt(a)) {
@@ -15835,7 +15841,10 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
         /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_END === */
         /* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PANELVISIBLE_START === */
+/* === BUILDER_BLOCK: UI_PANEL_VISIBLE_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_1_PANELVISIBLE
+   === */
 function _isPanelBodyVisible(panelElOrId){
   const el = (typeof panelElOrId === 'string') ? document.getElementById(panelElOrId) : panelElOrId;
   if (!el) return false;
@@ -15845,9 +15854,12 @@ function _isPanelBodyVisible(panelElOrId){
   if (body.getClientRects && body.getClientRects().length === 0) return false;
   return true;
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PANELVISIBLE_END === */
+/* === BUILDER_BLOCK: UI_PANEL_VISIBLE_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_2_HISTORY_UI_START === */
+/* === BUILDER_BLOCK: UI_HISTORY_PANEL_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_2_HISTORY_UI
+   === */
 function updateHistoryPanelUI(){
   // Right drawer only: keep history independent from left drawer
   if (!document.body.classList.contains('drawer-right-open')) return;
@@ -15863,7 +15875,10 @@ function updateHistoryPanelUI(){
   }
 
   // trend tab only: draw graph only when actually visible
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_HISTORY_DRAW_CONTROL_START === */
+/* === BUILDER_BLOCK: UI_HISTORY_DRAW_CTRL_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_HISTORY_DRAW_CONTROL
+   === */
   // Prefer internal tab state (robust to future DOM restructure); fallback to DOM 'active' class.
   let trendActive = false;
   if (typeof _histChronTab !== 'undefined') {
@@ -15882,12 +15897,12 @@ function updateHistoryPanelUI(){
       try { updatePopGraph(); } catch(_) {}
     }
   }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_HISTORY_DRAW_CONTROL_END === */
+/* === BUILDER_BLOCK: UI_HISTORY_DRAW_CTRL_END === */
 
   // stats detail (cached HTML)
   try { if (typeof cachedStatsHTML !== 'undefined' && statsContainer) _setHTMLIfChanged(statsContainer, cachedStatsHTML); } catch(_) {}
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_2_HISTORY_UI_END === */
+/* === BUILDER_BLOCK: UI_HISTORY_PANEL_END === */
 
 
 
@@ -18358,12 +18373,15 @@ function saveLegacyApprox(){
 
     function toggleLeft(){ __pnrevClearCollapsed(); body.classList.toggle('drawer-left-open'); saveLegacyApprox(); updateOverlay(); }
     function toggleRight(){ __pnrevClearCollapsed(); body.classList.toggle('drawer-right-open'); saveLegacyApprox(); updateOverlay();
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_START === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_TOGGLERIGHT_DIRTY
+   === */
       if (body.classList.contains('drawer-right-open')) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_END === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_END === */
     }
     function toggleInspector(){ __pnrevClearCollapsed(); body.classList.toggle('inspector-hidden'); saveLegacyApprox(); updateOverlay(); }
     function closeAll(){
@@ -18573,7 +18591,10 @@ function saveLegacyApprox(){
               detailBtn.style.pointerEvents = (tab==='trend') ? 'auto' : 'none';
             }
             try{ localStorage.setItem(key, tab); }catch(e){}
-            /* === BUILDER_BLOCK: HS_FITTER_P1_3_TREND_TAB_DIRTY_START === */
+            /* === BUILDER_BLOCK: UI_DRAWERS_TREND_TAB_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_TREND_TAB_DIRTY
+   === */
             // Keep internal tab state for future history redesign (no UX change).
             try { if (typeof window.__hsHistory !== 'undefined' && window.__hsHistory.setChronTab) window.__hsHistory.setChronTab(tab); } catch(_) {}
             if (typeof _histChronTab !== 'undefined') _histChronTab = tab;
@@ -18582,7 +18603,7 @@ function saveLegacyApprox(){
               _popGraphDirty = true;
               try { updateHistoryPanelUI(); } catch(_) {}
             }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_TREND_TAB_DIRTY_END === */
+/* === BUILDER_BLOCK: UI_DRAWERS_TREND_TAB_END === */
           }
           btns.forEach(b=>{
             b.addEventListener('click', (ev)=>{
