@@ -1,7 +1,7 @@
 # HARD_MODULE_BLUEPRINT — EvoSim 하드모듈화 청사진
 
-**작성일:** 2026-03-05
-**기준 버전:** v27.20_fix1
+**작성일:** 2026-03-05 / **갱신일:** 2026-03-07
+**기준 버전:** v27.21 (Phase 3-A 실행 후)
 **위치:** `docs/snapshots/longterm-projects/builder-block-refactor/HARD_MODULE_BLUEPRINT.md`
 **연관 문서:**
 - `BUILDER_BLOCK_SNAPSHOT.md` — 블록 전수조사 및 라인번호
@@ -20,7 +20,10 @@
 | Bootstrap | `bootstrap.js` 독립 (레지스트리·이벤트버스는 진입점) |
 | Config 혼재 정리 | `cfg_defaults.js`(순수 설정값) / `ui_config.js`(설정화면 UI) 분리 |
 | Collision 파일 분리 | `sim.js` 내 블록 유지. 명칭은 지금 확정, 파일 분리는 TS패치 후 |
-| HS_ rename | 가능. 블록 내 `[HS-origin: <원래명>]` 주석 한 줄 보존 |
+| HS_ rename | 가능. PATCH RECORD `- 27.21 (builder block refactor): renamed from HS_<원본>` 삽입 |
+| DIRTY 접미사 | 임시 더티플래그 상태를 의미. rename 시 제거 가능 (기능 설명으로 대체) |
+| LEGACY 접미사 | 의도적 레거시 표시. rename 시 코드 내 `// LEGACY: ...` 주석으로 대체 필요 |
+| HTML 형식 블록 | `<!-- BUILDER_BLOCK: ... -->` 형식 블록은 Python 스크립트 자동화 불가 — 수동 Edit 처리 |
 | TS 귀속 주석 | SWEEP/COMMIT 사실만 기재. 이관 목적지 미기재 (정책변경 충돌 방지) |
 | 불일치 판정 기준 C1 | 블록명이 서브시스템 소속을 반영 못함 → Rename |
 | 불일치 판정 기준 C2 | 블록이 2개 이상 서브시스템 코드 포함 → Split 또는 계층화 |
@@ -172,8 +175,10 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | `ATLAS_P1_STATICMAP_CLIP` | → M11 이관 (C3) | Canvas 2D 렌더 파이프라인 확인, render.js 귀속 확정 |
 | `ATLAS_P1_OVERVIEW_CALL` | → M11 이관 (C3) | 내부 호출, render.js 귀속 확정 |
 | `ATLAS_P1_OVERVIEW_FN` | → M11 이관 (C3) | buildOverviewCanvas() 렌더 함수, render.js 귀속 확정 |
-| `HS_A3_POP_RING_REPLACE` | `POP_RING_CORE` | C4 |
-| `HS_FITTER_P1_2_POP_SAMPLE` | `POP_SAMPLE_CORE` | C4, 내부 |
+| `HS_A3_POP_RING_REPLACE` | `POP_RING_CORE` | C4 ✓ 27.21 완료 |
+| `HS_FITTER_P1_2_POP_SAMPLE` | `POP_SAMPLE_CORE` | C4 ✓ 27.21 완료 |
+| `HS_APPLYEAT_FARM_DROP_STATS` | `SIM_APPLYEAT_FARMDROP_STAT` | C4, M10 확정(applyEat 내부 FARM 통계). Phase 3-B 처리 |
+| `HS_NAT_AREA_SCALE` | `SIM_NAT_REGEN_SCALE` | C4, M10 확정(_hs3_layerResource 내 자연식량 재생). Phase 3-B 처리 |
 
 ### M11 — `render.js`
 | 현재 블록명 | 확정 블록명 | 비고 |
@@ -199,17 +204,17 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | `HS_AGENT_UPDATE` | `UI_AGENT_UPDATE` | C4 |
 | `HS_FITTER_P1_1_AGENT_TRI_REPLACE` | `UI_AGENT_TRI_REPLACE` | C4 |
 | `UI_INSPECTOR_PANEL_UPDATE` | 유지 | |
-| `HS_INSPECTOR_SUBST_FARM_DROP_ROW` | `UI_INSPECTOR_FARM_DROP_ROW` | C4, 내부 |
+| `HS_INSPECTOR_SUBST_FARM_DROP_ROW` | `UI_INSPECTOR_FARM_DROP_ROW` | C4, 내부. **HTML 주석 형식** — 수동 처리 필요. Phase 3-B |
 | `UI_SYSTEM_PANELS_UPDATE` (GAP-F) | 유지 | 신설 예정 |
 | `HS_FARM_OBS_MINI_BLOCKVIEW` | `UI_FARM_OBS_BLOCKVIEW` | C4 |
 | `HS_MONITOR_CORE` | `UI_MONITOR_CORE` | C4 |
 | `DEV_CONSOLE_HELPERS` | 유지 | 내부 |
 | `HS_FITTER_P3_1_CORE_API` | `UI_CORE_API` | C4 |
 | `UI_DRAWERS_STEP1_INIT` | 유지 | 27.20 신설 |
-| `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1` | `UI_DRAWERS_TOGGLERIGHT_STEP1` | C4 |
+| `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1` | `UI_DRAWERS_TOGGLERIGHT_STEP1` | C4. LEGACY 제거 시 코드 내 `// LEGACY: Step1 IIFE 경로` 주석 대체 필요. Phase 3-B |
 | `UI_DRAWER_TOGGLES_CORE` | 유지 | |
-| `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | `UI_DRAWERS_TOGGLERIGHT` | C4 |
-| `HS_FITTER_P1_3_TREND_TAB_DIRTY` | `UI_DRAWERS_TREND_TAB` | C4 |
+| `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | `UI_DRAWERS_TOGGLERIGHT` | C4. DIRTY 접미사 = 임시 더티플래그 상태, 제거 가능. Phase 3-B |
+| `HS_FITTER_P1_3_TREND_TAB_DIRTY` | `UI_DRAWERS_TREND_TAB` | C4. DIRTY 접미사 동일. Phase 3-B |
 | `UI_INPUT_COORD_UTILS` (UI_INPUT_WORLD_UTILS 분할 1) | 신설 | C2 분할, clientToWorld() — M12 |
 | `UI_AGRO_HOVER_INPUT` (UI_INPUT_WORLD_UTILS 분할 2) | 신설 | C2 분할, updateAgroHoverFrom*() — M12 |
 | `UI_CHIP_TABS_PNREV_INIT` (GAP-I) | 유지 | 신설 예정 |
@@ -267,3 +272,46 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | `[HS-origin: <원래명>]` | HS_ rename 시 블록 내 주석 | `[HS-origin: HS_COLLISION_LOOP]` |
 | `// TS 귀속: SWEEP/COMMIT` | TS 경계 명시 블록 | `SIM_COLLISION_BIRTH_PEND` |
 | `// depends: <블록명> — needs fix` | TS 전 선결 의존성 | `SIM_COLLISION_PREDATOR` |
+| `// LEGACY: <설명>` | LEGACY 접미사 제거 시 대체 주석 | `// LEGACY: Step1 IIFE 경로` |
+
+---
+
+## 6. Phase 3-A 보류 트래킹 (v27.21 기준 / 23개)
+
+> Phase 3-A에서 실행하지 않은 블록 목록. Phase 3-B 진입 전 참조.
+
+| 블록명 | 확정명 | 보류 이유 | 재검토 조건 |
+|--------|--------|---------|-----------|
+| `HS_COLLISION_LOOP` | `SIM_COLLISION_CORE` | 6개 하위블록 분할 선결. 단순 rename 시 내용-명칭 불일치 | Phase 3-C 분할 실행 후 |
+| `HS_PHASE1_HELPERS` | `SIM_PHASE1_HELPERS` | ISS-05 3분할 권장 — 분할 후 각 조각 명칭 부여 | ISS-05 분할 확정 후 |
+| `HS_FITTER_P4_1_UITICK_REGION` | `SIM_UITICK_REGION` | UITICK 클러스터 3개 동반 처리 필요. SIM vs UI 귀속 경계 확인 | 클러스터 내용 검증 후 |
+| `HS_UITICK_WRAPPERS` | `SIM_UITICK_WRAPPERS` | 위 클러스터 동반 | 동상 |
+| `HS_FITTER_P1_4_UITICK500_ROUTER` | `SIM_UITICK500_ROUTER` | 위 클러스터 동반 | 동상 |
+| `HS_FITTER_P1_1_RENDERLOGS_GUARD` | `SPAWN_RENDERLOGS_GUARD` | SPAWN_ 귀속 확인 필요 | 코드 내용 검증 후 |
+| `HS_19_CLAMOR_RESET_ON_START_INSERT` | `UI_NAV_CLAMOR_RESET` | UI_NAV_ 귀속 내용 미검증 | 코드 확인 후 |
+| `HS_A3_POP_RESET_REPLACE` | `UI_NAV_POP_RESET` | UI_NAV_ 귀속 검증 | 동상 |
+| `HS_FITTER_P1_1_PATH2D_CACHE` | `UI_NAV_PATH2D_CACHE` | UI_NAV_ 귀속 검증 (nav vs render) | 동상 |
+| `HS_STATS_FARM_DROP_INIT` | `UI_NAV_STATS_FARM_INIT` | UI_NAV_ 귀속 검증 | 동상 |
+| `HS_AGGVIZ_UPDATE_MOVED` | `UI_NAV_AGGVIZ_UPDATE` | MOVED 이력 — 현 위치 귀속 재확인 | 동상 |
+| `HS_FITTER_P1_1_AGENT_TRI_REPLACE` | `UI_AGENT_TRI_REPLACE` | M12 vs M11(render) 귀속 경계 확인 | 동상 |
+| `HS_INSPECTOR_SUBST_FARM_DROP_ROW` | `UI_INSPECTOR_FARM_DROP_ROW` | HTML 주석 형식 — 수동 Edit 필요 | Phase 3-B 수동 처리 |
+| `HS_FITTER_P3_1_CORE_API` | `UI_CORE_API` | UI_CORE_API 범위 과도하게 범용적 — 내용 확인 | 코드 확인 후 |
+| `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1` | `UI_DRAWERS_TOGGLERIGHT_STEP1` | LEGACY 제거 시 코드 주석 대체 필요 | 주석 대체 준비 후 |
+| `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | `UI_DRAWERS_TOGGLERIGHT` | DIRTY 접미사 의미 확인 완료(더티플래그), 제거 가능 | Phase 3-B 실행 |
+| `HS_FITTER_P1_3_TREND_TAB_DIRTY` | `UI_DRAWERS_TREND_TAB` | DIRTY 접미사 동일 | Phase 3-B 실행 |
+| `HS_FITTER_P1_2_HISTORY_UI` | `UI_HISTORY_PANEL` | HISTORY_DRAW_CTRL과 클러스터 동반 처리 | 클러스터 동반 |
+| `HS_FITTER_P1_3_HISTORY_DRAW_CONTROL` | `UI_HISTORY_DRAW_CTRL` | 위 클러스터 동반 | 동상 |
+| `HS_FITTER_P1_1_PANELVISIBLE` | `UI_PANEL_VISIBLE` | M12 내부 위치 및 귀속 확인 | 코드 확인 후 |
+| `HS_AGRO_SELECTED_TILE_LAZY_TOUCH` | *(유지)* | 청사진 유지 정책 | — |
+| `HS_APPLYEAT_FARM_DROP_STATS` | `SIM_APPLYEAT_FARMDROP_STAT` | 청사진 미등록 → M10 귀속 확정(27.21 갱신). Phase 3-B 처리 | Phase 3-B |
+| `HS_NAT_AREA_SCALE` | `SIM_NAT_REGEN_SCALE` | 청사진 미등록 → M10 귀속 확정(27.21 갱신). Phase 3-B 처리 | Phase 3-B |
+
+---
+
+## 7. 후속 로드맵
+
+| 단계 | 내용 | 예상 버전 |
+|------|------|---------|
+| Phase 3-B | 보류 22개 rename (UITICK 클러스터, UI_NAV_ 클러스터, DRAWERS, HTML 형식 수동) | v27.22 |
+| Phase 3-C | HS_COLLISION_LOOP → 6개 하위블록 실질 분할 (TS 선결 의존성 조율) | v27.23 |
+| Phase 3-D | ISS-05 HS_PHASE1_HELPERS 3분할 | v27.24 |
