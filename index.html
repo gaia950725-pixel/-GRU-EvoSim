@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.23 builder block refactor 3B-2</title>
+    <title>EvoSim 27.24 builder block refactor 3B-3</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -15765,9 +15765,10 @@ function updateInspectorPanel() {
                     <div class="stat-row"><span>수렵 드롭E:</span> <span class="value">${(selectedAgent.stats.gainHuntDropE||0).toFixed(0)}</span></div>
                     <div class="stat-row"><span>수렵 직접E:</span> <span class="value">${(selectedAgent.stats.gainHuntDirectE||0).toFixed(0)}</span></div>
                     <div class="stat-row"><span>농사 직접E:</span> <span class="value">${(selectedAgent.stats.gainFarmDirectE||0).toFixed(0)}</span></div>
-                    <!-- BUILDER_BLOCK: HS_INSPECTOR_SUBST_FARM_DROP_ROW_START -->
+                    <!-- BUILDER_BLOCK: UI_INSPECTOR_FARM_DROP_ROW_START -->
+                    <!-- [PATCH RECORD] 27.24 (builder block refactor 3B-3): renamed from HS_INSPECTOR_SUBST_FARM_DROP_ROW -->
                     <div class="stat-row"><span>농사 드롭E:</span> <span class="value">${(selectedAgent.stats.gainFarmDropE||0).toFixed(0)}</span></div>
-                    <!-- BUILDER_BLOCK: HS_INSPECTOR_SUBST_FARM_DROP_ROW_END -->
+                    <!-- BUILDER_BLOCK: UI_INSPECTOR_FARM_DROP_ROW_END -->
                 `;
                 _setHTMLIfChanged(inspectorContent, html);
                 
@@ -18248,12 +18249,16 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
       state.rightOpen = !state.rightOpen;
       apply();
       saveState(state);
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_START === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_STEP1_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3B-3): renamed from HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1; DIRTY+LEGACY 접미사 제거
+   === */
+      // LEGACY: Step1 IIFE 경로 — toggleRight 이중 진입 분기 중 Step1(IIFE 즉시실행) 경로
       if (state.rightOpen) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_END === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_STEP1_END === */
     }
 
     function toggleDev(){
