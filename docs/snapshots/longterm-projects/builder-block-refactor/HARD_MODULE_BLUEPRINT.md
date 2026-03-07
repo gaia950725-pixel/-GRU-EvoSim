@@ -104,7 +104,7 @@
 | `HS_AGRO_WORK_REPIDX` | `AGRO_WORK_REPIDX` | C4, 내부 |
 | `CORE_MATH_ENERGY_UTILS` | 유지 | |
 | `HS_AGRO_BLOCKVIEW_UTILS` | `AGRO_BLOCKVIEW_UTILS` | C4 |
-| `UI_INPUT_WORLD_UTILS` | 유지 | ⚠️ UI 성격이나 food 조작 유틸, 점검 필요 |
+| `UI_INPUT_WORLD_UTILS` | C2 분할 → `UI_INPUT_COORD_UTILS` + `UI_AGRO_HOVER_INPUT` | M12 귀속 확정 (코드 직접 확인) |
 | `HS_AGRO_TOUCH_REPIDX` | `AGRO_TOUCH_REPIDX` | C4 |
 | `HS_AGRO_PEEK_TILE` | `AGRO_PEEK_TILE` | C4 |
 | `HS_AGRO_TOP4_REPIDX` | `AGRO_TOP4_REPIDX` | C4 |
@@ -121,7 +121,6 @@
 | `ERA_BTN_SURNAME_AUTO_WIRE` | 유지 | |
 | `TS_SOCIAL_VOICE_GLOBALS` (GAP-A) | 유지 | 신설 예정 |
 | `HS_19_CLAMOR_CORE_ADD` | `SOCIAL_CLAMOR_CORE` | C4 |
-| `SIM_GLOBALS_POST_GAIA_ENV30` | ⚠️ 미확정 | 내용 미확인 — Phase 1 점검 최우선 |
 
 ### M10 — `sim.js`
 
@@ -168,10 +167,11 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | `HS_FITTER_P4_1_UITICK_REGION` | `SIM_UITICK_REGION` | C4 |
 | `HS_UITICK_WRAPPERS` | `SIM_UITICK_WRAPPERS` | C4, 내부 |
 | `HS_FITTER_P1_4_UITICK500_ROUTER` | `SIM_UITICK500_ROUTER` | C4, 내부 |
-| `ATLAS_P1_OVERVIEW_VARS` | 유지 | ⚠️ render 귀속 가능성, 점검 필요 |
-| `ATLAS_P1_STATICMAP_CLIP` | 유지 | ⚠️ render 귀속 가능성, 점검 필요 |
-| `ATLAS_P1_OVERVIEW_CALL` | 유지 | 내부 |
-| `ATLAS_P1_OVERVIEW_FN` | 유지 | |
+| `SIM_GLOBALS_POST_GAIA_ENV30` | 유지 | M10 귀속 확정, C2 분할은 Phase 3-B |
+| `ATLAS_P1_OVERVIEW_VARS` | → M11 이관 (C3) | 렌더 전용 변수 확인, render.js 귀속 확정 |
+| `ATLAS_P1_STATICMAP_CLIP` | → M11 이관 (C3) | Canvas 2D 렌더 파이프라인 확인, render.js 귀속 확정 |
+| `ATLAS_P1_OVERVIEW_CALL` | → M11 이관 (C3) | 내부 호출, render.js 귀속 확정 |
+| `ATLAS_P1_OVERVIEW_FN` | → M11 이관 (C3) | buildOverviewCanvas() 렌더 함수, render.js 귀속 확정 |
 | `HS_A3_POP_RING_REPLACE` | `POP_RING_CORE` | C4 |
 | `HS_FITTER_P1_2_POP_SAMPLE` | `POP_SAMPLE_CORE` | C4, 내부 |
 
@@ -179,6 +179,10 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | 현재 블록명 | 확정 블록명 | 비고 |
 |------------|-----------|------|
 | `HS_FITTER_P4_1_RENDER_LOOP` | `RENDER_LOOP_CORE` | C4 |
+| `ATLAS_P1_OVERVIEW_VARS` | 유지 | C3 이관 확정 (현 M10 위치) |
+| `ATLAS_P1_STATICMAP_CLIP` | 유지 | C3 이관 확정 (현 M10 위치) |
+| `ATLAS_P1_OVERVIEW_CALL` | 유지 | C3 이관 확정, 내부 |
+| `ATLAS_P1_OVERVIEW_FN` | 유지 | C3 이관 확정 (현 M10 위치) |
 | `BRAIN_CANVAS_DRAW` (GAP-E) | 유지 | 신설 예정 |
 | `CANVAS_CONTEXT_INIT` | 유지 | 27.20 신설 |
 | `AGENT_DRAW_TAIL` | 유지 | 27.20 신설 |
@@ -206,8 +210,9 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | `UI_DRAWER_TOGGLES_CORE` | 유지 | |
 | `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY` | `UI_DRAWERS_TOGGLERIGHT` | C4 |
 | `HS_FITTER_P1_3_TREND_TAB_DIRTY` | `UI_DRAWERS_TREND_TAB` | C4 |
+| `UI_INPUT_COORD_UTILS` (UI_INPUT_WORLD_UTILS 분할 1) | 신설 | C2 분할, clientToWorld() — M12 |
+| `UI_AGRO_HOVER_INPUT` (UI_INPUT_WORLD_UTILS 분할 2) | 신설 | C2 분할, updateAgroHoverFrom*() — M12 |
 | `UI_CHIP_TABS_PNREV_INIT` (GAP-I) | 유지 | 신설 예정 |
-| `FOOD_PHASE0_SIM_UTILS` (GAP-G) | 유지 | ⚠️ sim/food 귀속 재검토 필요 |
 | `HS_FITTER_P1_2_HISTORY_UI` | `UI_HISTORY_PANEL` | C4 |
 | `HS_FITTER_P1_3_HISTORY_DRAW_CONTROL` | `UI_HISTORY_DRAW_CTRL` | C4, 내부 |
 | `HS_FITTER_P1_1_PANELVISIBLE` | `UI_PANEL_VISIBLE` | C4 |
@@ -229,14 +234,14 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 
 ---
 
-## 3. Phase 1 점검 선결 항목 (⚠️)
+## 3. Phase 1 점검 선결 항목 — **확정 완료** (2026-03-07)
 
-| 블록명 | 이슈 | 귀속 후보 |
-|--------|------|---------|
-| `SIM_GLOBALS_POST_GAIA_ENV30` | 586줄, 내용 미확인. 명칭상 전역변수 초기화 | M09(social) 또는 M10(sim) |
-| `ATLAS_P1_*` 3개 | render 성격 가능성 | M10(sim) vs M11(render) |
-| `FOOD_PHASE0_SIM_UTILS` (GAP-G) | food/sim 혼합 코드 | M08(food) vs M10(sim) |
-| `UI_INPUT_WORLD_UTILS` | 명칭은 UI이나 food 조작 유틸 가능성 | M08(food) vs M12(ui) |
+| 블록명 | 확정 귀속 | 확정 조치 |
+|--------|---------|---------|
+| `SIM_GLOBALS_POST_GAIA_ENV30` | **M10** | 코드 직접 확인: terrain상수/엔티티프로필/전투함수/food앵커/시뮬상태 전역 — social 성격 0. C2 분할은 Phase 3-B |
+| `ATLAS_P1_*` 4개 | **M11** | 코드 직접 확인: bgCtx 픽셀쓰기/drawImage/Canvas 2D 전용. C3 청사진 기록, 코드이동은 TS 후 |
+| `FOOD_PHASE0_SIM_UTILS` (GAP-G) | **M10** | 코드 직접 확인: setInterval+루프타이밍+전엔티티그리드캐시+profiler. 명칭 → `SIM_LOOP_INIT_VARS` |
+| `UI_INPUT_WORLD_UTILS` | **M12** | 코드 직접 확인: C2 분할 → `UI_INPUT_COORD_UTILS`(clientToWorld) + `UI_AGRO_HOVER_INPUT`(updateAgroHoverFrom*) |
 
 ---
 
@@ -248,7 +253,7 @@ SIM_COLLISION_CORE                     [HS-origin: HS_COLLISION_LOOP]
 | GAP-D | `FOOD_GRID_CORE` | M08 | 신설 예정 |
 | GAP-E | `BRAIN_CANVAS_DRAW` | M11 | 신설 예정 |
 | GAP-F | `UI_SYSTEM_PANELS_UPDATE` | M12 | 신설 예정 |
-| GAP-G | `FOOD_PHASE0_SIM_UTILS` | ⚠️ 미확정 | 신설 예정 |
+| GAP-G | `SIM_LOOP_INIT_VARS` | M10 | 신설 예정 (명칭 확정: setInterval+루프타이밍+전엔티티그리드캐시+profiler) |
 | GAP-I | `UI_CHIP_TABS_PNREV_INIT` | M12 | 신설 예정 |
 
 ---
