@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.21 builder block refactor</title>
+    <title>EvoSim 27.25 builder block refactor 3C</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -4003,6 +4003,23 @@ EvoSim.debug.setCFG = (patch) => {
         const FARM_COOP_EFF_K = 1.0;
 
 /* === BUILDER_BLOCK: CFG_DEFAULTS_END === */
+
+/* === BUILDER_BLOCK: COLLISION_CFG_GUARDS_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; CFG defaults patch guard
+   === */
+/* === HS_PATCH: BREATH + FARM_COOLDOWN CFG GUARDS (18.84) === */
+if (typeof CFG === 'object' && CFG) {
+  if (CFG.pillageEnergy == null) CFG.pillageEnergy = 100;
+  if (CFG.farmWorkTicks == null) CFG.farmWorkTicks = 8;
+  if (CFG.farmCooldownTicks == null) CFG.farmCooldownTicks = 2;
+  if (!CFG.__tilthWear085Applied) {
+    if (typeof CFG.tilthWearPerWorkTick === 'number') CFG.tilthWearPerWorkTick *= 0.85;
+    CFG.__tilthWear085Applied = true;
+  }
+}
+/* === BUILDER_BLOCK: COLLISION_CFG_GUARDS_END === */
+
 /* === BUILDER_BLOCK: NN_IO_ENUMS_START ===
    [PATCH RECORD]
    - 27.01 (input27 cleanup): remove SENSOR legacy aliases; compress sensor header comments; drop long labels
@@ -4875,41 +4892,12 @@ function _clamp01(x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
         function _lerp(a, b, t) { return a + (b - a) * t; }
         function _smoothstep(u) { return u * u * (3 - 2 * u); }
         
-        // Prestige saturation function: sat(x, k) = x / (x + k)
-        function _sat(x, k) {
-            if (k <= 0) return x > 0 ? 1 : 0;
-            return x / (x + k);
-        }
-
 // --- SoftMod: expose tiny pure utils (no call-site changes)
 Object.assign(EvoSim.util, {
   clamp01: _clamp01,
   lerp: _lerp,
   smoothstep: _smoothstep,
-  sat: _sat,
 });
-
-// --- Prestige calculation function
-function calcPrestige01(agent) {
-    if (!agent || agent.dead) return 0;
-    
-    // Age component: sat(ageYears, 80)
-    const ageYears = agent.age / CAL_TICKS_PER_YR;
-    const ageN = _sat(ageYears, 80);
-    
-    // Reproduction component: sat(reproCount, 12)
-    const reproN = _sat(agent.stats.reproCount, 12);
-    
-    // Activity component: sat(actRaw, 40)
-    const actRaw = agent.stats.huntCount + agent.stats.harvestCount +
-                  agent.stats.tribeBattleCount + (agent.stats.gatherCount || 0);
-    const actN = _sat(actRaw, 40);
-    
-    // Final prestige: 0.3*ageN + 0.3*reproN + 0.4*actN
-    const prestige = 0.3 * ageN + 0.3 * reproN + 0.4 * actN;
-    
-    return _clamp01(prestige);
-}
 
 // --- SoftMod: expose energy helpers as a pseudo-module (no behavior change)
 EvoSim.modules.Energy = EvoSim.modules.Energy || {};
@@ -5063,6 +5051,123 @@ function applyDamageResult(target, dmg) {
 
         
 /* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_END === */
+
+/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from CORE_MATH_ENERGY_UTILS (_sat + calcPrestige01)
+   === */
+        // Prestige saturation function: sat(x, k) = x / (x + k)
+        function _sat(x, k) {
+            if (k <= 0) return x > 0 ? 1 : 0;
+            return x / (x + k);
+        }
+EvoSim.util.sat = _sat;
+
+// --- Prestige calculation function
+function calcPrestige01(agent) {
+    if (!agent || agent.dead) return 0;
+    const ageYears = agent.age / CAL_TICKS_PER_YR;
+    const ageN = _sat(ageYears, 80);
+    const reproN = _sat(agent.stats.reproCount, 12);
+    const actRaw = agent.stats.huntCount + agent.stats.harvestCount +
+                  agent.stats.tribeBattleCount + (agent.stats.gatherCount || 0);
+    const actN = _sat(actRaw, 40);
+    const prestige = 0.3 * ageN + 0.3 * reproN + 0.4 * actN;
+    return _clamp01(prestige);
+}
+/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_END === */
+
+/* === BUILDER_BLOCK: BREATH_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; NN breath input system (전역 유틸)
+   === */
+const BREATH = {
+  E2H: 0.0125,
+  K_ATK: 0.01, K_HIT: 0.02, K_BIRTH: 0.006, K_WORK: 0.01,
+  D_ATK: Math.pow(0.1, 1/8),
+  D_HIT: Math.pow(0.1, 1/16),
+  D_BIRTH: Math.pow(0.1, 1/2),
+  D_WORK: Math.pow(0.1, 1/16)
+};
+// === SHARE system (collision peace-branch) ===
+const SHARE_COOLDOWN_TICKS = 30;
+const SHARE_DONOR_MIN_E = 2400;
+const SHARE_RECV_MAX_E  = 1600;
+const SHARE_DONOR_LOSS = 200;
+const SHARE_RECV_GAIN  = 180;
+const SHARE_SAME_ACC_MIN  = 0.70;
+const SHARE_OTHER_ACC_MIN = 0.85;
+const SHARE_SAME_AGG_MAX  = 0.40;
+const SHARE_OTHER_AGG_MAX = 0.20;
+const SHARE_RECV_AGG_MAX  = 0.50;
+
+// === SS-24.2: Interaction stamp (state-change only) ===
+const SS_EVT_COMBAT = 1;
+const SS_EVT_SHARE  = 2;
+const SS_EVT_REPRO  = 4;
+const SS_EVT_HUNT   = 8;
+const SS_EVT_PRED   = 16;
+function _ss_stamp(a, bit, tick){
+  if(!a) return;
+  // Only these events skip solitary (policy locked)
+  if (!(bit === SS_EVT_COMBAT || bit === SS_EVT_HUNT || bit === SS_EVT_PRED || bit === SS_EVT_REPRO || bit === SS_EVT_SHARE)) return;
+  const uid = (a.uid|0);
+  if (uid <= 0) return;
+  if (_agentE2I_dirty) throw new Error('[TS_solitarySkip] _agentE2I dirty in _ss_stamp');
+  const idx = _agentE2I.get(uid);
+  if (idx == null || (idx|0) < 0) return;
+  const i = idx|0;
+  if (TS_solitarySkip[i] === 0) {
+    TS_solitarySkip[i] = 1;
+    TS_solitarySkipTouched[TS_solitarySkipTouchedN++] = i;
+  }
+}
+
+function hsBreathEnsure(a) {
+  if (!a) return;
+  if (a.bAtk == null) {
+    a.bAtk = 0; a.bHit = 0; a.bBirth = 0; a.bWork = 0;
+    a.breathMass = 0; a.breath01 = 0;
+  }
+  if (a.farmWorkLeft == null) { a.farmWorkLeft = 0; a.farmCooldownLeft = 0; }
+}
+function hsBreathDecay(a, extraWorkDecay) {
+  if (!a || a.dead) return;
+  a.bAtk *= BREATH.D_ATK;
+  a.bHit *= BREATH.D_HIT;
+  a.bBirth *= BREATH.D_BIRTH;
+  a.bWork *= BREATH.D_WORK;
+  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
+  if (a.isResting) {
+    a.bAtk *= BREATH.D_ATK;
+    a.bHit *= BREATH.D_HIT;
+    a.bBirth *= BREATH.D_BIRTH;
+    a.bWork *= BREATH.D_WORK;
+  }
+  a.breathMass = Math.max(0, a.bAtk + a.bHit + a.bBirth + a.bWork);
+  a.breath01 = 1 - Math.exp(-a.breathMass);
+}
+// [TS_PATCH 26.41] PRE-only decay (NO breath01 recompute here)
+function hsBreathDecayOnly(a, extraWorkDecay) {
+  if (!a || a.dead) return;
+  a.bAtk *= BREATH.D_ATK;
+  a.bHit *= BREATH.D_HIT;
+  a.bBirth *= BREATH.D_BIRTH;
+  a.bWork *= BREATH.D_WORK;
+  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
+  if (a.isResting) {
+    a.bAtk *= BREATH.D_ATK;
+    a.bHit *= BREATH.D_HIT;
+    a.bBirth *= BREATH.D_BIRTH;
+    a.bWork *= BREATH.D_WORK;
+  }
+}
+const HerbContrib = {
+  addHit(h, a, dmg) { _recordHerbContrib(h, a, dmg); },
+  settleOnKill(h, killer) { _distributeHerbivoreBonus(h, killer); }
+};
+/* === BUILDER_BLOCK: BREATH_SYSTEM_END === */
+
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_START ===
 [PATCH RECORD]
  - 26.23 (CM): addblock (confirmed split)
@@ -10506,7 +10611,10 @@ CFG.crisisRecoverSpeed = getCrisisRecoverSpeedFromUI();
                 cachedHerbGrid = null; // let animate rebuild from current herbivores
                 cachedPredGrid = null; // Patch PREDGRID: rebuild from current predators
                 try { if (typeof logEvent === "function") logEvent("Cache reset: food/agent/herb grids", "debug"); } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_CLAMOR_RESET_ON_START_INSERT_START === */
+/* === BUILDER_BLOCK: UI_NAV_CLAMOR_RESET_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_19_CLAMOR_RESET_ON_START_INSERT
+   === */
 try {
   // world dims are set before this block; allocate/resize if needed then clear
   _ensureClamorGridDims();
@@ -10528,14 +10636,17 @@ try {
     if (typeof window.__evoRebuildClanStrokeCache === 'function') window.__evoRebuildClanStrokeCache();
   }
 } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_CLAMOR_RESET_ON_START_INSERT_END === */
+/* === BUILDER_BLOCK: UI_NAV_CLAMOR_RESET_END === */
 
 
                 ERA = 'PALEOLITHIC'; 
-                /* === BUILDER_BLOCK: HS_A3_POP_RESET_REPLACE_START === */
+                /* === BUILDER_BLOCK: UI_NAV_POP_RESET_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_A3_POP_RESET_REPLACE
+   === */
                 // 기존: popHistory = [];
                 _popHistReset();
-                /* === BUILDER_BLOCK: HS_A3_POP_RESET_REPLACE_END === */
+                /* === BUILDER_BLOCK: UI_NAV_POP_RESET_END === */
 document.getElementById('disp-era').textContent = "구석기";
                 document.getElementById('disp-era').style.color = '#eee';
                 
@@ -10872,7 +10983,10 @@ document.getElementById('disp-era').textContent = "구석기";
         }
 
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PATH2D_CACHE_START === */
+/* === BUILDER_BLOCK: RENDER_PATH2D_CACHE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_PATH2D_CACHE; UI_NAV_→RENDER_ 귀속 수정(M11)
+   === */
 const _P_AGENT_TRI = (typeof Path2D !== 'undefined') ? new Path2D() : null;
 if (_P_AGENT_TRI) {
   _P_AGENT_TRI.moveTo(8, 0);
@@ -10880,7 +10994,7 @@ if (_P_AGENT_TRI) {
   _P_AGENT_TRI.lineTo(-5, -5);
   _P_AGENT_TRI.closePath();
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PATH2D_CACHE_END === */
+/* === BUILDER_BLOCK: RENDER_PATH2D_CACHE_END === */
 
 class Agent {
             constructor(x, y, brain) {
@@ -10939,9 +11053,12 @@ this.color = CFG.clans[0];
                     gainHuntDropE: 0,
                     gainHuntDirectE: 0,
                     gainFarmDirectE: 0,
-                    /* === BUILDER_BLOCK: HS_STATS_FARM_DROP_INIT_START === */
+                    /* === BUILDER_BLOCK: AGENT_STATS_FARMDROP_INIT_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_STATS_FARM_DROP_INIT; UI_NAV_→AGENT_ 귀속 수정
+   === */
                     gainFarmDropE: 0,
-                    /* === BUILDER_BLOCK: HS_STATS_FARM_DROP_INIT_END === */
+                    /* === BUILDER_BLOCK: AGENT_STATS_FARMDROP_INIT_END === */
                     shareGiveCount: 0,
                     shareGiveEnergy: 0,
                     shareRecvCount: 0,
@@ -11146,7 +11263,10 @@ return;
                             else if (signal > foodR2) { foodR2 = signal; }
                         }
                     
-                /* === BUILDER_BLOCK: HS_AGGVIZ_UPDATE_MOVED_START === */
+                /* === BUILDER_BLOCK: AGENT_AGGVIZ_UPDATE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_AGGVIZ_UPDATE_MOVED; UI_NAV_→AGENT_ 귀속 수정
+   === */
                 // moved from draw(): keep aggression viz hysteresis updated in update path only (viz only; gameplay unchanged)
                 if (!this.dead) {
                   if (this._aggViz == null) this._aggViz = 0;
@@ -11166,7 +11286,7 @@ return;
                     if (a >= 0.72) this._aggViz = 1;
                   }
                 }
-                /* === BUILDER_BLOCK: HS_AGGVIZ_UPDATE_MOVED_END === */
+                /* === BUILDER_BLOCK: AGENT_AGGVIZ_UPDATE_END === */
 
 } else if (type === 'THREAT') {
                         if (inOverlap || isLeft) {
@@ -11751,7 +11871,10 @@ let force = new Vec2(cosA, sinA);
 
                 // Draw agent triangle (unchanged geometry)
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_START === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TRI_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_AGENT_TRI_REPLACE; UI_AGENT_→AGENT_DRAW_ 귀속 수정(M11)
+   === */
 if (_P_AGENT_TRI) {
     ctx.fill(_P_AGENT_TRI);
     ctx.stroke(_P_AGENT_TRI);
@@ -11778,7 +11901,7 @@ if (_P_AGENT_TRI) {
                     ctx.restore();
                 }
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_END === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TRI_END === */
 /* === BUILDER_BLOCK: AGENT_DRAW_TAIL_START === */
 
                 // Charcoal tribe halo (1px ivory outline) [disabled; replaced by cached contrast outline]
@@ -13661,12 +13784,15 @@ function updateHerbivorePacks(dtTicks = 1) {
         function renderLogs(nowMs) {
             if (!_logsDirty) return;
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_RENDERLOGS_GUARD_START === */
+/* === BUILDER_BLOCK: SPAWN_RENDERLOGS_GUARD_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_RENDERLOGS_GUARD
+   === */
 // DOM-only work: skip if history drawer / log view isn't visible (data accumulation must remain elsewhere)
 if (!document.body.classList.contains('drawer-right-open')) return;
 if (!_isPanelBodyVisible('history-panel')) return;
 if (logContainer && logContainer.getClientRects && logContainer.getClientRects().length === 0) return;
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_RENDERLOGS_GUARD_END === */
+/* === BUILDER_BLOCK: SPAWN_RENDERLOGS_GUARD_END === */
 
             if (nowMs - _lastLogUIAt < LOG_UI_INTERVAL_MS) return;
             _lastLogUIAt = nowMs;
@@ -13684,230 +13810,10 @@ if (logContainer && logContainer.getClientRects && logContainer.getClientRects()
         }
         /* === BUILDER_BLOCK: SPAWN_AND_LOG_CORE_END === */
 
-const FOOD_CELL = 60; 
-        const EAT_RADIUS = 10;
-        const EAT_R2 = EAT_RADIUS * EAT_RADIUS;
-
-        // --- Food spatial grid (1D array; int cellId) ---
-        // Replaces Map<string,"cx,cy"> to remove string creation & Map hashing overhead.
-        let FOOD_GRID_COLS = 0;
-        let FOOD_GRID_ROWS = 0;
-
-        function _ensureFoodGridDims() {
-            const cols = Math.max(1, Math.ceil(CFG.worldWidth / FOOD_CELL));
-            const rows = Math.max(1, Math.ceil(CFG.worldHeight / FOOD_CELL));
-            if (cols !== FOOD_GRID_COLS || rows !== FOOD_GRID_ROWS) {
-                FOOD_GRID_COLS = cols;
-                FOOD_GRID_ROWS = rows;
-            }
-        }
-
-        class FoodGrid1D {
-            constructor(cols, rows) {
-                this.cols = cols;
-                this.rows = rows;
-                this.cells = new Array(cols * rows);
-            }
-            get(id) { return this.cells[id]; }
-            set(id, v) { this.cells[id] = v; }
-        }
-
-        function _foodCellId(x, y) {
-            _ensureFoodGridDims();
-            let cx = Math.floor(x / FOOD_CELL);
-            let cy = Math.floor(y / FOOD_CELL);
-            if (cx < 0) cx = 0; else if (cx >= FOOD_GRID_COLS) cx = FOOD_GRID_COLS - 1;
-            if (cy < 0) cy = 0; else if (cy >= FOOD_GRID_ROWS) cy = FOOD_GRID_ROWS - 1;
-            return cy * FOOD_GRID_COLS + cx;
-        }
-
-        function _buildFoodGrid() {
-            _ensureFoodGridDims();
-            const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
-            const grid = new FoodGrid1D(cols, rows);
-
-            for (let i = 0; i < foods.length; i++) {
-                const f = foods[i];
-                if (!f || f.active === false) continue;
-                let cx = Math.floor(f.pos.x / FOOD_CELL);
-                let cy = Math.floor(f.pos.y / FOOD_CELL);
-                if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
-                if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
-
-                const id = cy * cols + cx;
-                let arr = grid.get(id);
-                if (!arr) { arr = []; grid.set(id, arr); }
-                arr.push(i);
-            }
-            return grid;
-        }
-
-        function _forNeighborFoodCells(ax, ay, fn) {
-  _ensureFoodGridDims();
-  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
-  _forNeighborCellsCore(ax, ay, FOOD_CELL, cols, rows, fn);
-}
-
-        function _forFoodCellsInRadius(ax, ay, radius, fn) {
-  _ensureFoodGridDims();
-  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
-  _forCellsInRadiusCore(ax, ay, radius, FOOD_CELL, cols, rows, fn);
-}
-
-        // ### PATCH A: Compact Foods Fix
-                function _compactFoodsIfNeeded() {
-          if (simulatedTicks % 30 !== 0) return;
-
-          const before = foods.length;
-          const now = simulatedTicks;
-
-          let w = 0;
-          for (let i = 0; i < before; i++) {
-            const f = foods[i];
-            if (!f) continue;
-            if (f.active === false) continue;
-
-            if (now > f.expiryTick) {
-              // [PATCH B] Record ONLY NAT foods that expired by TTL (NOT consumed removals)
-              if (f.source === FOOD_SRC_NAT && f.pos) {
-                _foodExpPush(f.pos.x, f.pos.y);
-              }
-              continue;
-            }
-
-            foods[w++] = f;
-          }
-
-          if (w !== before) {
-            foods.length = w;
-            cachedFoodGrid = null;
-            cachedFoodGridTick = -1e15;
-          }
-        }
-
-        function _inFront180_fromAngle(ax, ay, angle, tx, ty) {
-        const fx = Math.cos(angle), fy = Math.sin(angle);
-        const dx = tx - ax, dy = ty - ay;
-        return (fx*dx + fy*dy) > 0;
-        }
-        function _inFront180_fromVel(ax, ay, vx, vy, tx, ty) {
-        const mag2 = vx*vx + vy*vy;
-        if (mag2 < 1e-6) return true; 
-        const dx = tx - ax, dy = ty - ay;
-        return (vx*dx + vy*dy) > 0;
-        }
-
-        //#region ========== HS_COLLISION_LOOP ==========
-        /* === BUILDER_BLOCK: HS_COLLISION_LOOP_START === */
-/* [PATCH RECORD]
- - 26.22 (CM patch record): add patch record header (see inline comments for details)
- */
-
-/* === HS_PATCH: BREATH + FARM_COOLDOWN CFG GUARDS (18.84) === */
-if (typeof CFG === 'object' && CFG) {
-  if (CFG.pillageEnergy == null) CFG.pillageEnergy = 100;
-  if (CFG.farmWorkTicks == null) CFG.farmWorkTicks = 8;
-  if (CFG.farmCooldownTicks == null) CFG.farmCooldownTicks = 2;
-  if (!CFG.__tilthWear085Applied) {
-    if (typeof CFG.tilthWearPerWorkTick === 'number') CFG.tilthWearPerWorkTick *= 0.85;
-    CFG.__tilthWear085Applied = true;
-  }
-}
-const BREATH = {
-  E2H: 0.0125,
-  K_ATK: 0.01, K_HIT: 0.02, K_BIRTH: 0.006, K_WORK: 0.01,
-  D_ATK: Math.pow(0.1, 1/8),
-  D_HIT: Math.pow(0.1, 1/16),
-  D_BIRTH: Math.pow(0.1, 1/2),
-  D_WORK: Math.pow(0.1, 1/16)
-};
-// === SHARE system (collision peace-branch) ===
-const SHARE_COOLDOWN_TICKS = 30;
-
-const SHARE_DONOR_MIN_E = 2400;
-const SHARE_RECV_MAX_E  = 1600;
-
-const SHARE_DONOR_LOSS = 200;
-const SHARE_RECV_GAIN  = 180;
-
-const SHARE_SAME_ACC_MIN  = 0.70;
-const SHARE_OTHER_ACC_MIN = 0.85;
-
-const SHARE_SAME_AGG_MAX  = 0.40;
-const SHARE_OTHER_AGG_MAX = 0.20;
-
-const SHARE_RECV_AGG_MAX  = 0.50; 
-
-// === SS-24.2: Interaction stamp (state-change only) ===
-const SS_EVT_COMBAT = 1;
-const SS_EVT_SHARE  = 2;
-const SS_EVT_REPRO  = 4;
-const SS_EVT_HUNT   = 8;
-const SS_EVT_PRED   = 16;
-function _ss_stamp(a, bit, tick){
-  if(!a) return;
-  // Only these events skip solitary (policy locked)
-  if (!(bit === SS_EVT_COMBAT || bit === SS_EVT_HUNT || bit === SS_EVT_PRED || bit === SS_EVT_REPRO || bit === SS_EVT_SHARE)) return;
-  const uid = (a.uid|0);
-  if (uid <= 0) return;
-  if (_agentE2I_dirty) throw new Error('[TS_solitarySkip] _agentE2I dirty in _ss_stamp');
-  const idx = _agentE2I.get(uid);
-  if (idx == null || (idx|0) < 0) return;
-  const i = idx|0;
-  if (TS_solitarySkip[i] === 0) {
-    TS_solitarySkip[i] = 1;
-    TS_solitarySkipTouched[TS_solitarySkipTouchedN++] = i;
-  }
-}
-// same/other 동일
-
-function hsBreathEnsure(a) {
-  if (!a) return;
-  if (a.bAtk == null) {
-    a.bAtk = 0; a.bHit = 0; a.bBirth = 0; a.bWork = 0;
-    a.breathMass = 0; a.breath01 = 0;
-  }
-  if (a.farmWorkLeft == null) { a.farmWorkLeft = 0; a.farmCooldownLeft = 0; }
-}
-function hsBreathDecay(a, extraWorkDecay) {
-  if (!a || a.dead) return;
-  a.bAtk *= BREATH.D_ATK;
-  a.bHit *= BREATH.D_HIT;
-  a.bBirth *= BREATH.D_BIRTH;
-  a.bWork *= BREATH.D_WORK;
-  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
-  if (a.isResting) {
-    a.bAtk *= BREATH.D_ATK;
-    a.bHit *= BREATH.D_HIT;
-    a.bBirth *= BREATH.D_BIRTH;
-    a.bWork *= BREATH.D_WORK;
-  }
-  a.breathMass = Math.max(0, a.bAtk + a.bHit + a.bBirth + a.bWork);
-  a.breath01 = 1 - Math.exp(-a.breathMass);
-}
-
-// [TS_PATCH 26.41] PRE-only decay (NO breath01 recompute here)
-function hsBreathDecayOnly(a, extraWorkDecay) {
-  if (!a || a.dead) return;
-  a.bAtk *= BREATH.D_ATK;
-  a.bHit *= BREATH.D_HIT;
-  a.bBirth *= BREATH.D_BIRTH;
-  a.bWork *= BREATH.D_WORK;
-  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
-  if (a.isResting) {
-    a.bAtk *= BREATH.D_ATK;
-    a.bHit *= BREATH.D_HIT;
-    a.bBirth *= BREATH.D_BIRTH;
-    a.bWork *= BREATH.D_WORK;
-  }
-}
-/* === HS_PATCH: END === */
-
-const HerbContrib = {
-  addHit(h, a, dmg) { _recordHerbContrib(h, a, dmg); },
-  settleOnKill(h, killer) { _distributeHerbivoreBonus(h, killer); }
-};
-
+/* === BUILDER_BLOCK: POP_INFLUX_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; population influx (crisis + periodic)
+   === */
 // === Population Influx System (Phase 2-4 + Stabilization v1) ===
 let _lastCrisisInfluxTick = -1e15;        // last time we QUEUED crisis groups (anti-spam)
 let _lastCrisisGroupSpawnTick = -1e15;    // last time we SPAWNED a crisis group
@@ -14232,8 +14138,143 @@ function _influxPeriodicGroupV2(agentGrid) {
     logEvent(`정기 유입(징후, 7세 코호트): +${newborns.length}명 (top ${topPct}%, 다양도 ${hPct}%, unique ${m.unique})`, "event");
     try { EvoSim.modules?.POP?.onInflux && EvoSim.modules.POP.onInflux(newborns.length); } catch (_) { }
 }
+/* === BUILDER_BLOCK: POP_INFLUX_SYSTEM_END === */
 
 
+const FOOD_CELL = 60; 
+        const EAT_RADIUS = 10;
+        const EAT_R2 = EAT_RADIUS * EAT_RADIUS;
+
+        // --- Food spatial grid (1D array; int cellId) ---
+        // Replaces Map<string,"cx,cy"> to remove string creation & Map hashing overhead.
+        let FOOD_GRID_COLS = 0;
+        let FOOD_GRID_ROWS = 0;
+
+        function _ensureFoodGridDims() {
+            const cols = Math.max(1, Math.ceil(CFG.worldWidth / FOOD_CELL));
+            const rows = Math.max(1, Math.ceil(CFG.worldHeight / FOOD_CELL));
+            if (cols !== FOOD_GRID_COLS || rows !== FOOD_GRID_ROWS) {
+                FOOD_GRID_COLS = cols;
+                FOOD_GRID_ROWS = rows;
+            }
+        }
+
+        class FoodGrid1D {
+            constructor(cols, rows) {
+                this.cols = cols;
+                this.rows = rows;
+                this.cells = new Array(cols * rows);
+            }
+            get(id) { return this.cells[id]; }
+            set(id, v) { this.cells[id] = v; }
+        }
+
+        function _foodCellId(x, y) {
+            _ensureFoodGridDims();
+            let cx = Math.floor(x / FOOD_CELL);
+            let cy = Math.floor(y / FOOD_CELL);
+            if (cx < 0) cx = 0; else if (cx >= FOOD_GRID_COLS) cx = FOOD_GRID_COLS - 1;
+            if (cy < 0) cy = 0; else if (cy >= FOOD_GRID_ROWS) cy = FOOD_GRID_ROWS - 1;
+            return cy * FOOD_GRID_COLS + cx;
+        }
+
+        function _buildFoodGrid() {
+            _ensureFoodGridDims();
+            const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
+            const grid = new FoodGrid1D(cols, rows);
+
+            for (let i = 0; i < foods.length; i++) {
+                const f = foods[i];
+                if (!f || f.active === false) continue;
+                let cx = Math.floor(f.pos.x / FOOD_CELL);
+                let cy = Math.floor(f.pos.y / FOOD_CELL);
+                if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
+                if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
+
+                const id = cy * cols + cx;
+                let arr = grid.get(id);
+                if (!arr) { arr = []; grid.set(id, arr); }
+                arr.push(i);
+            }
+            return grid;
+        }
+
+        function _forNeighborFoodCells(ax, ay, fn) {
+  _ensureFoodGridDims();
+  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
+  _forNeighborCellsCore(ax, ay, FOOD_CELL, cols, rows, fn);
+}
+
+        function _forFoodCellsInRadius(ax, ay, radius, fn) {
+  _ensureFoodGridDims();
+  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
+  _forCellsInRadiusCore(ax, ay, radius, FOOD_CELL, cols, rows, fn);
+}
+
+        // ### PATCH A: Compact Foods Fix
+                function _compactFoodsIfNeeded() {
+          if (simulatedTicks % 30 !== 0) return;
+
+          const before = foods.length;
+          const now = simulatedTicks;
+
+          let w = 0;
+          for (let i = 0; i < before; i++) {
+            const f = foods[i];
+            if (!f) continue;
+            if (f.active === false) continue;
+
+            if (now > f.expiryTick) {
+              // [PATCH B] Record ONLY NAT foods that expired by TTL (NOT consumed removals)
+              if (f.source === FOOD_SRC_NAT && f.pos) {
+                _foodExpPush(f.pos.x, f.pos.y);
+              }
+              continue;
+            }
+
+            foods[w++] = f;
+          }
+
+          if (w !== before) {
+            foods.length = w;
+            cachedFoodGrid = null;
+            cachedFoodGridTick = -1e15;
+          }
+        }
+
+        function _inFront180_fromAngle(ax, ay, angle, tx, ty) {
+        const fx = Math.cos(angle), fy = Math.sin(angle);
+        const dx = tx - ax, dy = ty - ay;
+        return (fx*dx + fy*dy) > 0;
+        }
+        function _inFront180_fromVel(ax, ay, vx, vy, tx, ty) {
+        const mag2 = vx*vx + vy*vy;
+        if (mag2 < 1e-6) return true; 
+        const dx = tx - ax, dy = ty - ay;
+        return (vx*dx + vy*dy) > 0;
+        }
+
+        //#region ========== HS_COLLISION_LOOP ==========
+        /* === BUILDER_BLOCK: HS_COLLISION_LOOP_START === */
+/* [PATCH RECORD]
+ - 26.22 (CM patch record): add patch record header (see inline comments for details)
+ - 27.24 (builder block refactor 3C): extracted COLLISION_CFG_GUARDS / BREATH_SYSTEM / POP_INFLUX_SYSTEM; added _pendCollisionNewborns + COLLISION_CHECK_FN
+ */
+
+function _pendCollisionNewborns(ctx, newborns, agentGrid) {
+    const n = newborns.length|0;
+    if (n > 0) {
+        TS_pendAgents(newborns, 'born');
+        STAT_BIRTH_COLLISION += n;
+        try{ if (EvoSim.modules?.POP?.onBorn) EvoSim.modules.POP.onBorn(n); }catch(_){ }
+        newborns.length = 0;
+    }
+}
+
+/* === BUILDER_BLOCK: COLLISION_CHECK_FN_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): wrapper for checkCollisions function
+   === */
 function checkCollisions(foodGrid, agentGrid, herbivoreGrid) {
             if (!foodGrid) foodGrid = _buildFoodGrid();
 
@@ -14540,12 +14581,15 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                 }
                 if (a.stats && __dE > 0) {
                     if (__fs === FOOD_SRC_HUNT) a.stats.gainHuntDropE += __dE;
-                    /* === BUILDER_BLOCK: HS_APPLYEAT_FARM_DROP_STATS_START === */
+                    /* === BUILDER_BLOCK: SIM_APPLYEAT_FARMDROP_STAT_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_APPLYEAT_FARM_DROP_STATS
+   === */
                     else if (__fs === FOOD_SRC_FARM) {
                         // Phase 5: FARM food drop energy tracked separately
                         a.stats.gainFarmDropE = (a.stats.gainFarmDropE || 0) + __dE;
                     }
-                    /* === BUILDER_BLOCK: HS_APPLYEAT_FARM_DROP_STATS_END === */
+                    /* === BUILDER_BLOCK: SIM_APPLYEAT_FARMDROP_STAT_END === */
                     else a.stats.gainNatE += __dE;
                     // gatherCount: NAT food consumption count (only when dE>0)
                     if (__fs !== FOOD_SRC_HUNT && __fs !== FOOD_SRC_FARM) {
@@ -14576,10 +14620,13 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                     });
                 }
 
-                /* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_START === */
+                /* === BUILDER_BLOCK: SIM_NAT_REGEN_SCALE_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_NAT_AREA_SCALE
+   === */
 const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
 if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
-/* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_END === */
+/* === BUILDER_BLOCK: SIM_NAT_REGEN_SCALE_END === */
             }
             function _hs3_layerHunt(ctx, a) {
                     if (Pred.shouldTryHunt(a)) {
@@ -14731,15 +14778,6 @@ if (d2 < COLLIDE_R2) {
                         }
                     });
             }
-            function _hs3_commitNewborns(ctx, newborns, agentGrid) {
-                const n = newborns.length|0;
-                if (n > 0) {
-                    TS_pendAgents(newborns, 'born');
-                    STAT_BIRTH_COLLISION += n;
-                    try{ if (EvoSim.modules?.POP?.onBorn) EvoSim.modules.POP.onBorn(n); }catch(_){ }
-                    newborns.length = 0;
-                }
-            }
             function _hs3_layerPredators(ctx) {
                 const agentGrid = ctx.agentGrid;
 
@@ -14806,10 +14844,12 @@ if (d2 < COLLIDE_R2) {
                 _hs3_layerAgentAgent(ctx, a, i, n0, newborns);
 }
 
-                        _hs3_commitNewborns(ctx, newborns, agentGrid);
+                        _pendCollisionNewborns(ctx, newborns, agentGrid);
 
             _hs3_layerPredators(ctx);
-}/* === BUILDER_BLOCK: HS_COLLISION_LOOP_END === */
+}
+/* === BUILDER_BLOCK: COLLISION_CHECK_FN_END === */
+        /* === BUILDER_BLOCK: HS_COLLISION_LOOP_END === */
 //#endregion
 
         // ... (drawBrain, mouse events, and animate loop remain unchanged) ...
@@ -15738,9 +15778,10 @@ function updateInspectorPanel() {
                     <div class="stat-row"><span>수렵 드롭E:</span> <span class="value">${(selectedAgent.stats.gainHuntDropE||0).toFixed(0)}</span></div>
                     <div class="stat-row"><span>수렵 직접E:</span> <span class="value">${(selectedAgent.stats.gainHuntDirectE||0).toFixed(0)}</span></div>
                     <div class="stat-row"><span>농사 직접E:</span> <span class="value">${(selectedAgent.stats.gainFarmDirectE||0).toFixed(0)}</span></div>
-                    <!-- BUILDER_BLOCK: HS_INSPECTOR_SUBST_FARM_DROP_ROW_START -->
+                    <!-- BUILDER_BLOCK: UI_INSPECTOR_FARM_DROP_ROW_START -->
+                    <!-- [PATCH RECORD] 27.24 (builder block refactor 3B-3): renamed from HS_INSPECTOR_SUBST_FARM_DROP_ROW -->
                     <div class="stat-row"><span>농사 드롭E:</span> <span class="value">${(selectedAgent.stats.gainFarmDropE||0).toFixed(0)}</span></div>
-                    <!-- BUILDER_BLOCK: HS_INSPECTOR_SUBST_FARM_DROP_ROW_END -->
+                    <!-- BUILDER_BLOCK: UI_INSPECTOR_FARM_DROP_ROW_END -->
                 `;
                 _setHTMLIfChanged(inspectorContent, html);
                 
@@ -15808,10 +15849,19 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
 
         /* === BUILDER_BLOCK: UI_INSPECTOR_PANEL_UPDATE_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_START === */
+/* === BUILDER_BLOCK: UI_UITICK_REGION_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P4_1_UITICK_REGION; SIM_→UI_ 접두사 수정
+   === */
         /* (UI TICKS REGION) uiTick200/uiTick500 routers */
-        /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_START === */
-        /* === BUILDER_BLOCK: HS_FITTER_P1_4_UITICK500_ROUTER_START === */
+        /* === BUILDER_BLOCK: UI_UITICK_WRAPPERS_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_UITICK_WRAPPERS; SIM_→UI_ 접두사 수정
+   === */
+        /* === BUILDER_BLOCK: UI_UITICK500_ROUTER_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_4_UITICK500_ROUTER; SIM_→UI_ 접두사 수정
+   === */
         function _uiTick500() {
           if (paused) return;
 
@@ -15827,15 +15877,18 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
           const rightOn = document.body.classList.contains('drawer-right-open');
           if (rightOn) updateHistoryPanelUI();
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P1_4_UITICK500_ROUTER_END === */
+        /* === BUILDER_BLOCK: UI_UITICK500_ROUTER_END === */
         function _uiTick200() {
           if (paused) return;
           updateInspectorPanel();
         }
-        /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_END === */
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_END === */
+        /* === BUILDER_BLOCK: UI_UITICK_WRAPPERS_END === */
+        /* === BUILDER_BLOCK: UI_UITICK_REGION_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PANELVISIBLE_START === */
+/* === BUILDER_BLOCK: UI_PANEL_VISIBLE_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_1_PANELVISIBLE
+   === */
 function _isPanelBodyVisible(panelElOrId){
   const el = (typeof panelElOrId === 'string') ? document.getElementById(panelElOrId) : panelElOrId;
   if (!el) return false;
@@ -15845,9 +15898,12 @@ function _isPanelBodyVisible(panelElOrId){
   if (body.getClientRects && body.getClientRects().length === 0) return false;
   return true;
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PANELVISIBLE_END === */
+/* === BUILDER_BLOCK: UI_PANEL_VISIBLE_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_2_HISTORY_UI_START === */
+/* === BUILDER_BLOCK: UI_HISTORY_PANEL_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_2_HISTORY_UI
+   === */
 function updateHistoryPanelUI(){
   // Right drawer only: keep history independent from left drawer
   if (!document.body.classList.contains('drawer-right-open')) return;
@@ -15863,7 +15919,10 @@ function updateHistoryPanelUI(){
   }
 
   // trend tab only: draw graph only when actually visible
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_HISTORY_DRAW_CONTROL_START === */
+/* === BUILDER_BLOCK: UI_HISTORY_DRAW_CTRL_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_HISTORY_DRAW_CONTROL
+   === */
   // Prefer internal tab state (robust to future DOM restructure); fallback to DOM 'active' class.
   let trendActive = false;
   if (typeof _histChronTab !== 'undefined') {
@@ -15882,12 +15941,12 @@ function updateHistoryPanelUI(){
       try { updatePopGraph(); } catch(_) {}
     }
   }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_HISTORY_DRAW_CONTROL_END === */
+/* === BUILDER_BLOCK: UI_HISTORY_DRAW_CTRL_END === */
 
   // stats detail (cached HTML)
   try { if (typeof cachedStatsHTML !== 'undefined' && statsContainer) _setHTMLIfChanged(statsContainer, cachedStatsHTML); } catch(_) {}
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_2_HISTORY_UI_END === */
+/* === BUILDER_BLOCK: UI_HISTORY_PANEL_END === */
 
 
 
@@ -18008,7 +18067,10 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 
 
 
-/* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_START === */
+/* === BUILDER_BLOCK: JS_CORE_API_FACADE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P3_1_CORE_API; UI_→JS_ 귀속 수정(JS_TOP 전역 facade)
+   === */
 (function(){
   try{
     window.EvoSim = window.EvoSim || {};
@@ -18039,7 +18101,7 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
     };
   }catch(_){}
 })();
-/* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_END === */
+/* === BUILDER_BLOCK: JS_CORE_API_FACADE_END === */
 
 /* === BUILDER_BLOCK: UI_DRAWERS_STEP1_INIT_START === */
 /* === UI DRAWERS: Step1 ==================================================
@@ -18200,12 +18262,16 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
       state.rightOpen = !state.rightOpen;
       apply();
       saveState(state);
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_START === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_STEP1_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3B-3): renamed from HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1; DIRTY+LEGACY 접미사 제거
+   === */
+      // LEGACY: Step1 IIFE 경로 — toggleRight 이중 진입 분기 중 Step1(IIFE 즉시실행) 경로
       if (state.rightOpen) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_END === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_STEP1_END === */
     }
 
     function toggleDev(){
@@ -18358,12 +18424,15 @@ function saveLegacyApprox(){
 
     function toggleLeft(){ __pnrevClearCollapsed(); body.classList.toggle('drawer-left-open'); saveLegacyApprox(); updateOverlay(); }
     function toggleRight(){ __pnrevClearCollapsed(); body.classList.toggle('drawer-right-open'); saveLegacyApprox(); updateOverlay();
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_START === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_TOGGLERIGHT_DIRTY
+   === */
       if (body.classList.contains('drawer-right-open')) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_END === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_END === */
     }
     function toggleInspector(){ __pnrevClearCollapsed(); body.classList.toggle('inspector-hidden'); saveLegacyApprox(); updateOverlay(); }
     function closeAll(){
@@ -18573,7 +18642,10 @@ function saveLegacyApprox(){
               detailBtn.style.pointerEvents = (tab==='trend') ? 'auto' : 'none';
             }
             try{ localStorage.setItem(key, tab); }catch(e){}
-            /* === BUILDER_BLOCK: HS_FITTER_P1_3_TREND_TAB_DIRTY_START === */
+            /* === BUILDER_BLOCK: UI_DRAWERS_TREND_TAB_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_TREND_TAB_DIRTY
+   === */
             // Keep internal tab state for future history redesign (no UX change).
             try { if (typeof window.__hsHistory !== 'undefined' && window.__hsHistory.setChronTab) window.__hsHistory.setChronTab(tab); } catch(_) {}
             if (typeof _histChronTab !== 'undefined') _histChronTab = tab;
@@ -18582,7 +18654,7 @@ function saveLegacyApprox(){
               _popGraphDirty = true;
               try { updateHistoryPanelUI(); } catch(_) {}
             }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_TREND_TAB_DIRTY_END === */
+/* === BUILDER_BLOCK: UI_DRAWERS_TREND_TAB_END === */
           }
           btns.forEach(b=>{
             b.addEventListener('click', (ev)=>{

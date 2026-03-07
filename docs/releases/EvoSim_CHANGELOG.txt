@@ -11,7 +11,14 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
-### 27.21 — builder block refactor (mid)
+### 27.25 — builder block refactor 3C (mid)
+- Change: HS_COLLISION_LOOP 5분할 + 2개 블록 신설. COLLISION_CFG_GUARDS(CFG_DEFAULTS 직후), AGENT_PRESTIGE_SYSTEM(CORE_MATH_ENERGY_UTILS 직후), BREATH_SYSTEM(prestige 직후), POP_INFLUX_SYSTEM(SPAWN_AND_LOG_CORE 직후), COLLISION_CHECK_FN(checkCollisions 래핑).
+- Change: _hs3_commitNewborns → _pendCollisionNewborns로 이름 교정 후 checkCollisions 외부로 추출. calcPrestige01 + _sat을 CORE_MATH_ENERGY_UTILS에서 AGENT_PRESTIGE_SYSTEM으로 분리.
+- Why: 순서재배치 사전작업. BREATH(NN 입력 전역 유틸), POP_INFLUX(외부 유입), prestige(사회 지위)가 collision 블록에 혼재하던 구조 해소.
+- Impact: 코드 동작 변경 없음. 블록 경계 및 심볼 위치만 변경.
+- Verify: grep -c "^const BREATH\|^function hsBreathEnsure\|^function calcPrestige01" index.html → 각 1
+
+### 27.24 — builder block refactor 3B-3 (mid)
 - Change: Phase 3-A 실행 — HS_ 접두사 유물 블록 36개를 서브시스템 귀속 명칭으로 rename. 각 START 마커에 `[PATCH RECORD] - 27.21 (builder block refactor): renamed from HS_<원본명>` 한 줄 삽입.
 - Change: 23개 보류 (HS_COLLISION_LOOP 분할 선결, UI_NAV_/UITICK 클러스터 내용 검증 후 처리, 청사진 미등록 2건 포함). 보류 원인표는 실행보고 참조.
 - Why: HS_ 임시패치 접두사를 제거하고 서브시스템 경계를 블록명에 직접 반영하기 위함.
