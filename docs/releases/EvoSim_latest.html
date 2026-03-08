@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.25 builder block refactor 3C</title>
+    <title>EvoSim 27.25 builder block refactor 3C fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5162,10 +5162,6 @@ function hsBreathDecayOnly(a, extraWorkDecay) {
     a.bWork *= BREATH.D_WORK;
   }
 }
-const HerbContrib = {
-  addHit(h, a, dmg) { _recordHerbContrib(h, a, dmg); },
-  settleOnKill(h, killer) { _distributeHerbivoreBonus(h, killer); }
-};
 /* === BUILDER_BLOCK: BREATH_SYSTEM_END === */
 
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_START ===
@@ -12594,6 +12590,16 @@ if (inBrake) speedCap = 0;
         }
 
 /* === BUILDER_BLOCK: HERBIVORE_CLASS_CORE_END === */
+
+/* === BUILDER_BLOCK: HERB_CONTRIB_CORE_START
+   [PATCH RECORD]
+   - 27.25 (builder block refactor 3C fix1): extracted from BREATH_SYSTEM; 초식동물 사냥 기여도 추적
+   === */
+const HerbContrib = {
+  addHit(h, a, dmg) { _recordHerbContrib(h, a, dmg); },
+  settleOnKill(h, killer) { _distributeHerbivoreBonus(h, killer); }
+};
+/* === BUILDER_BLOCK: HERB_CONTRIB_CORE_END === */
 
 /* === BUILDER_BLOCK: CANVAS_CONTEXT_INIT_START === */
         const canvas = document.getElementById('simCanvas');
