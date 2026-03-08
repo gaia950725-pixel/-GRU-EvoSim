@@ -2425,8 +2425,46 @@ BUILDER_BLOCK: CSS_END === */
     <script type="module">
 /* === BUILDER_BLOCK: ARCHITECTURE_OVERVIEW_START ===
 [ARCHITECTURE OVERVIEW]
-- HS blocks: HS_QUERY_API / HS_AGENT_UPDATE / HS_COLLISION_LOOP / HS_MONITOR_CORE / HS_HOTKEYS / HS_AGRO_HARVEST
-- Policy: HS-5(우선순위/타이브레이커)는 문서만, HS-0~4는 “현행 순서 유지”
+
+[1-TICK EXECUTION ORDER — SIM_LOOP_CORE 기준]
+ 1. SIM_LOOP_DECAY          — clamor 감쇠
+ 2. AGRO_TILE_LAZY_TOUCH    — 선택 타일 agro 갱신
+ 3. AUTOCLAN_ANIMATE_HOOK   — 씨족 애니메이션 훅
+ 4. _processFoodSpawnQueue  — 음식 스폰 큐 처리 (인라인)
+ 5. prestige 갱신 (120틱)   — calcPrestige01 (인라인)
+ 6. compaction              — agents/herbs/preds 압축 (인라인)
+ 7. herb pack update        — updateHerbivorePacks (인라인)
+ 8. TS_preBarrier           — E2I rebuild + breath decay(PRE) + ecology(herb/pred) update
+                              + agentGrid/herbGrid/predGrid 빌드
+                              + refreshClanLeadership / refreshAnchors
+                              (정의: SIM_ENGINE_CORE 내 함수; 리더십 함수는 floating range)
+ 9. Think Sweep             — a.think() GRU/NN 추론 (인라인; NN gate: nnPeriodTicks)
+10. Signal Sweep            — TS_evalShoutEveryTick [샤웃]
+                              + extraTurn 계산 [리더조향] (인라인)
+                              (TS_evalShoutEveryTick 정의: SOCIAL_CLAMOR_CORE 이후 floating range)
+11. Body Sweep              — a.update() [이동/물리] (인라인)
+                              (a.update 정의: UI_AGENT_UPDATE)
+12. pred respawn queue      — predatorRespawnQueue 처리 (인라인)
+13. Population Influx       — POP_INFLUX_SYSTEM (crisis + periodic)
+14. checkCollisions         — COLLISION_CHECK_FN [전투/음식/번식/AGRO_HARVEST]
+15. SolitaryAction Sweep    — SOLITARY_ACTION_HELPERS [농사 → 휴식]
+                              (농사 성공 시 휴식 스킵; 인터랙션 참여 시 전체 스킵)
+16. voice commit            — TS_CL_VOICE_EVENTS → _clamorAddVoiceXY (인라인)
+17. breath01 recompute      — breathMass + breath01 (인라인)
+18. TS_commitPending        — 신생아/influx/food/pred flush (인라인)
+
+[BLOCK → 행동 매핑 요약]
+- 농사(farming)    : SOLITARY_ACTION_HELPERS (_ss_applySolitaryActions)
+- 휴식(rest)       : SOLITARY_ACTION_HELPERS (_ss_applySolitaryActions, 농사 이후)
+- 이동(movement)   : UI_AGENT_UPDATE (a.update) → Body Sweep에서 호출
+- 샤웃(shout)      : SOCIAL_CLAMOR_CORE 이후 floating (TS_evalShoutEveryTick) → Signal Sweep
+- 리더조향(leader) : SIM_LOOP_CORE 인라인 Signal Sweep (extraTurn) +
+                     TS_preBarrier의 refreshClanLeadership/refreshAnchors
+
+[FLOATING / UNBLOCKED 행동 함수]
+- TS_evalShoutEveryTick : SOCIAL_CLAMOR_CORE_END 직후 (블록화 미완)
+- refreshClanLeadership : AGENT_GRID_BUILD_END 직후 (블록화 미완)
+- refreshAnchors        : refreshClanLeadership 직후 (블록화 미완)
 
 [VERSION HISTORY]
 | 버전 | 패치명 | 요약 |
