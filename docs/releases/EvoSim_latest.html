@@ -15383,6 +15383,11 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             /* === BUILDER_BLOCK: ERA_BTN_SURNAME_AUTO_WIRE_END === */
         });
 
+        /* === BUILDER_BLOCK: GEMINI_MODAL_BINDINGS_START
+   Gemini AI 모달 버튼 이벤트 바인딩.
+   analyze-btn(역사 서술) / analyze-psych-btn(개체 심리) / 2×close 버튼.
+   ensureAI() 경유 Gemini API 호출; 시뮬레이션 일시정지/재개 연동.
+   === */
         document.getElementById('analyze-btn').addEventListener('click', async () => {
             paused = true;
             const modal = document.getElementById('narrative-modal');
@@ -15492,7 +15497,13 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             document.getElementById('psych-modal').style.display = 'none';
             paused = false;
         });
+        /* === BUILDER_BLOCK: GEMINI_MODAL_BINDINGS_END === */
 
+        /* === BUILDER_BLOCK: UI_SYSTEM_PANELS_UPDATE_START
+   updateSystemPanels() 함수 및 캐시 변수 선언.
+   drawer-left(시스템)·drawer-dev(개발자) 패널 갱신; 500ms uiTick에서 호출.
+   내부에 UI_FARM_OBS_BLOCKVIEW sub-block 포함.
+   === */
         let lastHeavyStatsTick = -1e15;
         let cachedUiLifeText = "";
         let cachedStatsHTML = "";
@@ -15706,6 +15717,7 @@ _setTextIfChanged(uiPredCount, predators.length);
             if(uiProfSignal) _setTextIfChanged(uiProfSignal, _disp_mp_signal);
             }
         }
+        /* === BUILDER_BLOCK: UI_SYSTEM_PANELS_UPDATE_END === */
 
         /* === BUILDER_BLOCK: SIM_BRAIN_THROTTLE_START
    [PATCH RECORD]
