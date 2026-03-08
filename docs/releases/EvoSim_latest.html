@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.28 builder-block GAP finalize</title>
+    <title>EvoSim 27.29 herbivore pack-to-herd rename</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -2433,7 +2433,7 @@ BUILDER_BLOCK: CSS_END === */
  4. _processFoodSpawnQueue  — 음식 스폰 큐 처리 (인라인)
  5. prestige 갱신 (120틱)   — calcPrestige01 (인라인)
  6. compaction              — agents/herbs/preds 압축 (인라인)
- 7. herb pack update        — updateHerbivorePacks (인라인)
+ 7. herb herd update        — updateHerbivoreHerds (인라인)
  8. TS_preBarrier           — E2I rebuild + breath decay(PRE) + ecology(herb/pred) update
                               + agentGrid/herbGrid/predGrid 빌드
                               + refreshClanLeadership / refreshAnchors
@@ -7320,8 +7320,8 @@ const TERRAIN_START_D = 10;
         };
         
         const HERB_PROFILE = {
-            MEGATHERIUM: { maxHealth: 120, damage: 20, packSize: 3, dropFood: 6, speed: 2.05*MOVE_SCALE*0.2, eatInterval: 300, size: 10, color: '#5D4037' },
-            REINDEER:    { maxHealth: 40, damage: 10, packSize: 7, dropFood: 3, speed: 2.05*MOVE_SCALE*0.25, eatInterval: 600, size: 6, color: '#8D6E63' }
+            MEGATHERIUM: { maxHealth: 120, damage: 20, herdSize: 3, dropFood: 6, speed: 2.05*MOVE_SCALE*0.2, eatInterval: 300, size: 10, color: '#5D4037' },
+            REINDEER:    { maxHealth: 40, damage: 10, herdSize: 7, dropFood: 3, speed: 2.05*MOVE_SCALE*0.25, eatInterval: 600, size: 6, color: '#8D6E63' }
         };
         
         // --- Throttling Constants & Helpers ---
@@ -7451,17 +7451,17 @@ const TERRAIN_START_D = 10;
         let PACK_SEQ = 0;
         const PACKS = new Map(); 
 
-        const HERB_PACKS = new Map();
-        let HERB_PACK_SEQ = 0;
-        
-        const HERB_PACK_UPDATE_PERIOD_TICKS = 10; 
-        
-        // [New] Constants for Herbivore Pack Cohesion
+        const HERB_HERDS = new Map();
+        let HERB_HERD_SEQ = 0;
+
+        const HERB_HERD_UPDATE_PERIOD_TICKS = 10;
+
+        // [New] Constants for Herbivore Herd Cohesion
         const HERB_COHESION_RADIUS = 160;
         const HERB_COHESION_R2 = HERB_COHESION_RADIUS * HERB_COHESION_RADIUS;
         const HERB_CATCHUP_MAX_BONUS = 0.35;   // max +35%
         const HERB_CATCHUP_SCALE = 3;          // curve scale
-        let lastHerbPackUpdateTick = -HERB_PACK_UPDATE_PERIOD_TICKS; 
+        let lastHerbHerdUpdateTick = -HERB_HERD_UPDATE_PERIOD_TICKS; 
 
         function spawnDirewolfPack(homePos, size=4) {
             const packId = ++PACK_SEQ;
@@ -10609,10 +10609,10 @@ CFG.crisisRecoverSpeed = getCrisisRecoverSpeedFromUI();
                 herbivores = [];
                 predatorRespawnQueue = [];
                 PACKS.clear();
-                HERB_PACKS.clear();
+                HERB_HERDS.clear();
                 PACK_SEQ = 0;
                 PRED_SEQ = 0;
-                HERB_PACK_SEQ = 0;
+                HERB_HERD_SEQ = 0;
                 
                 // Reset Herbivore Disabled Flag
                 HERB_SYSTEM_DISABLED = false;
@@ -10626,7 +10626,7 @@ CFG.crisisRecoverSpeed = getCrisisRecoverSpeedFromUI();
 
                 // [BUGFIX] Tick-rewind reset: ensure low-frequency systems work after restarting without page refresh
                 try {
-                    lastHerbPackUpdateTick = -HERB_PACK_UPDATE_PERIOD_TICKS;
+                    lastHerbHerdUpdateTick = -HERB_HERD_UPDATE_PERIOD_TICKS;
                     lastPredRespawnTick = -1e15;
 
                     _lastCrisisInfluxTick = -1e15;
@@ -10810,7 +10810,7 @@ document.getElementById('disp-era').textContent = "구석기";
                                 if (lat > 0.35 && lat < 0.75) validClimate = true; 
                             }
                             if(validClimate) {
-                                // A1: horizontal-biased path sampling for ~half of packs (one-time, map-gen only)
+                                // A1: horizontal-biased path sampling for ~half of herds (one-time, map-gen only)
                                 const isHoriz = (Math.random() < 0.5);
                                 const biasRad = 0.35 + Math.random() * (0.52 - 0.35); // ~20°–30°
                                 const baseAng = (Math.random() < 0.5 ? 0 : Math.PI); // E/W
@@ -10839,13 +10839,13 @@ document.getElementById('disp-era').textContent = "구석기";
                            p2 = p1.copy(); 
                         }
                         
-                        const packId = ++HERB_PACK_SEQ;
-                        const packData = {
-                            id: packId,
+                        const herdId = ++HERB_HERD_SEQ;
+                        const herdData = {
+                            id: herdId,
                             species: herbSpecies,
                             p1: p1.copy(),
                             p2: p2.copy(),
-                            maxSize: herbProfile.packSize,
+                            maxSize: herbProfile.herdSize,
                             respawnTimer: 0,
                             spawnCooldown: 0,
                             _liveCount: 0,
@@ -10853,20 +10853,20 @@ document.getElementById('disp-era').textContent = "구석기";
                             // [New] Centroid cache init
                             cx: p1.x,
                             cy: p1.y,
-                            _sumX: 0, 
+                            _sumX: 0,
                             _sumY: 0
                         };
-                        HERB_PACKS.set(packId, packData);
+                        HERB_HERDS.set(herdId, herdData);
 
-                        for(let j=0; j<herbProfile.packSize; j++) {
+                        for(let j=0; j<herbProfile.herdSize; j++) {
                             const offset = new Vec2(Math.random()-0.5, Math.random()-0.5).mult(40);
                             let sx = p1.x + offset.x;
                             let sy = p1.y + offset.y;
                             if (!isLand(sx, sy)) { sx = p1.x; sy = p1.y; }
-                            
+
                             herbivores.push(new Herbivore(
-                                sx, sy, 
-                                packData.species, {p1: packData.p1, p2: packData.p2}, packData.id
+                                sx, sy,
+                                herdData.species, {p1: herdData.p1, p2: herdData.p2}, herdData.id
                             ));
                             _e2i_onHerbAdded(herbivores.length-1);
                         }
@@ -10874,7 +10874,7 @@ document.getElementById('disp-era').textContent = "구석기";
                 } catch (e) {
                     console.error("Herbivore spawn failed", e);
                     if(typeof logEvent === 'function') logEvent("Herbivore spawn failed -> System Disabled", 'warn');
-                    try { HERB_PACKS.clear(); } catch(_){}
+                    try { HERB_HERDS.clear(); } catch(_){}
                     herbivores = [];
                     selectedHerbivore = null;
                     HERB_SYSTEM_DISABLED = true;
@@ -12397,7 +12397,7 @@ let canSense = (!confusion);
 let HERB_SEQ = 0;
 
 class Herbivore {
-            constructor(x, y, species, pathLine, packId) {
+            constructor(x, y, species, pathLine, herdId) {
                 this.pos = new Vec2(x, y);
                 this.vel = new Vec2(0,0);
                 this.hid = (++HERB_SEQ)|0; // P3-3B: stable herb eid
@@ -12429,7 +12429,7 @@ class Herbivore {
                 this.calfCatchCountdown = 40 + ((Math.random()*40)|0);
 
                 this.dead = false;
-                this.packId = packId; 
+                this.herdId = herdId;
                 
                 const safeP1 = (pathLine && pathLine.p1 && typeof pathLine.p1.copy === "function") ? pathLine.p1 : this.pos;
                 const safeP2 = (pathLine && pathLine.p2 && typeof pathLine.p2.copy === "function") ? pathLine.p2 : this.pos;
@@ -12529,15 +12529,15 @@ if (this.grazeTimer > 0) {
                     }
                     if (!inBrake) dir.add(new Vec2(Math.random()-0.5, Math.random()-0.5).mult(0.3));
                     if (!inBrake) this.vel.add(dir.mult(0.1));
-                    // [New] Pack Catch-up Logic
+                    // [New] Herd Catch-up Logic
                     let speedCap = this.profile.speed;
-                    const pack = HERB_PACKS.get(this.packId);
-                    if (pack && typeof pack.cx === "number" && typeof pack.cy === "number") {
-                        const dx = pack.cx - this.pos.x;
-                        const dy = pack.cy - this.pos.y;
+                    const herd = HERB_HERDS.get(this.herdId);
+                    if (herd && typeof herd.cx === "number" && typeof herd.cy === "number") {
+                        const dx = herd.cx - this.pos.x;
+                        const dy = herd.cy - this.pos.y;
                         const d2 = dx*dx + dy*dy;
                         if (d2 > HERB_COHESION_R2) {
-                            // Only speed up if moving TOWARDS the pack center (dot product > 0)
+                            // Only speed up if moving TOWARDS the herd center (dot product > 0)
                             const ahead = dx * this.vel.x + dy * this.vel.y;
                             if (ahead > 0) {
                                 let bonus01 = (d2 - HERB_COHESION_R2) / (HERB_COHESION_R2 * HERB_CATCHUP_SCALE);
@@ -13684,98 +13684,98 @@ if (ribbons.length){
 
         }
 
-function updateHerbivorePacks(dtTicks = 1) {
-            HERB_PACKS.forEach(pack => {
-                pack._liveCount = 0;
-                pack._endpoint = 0; 
+function updateHerbivoreHerds(dtTicks = 1) {
+            HERB_HERDS.forEach(herd => {
+                herd._liveCount = 0;
+                herd._endpoint = 0;
                 // [New] Reset sums for centroid calculation
-                pack._sumX = 0;
-                pack._sumY = 0;
+                herd._sumX = 0;
+                herd._sumY = 0;
             });
 
             for (let i = 0; i < herbivores.length; i++) {
                 const h = herbivores[i];
                 if (!h || h.dead) continue;
 
-                const pack = HERB_PACKS.get(h.packId);
-                if (!pack) continue;
+                const herd = HERB_HERDS.get(h.herdId);
+                if (!herd) continue;
 
-                pack._liveCount++;
+                herd._liveCount++;
                 // [New] Accumulate position
-                pack._sumX += h.pos.x;
-                pack._sumY += h.pos.y;
+                herd._sumX += h.pos.x;
+                herd._sumY += h.pos.y;
 
-                if (pack._endpoint === 0) {
-                    if (h.pos.dist(pack.p1) < 120) {
-                        pack._endpoint = 1; 
-                    } else if (h.pos.dist(pack.p2) < 120) {
-                        pack._endpoint = 2;
+                if (herd._endpoint === 0) {
+                    if (h.pos.dist(herd.p1) < 120) {
+                        herd._endpoint = 1;
+                    } else if (h.pos.dist(herd.p2) < 120) {
+                        herd._endpoint = 2;
                     }
                 }
             }
 
-            HERB_PACKS.forEach(pack => {
+            HERB_HERDS.forEach(herd => {
                 // [New] Calculate Centroid
-                if (pack._liveCount > 0) {
-                    pack.cx = pack._sumX / pack._liveCount;
-                    pack.cy = pack._sumY / pack._liveCount;
+                if (herd._liveCount > 0) {
+                    herd.cx = herd._sumX / herd._liveCount;
+                    herd.cy = herd._sumY / herd._liveCount;
                 }
 
-                const count = pack._liveCount;
+                const count = herd._liveCount;
 
                 if (count === 0) {
-                    if (pack.respawnTimer === 0) {
-                        pack.respawnTimer = CAL_TICKS_PER_SEASON * 15; // 15 seasons (tick-fixed)
+                    if (herd.respawnTimer === 0) {
+                        herd.respawnTimer = CAL_TICKS_PER_SEASON * 15; // 15 seasons (tick-fixed)
 } else {
-                        pack.respawnTimer -= dtTicks;
-                        if (pack.respawnTimer <= 0) {
+                        herd.respawnTimer -= dtTicks;
+                        if (herd.respawnTimer <= 0) {
                             const spawnAtP1 = Math.random() < 0.5;
-                            const spawnPos = spawnAtP1 ? pack.p1 : pack.p2;
-                            
-                            for(let j=0; j<pack.maxSize; j++) {
+                            const spawnPos = spawnAtP1 ? herd.p1 : herd.p2;
+
+                            for(let j=0; j<herd.maxSize; j++) {
                                 const offset = new Vec2(Math.random()-0.5, Math.random()-0.5).mult(40);
                                 let sx = spawnPos.x + offset.x;
                                 let sy = spawnPos.y + offset.y;
                                 if(!isLand(sx, sy)) { sx = spawnPos.x; sy = spawnPos.y; }
-                                
+
                                 herbivores.push(new Herbivore(
-                                    sx, sy, 
-                                    pack.species, {p1: pack.p1, p2: pack.p2}, pack.id
+                                    sx, sy,
+                                    herd.species, {p1: herd.p1, p2: herd.p2}, herd.id
                                 ));
                                 _e2i_onHerbAdded(herbivores.length-1);
                             }
-                            logEvent(`${pack.species} 무리 재생성 (경로 끝)`, 'event');
-                            pack.respawnTimer = 0;
+                            logEvent(`${herd.species} 무리 재생성 (경로 끝)`, 'event');
+                            herd.respawnTimer = 0;
                         }
                     }
-                    return; 
+                    return;
                 } else {
-                    pack.respawnTimer = 0;
+                    herd.respawnTimer = 0;
                 }
 
-                if (pack.spawnCooldown > 0) {
-                    pack.spawnCooldown = Math.max(0, pack.spawnCooldown - dtTicks);
+                if (herd.spawnCooldown > 0) {
+                    herd.spawnCooldown = Math.max(0, herd.spawnCooldown - dtTicks);
                 }
 
-                if (count < pack.maxSize && pack.spawnCooldown <= 0) {
+                if (count < herd.maxSize && herd.spawnCooldown <= 0) {
                     let spawnLocation = null;
 
-                    if (pack._endpoint === 1) spawnLocation = pack.p1;
-                    else if (pack._endpoint === 2) spawnLocation = pack.p2;
+                    if (herd._endpoint === 1) spawnLocation = herd.p1;
+                    else if (herd._endpoint === 2) spawnLocation = herd.p2;
 
                     if (spawnLocation) {
                         const offset = new Vec2(Math.random()-0.5, Math.random()-0.5).mult(20);
                         let sx = spawnLocation.x + offset.x;
                         let sy = spawnLocation.y + offset.y;
                         if(!isLand(sx, sy)) { sx = spawnLocation.x; sy = spawnLocation.y; }
-                        
+
                         herbivores.push(new Herbivore(
-                            sx, sy, 
-                            pack.species, {p1: pack.p1, p2: pack.p2}, pack.id
+                            sx, sy,
+                            herd.species, {p1: herd.p1, p2: herd.p2}, herd.id
                         ));
                         _e2i_onHerbAdded(herbivores.length-1);
-                        pack.spawnCooldown = 60; 
-                        if (Math.random() < 0.3) logEvent(`${pack.species} 번식 (경로 끝 도달)`, 'event');
+                        herd.spawnCooldown = 60;
+                        if (Math.random() < 0.3) logEvent(`${herd.species} 번식 (경로 끝 도달)`, 'event');
                     }
                 }
             });
@@ -16744,27 +16744,27 @@ try {
         // [TS_PATCH 26.21] E2I rebuild deferred to TS_preBarrier (PRE only).
 
 
-      const dtPack = simulatedTicks - lastHerbPackUpdateTick;
+      const dtHerd = simulatedTicks - lastHerbHerdUpdateTick;
 
-      // [BUGFIX] tick rewind guard (restart without reload): keep pack updates/respanws alive
-      if (dtPack < 0) { lastHerbPackUpdateTick = simulatedTicks - HERB_PACK_UPDATE_PERIOD_TICKS; }
+      // [BUGFIX] tick rewind guard (restart without reload): keep herd updates/respawns alive
+      if (dtHerd < 0) { lastHerbHerdUpdateTick = simulatedTicks - HERB_HERD_UPDATE_PERIOD_TICKS; }
 
   // Patch 4: Safe Herbivore Update + Disable Guard
       if (!HERB_SYSTEM_DISABLED) {
-          if (dtPack >= HERB_PACK_UPDATE_PERIOD_TICKS) {
+          if (dtHerd >= HERB_HERD_UPDATE_PERIOD_TICKS) {
               try {
-                  updateHerbivorePacks(dtPack);
+                  updateHerbivoreHerds(dtHerd);
               } catch (e) {
-                  console.error("Herbivore pack update crashed -> disabling herb system", e);
-                  if (typeof logEvent === "function") logEvent("Herbivore system disabled (pack update error)", "warn");
+                  console.error("Herbivore herd update crashed -> disabling herb system", e);
+                  if (typeof logEvent === "function") logEvent("Herbivore system disabled (herd update error)", "warn");
                   HERB_SYSTEM_DISABLED = true;
-                  HERB_SYSTEM_DISABLED_REASON = "pack_update_error";
-                  try { HERB_PACKS.clear(); } catch(_) {}
+                  HERB_SYSTEM_DISABLED_REASON = "herd_update_error";
+                  try { HERB_HERDS.clear(); } catch(_) {}
                   herbivores = [];
                   selectedHerbivore = null;
                   cachedHerbGrid = new Map(); // Patch D: Clear cache
               }
-              lastHerbPackUpdateTick = simulatedTicks;
+              lastHerbHerdUpdateTick = simulatedTicks;
           }
       }
 
@@ -17419,14 +17419,14 @@ function __evoRafStop(){
             try{ if (predators && predators.length) predators.length = 0; }catch(e){}
             try{ if (herbivores && herbivores.length) herbivores.length = 0; }catch(e){}
 
-            // Queues / packs / counters
+            // Queues / herds·packs / counters
             try{ if (typeof FOOD_SPAWN_QUEUE !== 'undefined' && FOOD_SPAWN_QUEUE) FOOD_SPAWN_QUEUE.length = 0; }catch(e){}
             try{ if (predatorRespawnQueue && predatorRespawnQueue.length) predatorRespawnQueue.length = 0; }catch(e){}
             try{ if (typeof PACKS !== 'undefined' && PACKS && PACKS.clear) PACKS.clear(); }catch(e){}
-            try{ if (typeof HERB_PACKS !== 'undefined' && HERB_PACKS && HERB_PACKS.clear) HERB_PACKS.clear(); }catch(e){}
+            try{ if (typeof HERB_HERDS !== 'undefined' && HERB_HERDS && HERB_HERDS.clear) HERB_HERDS.clear(); }catch(e){}
             try{ PACK_SEQ = 0; }catch(e){}
             try{ PRED_SEQ = 0; }catch(e){}
-            try{ HERB_PACK_SEQ = 0; }catch(e){}
+            try{ HERB_HERD_SEQ = 0; }catch(e){}
 
             // Tick / era (optional reset for "dead world" state)
             try{ simulatedTicks = 0; }catch(e){}

@@ -203,19 +203,20 @@ Verify: <optional 1 line — how to confirm>
 
 ---
 
-## 12) Current state (v27.28)
+## 12) Current state (v27.29)
 
 | Field | Value |
 |-------|-------|
-| Version | 27.28 |
-| Title | builder-block GAP finalize |
+| Version | 27.29 |
+| Title | herbivore pack-to-herd rename |
 | index.html | Synced ✓ |
 | EvoSim_latest.html | Synced ✓ |
-| Archive | `EvoSim_27.28_builder-block_GAP-finalize_FINAL.html` ✓ |
+| Archive | `EvoSim_27.29_herbivore-pack-to-herd-rename_FINAL.html` ✓ |
 | CHANGELOG | Updated ✓ |
-| Key change | GAP-D/E/F/G/I 블록화 완료; ISS-13 흡수; 27.2x 계열 builder-block 리팩터 완결. START=END=132 |
+| Key change | 초식동물 시스템 pack→herd 전면 리네임. 전역상수/함수명/클래스필드/프로필필드/지역변수/주석·로그 포함. 포식자 pack 보존. 동작변경 없음(순수 rename). |
 
 **Recent version lineage (newest first):**
+- 27.29 — herbivore pack-to-herd rename
 - 27.28 — builder-block GAP finalize
 - 27.27 — cfg-defaults consolidate
 - 27.26 — builder block refactor 3D (HS_ 완전 소멸)
