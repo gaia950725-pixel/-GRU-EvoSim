@@ -11,6 +11,12 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.29 — herbivore pack-to-herd rename (mid)
+- Change: 초식동물 시스템의 "pack" 용어를 "herd"로 전면 치환. 전역 상수(HERB_HERDS/HERB_HERD_SEQ/HERB_HERD_UPDATE_PERIOD_TICKS), 함수명(updateHerbivoreHerds), 클래스 필드(herdId), 프로필 필드(herdSize), 지역변수(herdData/dtHerd), 주석/로그 문구 포함. 포식자(Direwolf) pack 시스템은 전체 보존.
+- Why: 초식동물 무리 개념은 생태학적으로 "herd"가 정확하며, 포식자 "pack"과의 의미 구분을 위해 용어 분리.
+- Impact: 초식 시스템 전역. 동작 변경 없음(순수 rename). 포식자 시스템 무영향.
+- Verify: 시뮬레이션 시작 후 초식동물 무리 생성·이동·번식·재스폰이 27.28과 동일하게 작동하는지 확인.
+
 ### 27.28 — builder-block GAP finalize (mid)
 - Change: GAP-D/E/I 블록 신설 — FOOD_GRID_CORE, BRAIN_CANVAS_DRAW, UI_CHIP_TABS_PNREV_INIT 3개.
 - Change: floating 행동 함수 3개 블록화 — SHOUT_EMIT_CORE, SOL_SKIP_INFRA, LEADER_ANCHOR_CORE.
