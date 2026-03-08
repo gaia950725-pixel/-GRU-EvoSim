@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>27.20_fix1</title>
+    <title>EvoSim 27.28 builder-block GAP finalize</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -2425,8 +2425,44 @@ BUILDER_BLOCK: CSS_END === */
     <script type="module">
 /* === BUILDER_BLOCK: ARCHITECTURE_OVERVIEW_START ===
 [ARCHITECTURE OVERVIEW]
-- HS blocks: HS_QUERY_API / HS_AGENT_UPDATE / HS_COLLISION_LOOP / HS_MONITOR_CORE / HS_HOTKEYS / HS_AGRO_HARVEST
-- Policy: HS-5(우선순위/타이브레이커)는 문서만, HS-0~4는 “현행 순서 유지”
+
+[1-TICK EXECUTION ORDER — SIM_LOOP_CORE 기준]
+ 1. SIM_LOOP_DECAY          — clamor 감쇠
+ 2. AGRO_TILE_LAZY_TOUCH    — 선택 타일 agro 갱신
+ 3. AUTOCLAN_ANIMATE_HOOK   — 씨족 애니메이션 훅
+ 4. _processFoodSpawnQueue  — 음식 스폰 큐 처리 (인라인)
+ 5. prestige 갱신 (120틱)   — calcPrestige01 (인라인)
+ 6. compaction              — agents/herbs/preds 압축 (인라인)
+ 7. herb pack update        — updateHerbivorePacks (인라인)
+ 8. TS_preBarrier           — E2I rebuild + breath decay(PRE) + ecology(herb/pred) update
+                              + agentGrid/herbGrid/predGrid 빌드
+                              + refreshClanLeadership / refreshAnchors
+                              (정의: SIM_ENGINE_CORE 내 함수; 리더십 함수는 floating range)
+ 9. Think Sweep             — a.think() GRU/NN 추론 (인라인; NN gate: nnPeriodTicks)
+10. Signal Sweep            — TS_evalShoutEveryTick [샤웃]
+                              + extraTurn 계산 [리더조향] (인라인)
+                              (TS_evalShoutEveryTick 정의: SOCIAL_CLAMOR_CORE 이후 floating range)
+11. Body Sweep              — a.update() [이동/물리] (인라인)
+                              (a.update 정의: UI_AGENT_UPDATE)
+12. pred respawn queue      — predatorRespawnQueue 처리 (인라인)
+13. Population Influx       — POP_INFLUX_SYSTEM (crisis + periodic)
+14. checkCollisions         — COLLISION_CHECK_FN [전투/음식/번식/AGRO_HARVEST]
+15. SolitaryAction Sweep    — SOLITARY_ACTION_HELPERS [농사 → 휴식]
+                              (농사 성공 시 휴식 스킵; 인터랙션 참여 시 전체 스킵)
+16. voice commit            — TS_CL_VOICE_EVENTS → _clamorAddVoiceXY (인라인)
+17. breath01 recompute      — breathMass + breath01 (인라인)
+18. TS_commitPending        — 신생아/influx/food/pred flush (인라인)
+
+[BLOCK → 행동 매핑 요약]
+- 농사(farming)    : SOLITARY_ACTION_HELPERS (_ss_applySolitaryActions)
+- 휴식(rest)       : SOLITARY_ACTION_HELPERS (_ss_applySolitaryActions, 농사 이후)
+- 이동(movement)   : UI_AGENT_UPDATE (a.update) → Body Sweep에서 호출
+- 샤웃(shout)      : SOCIAL_CLAMOR_CORE 이후 floating (TS_evalShoutEveryTick) → Signal Sweep
+- 리더조향(leader) : SIM_LOOP_CORE 인라인 Signal Sweep (extraTurn) +
+                     TS_preBarrier의 refreshClanLeadership/refreshAnchors
+
+[FLOATING / UNBLOCKED 행동 함수]
+- (없음: 27.10 기준 SHOUT_EMIT_CORE / SOL_SKIP_INFRA / LEADER_ANCHOR_CORE 블록화 완료)
 
 [VERSION HISTORY]
 | 버전 | 패치명 | 요약 |
@@ -3692,11 +3728,17 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
         
         document.querySelectorAll('.panel').forEach(makeDraggable);
         
-        /* === BUILDER_BLOCK: HS_FITTER_P1_3_GRAPH_FLAGS_START === */
+        /* === BUILDER_BLOCK: UI_CFG_GRAPH_FLAGS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_3_GRAPH_FLAGS
+   === */
 let _popGraphDirty = true;
 let _popGraphLastDrawMs = 0;
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_GRAPH_FLAGS_END === */
-/* === BUILDER_BLOCK: HS_FITTER_P1_3A_HISTORY_ADAPTER_START === */
+/* === BUILDER_BLOCK: UI_CFG_GRAPH_FLAGS_END === */
+/* === BUILDER_BLOCK: UI_CFG_HISTORY_ADAPTER_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_3A_HISTORY_ADAPTER
+   === */
 // Minimal adapter for future History-panel redesign (no UX change).
 // Keeps an internal notion of the Chronicle active tab, decoupled from DOM structure.
 let _histChronTab = (function(){
@@ -3709,7 +3751,7 @@ window.__hsHistory.setChronTab = function(tab){
 };
 window.__hsHistory.markGraphDirty = function(){ _popGraphDirty = true; };
 window.__hsHistory.redrawHistory = function(){ try { updateHistoryPanelUI(); } catch(_) {} };
-/* === BUILDER_BLOCK: HS_FITTER_P1_3A_HISTORY_ADAPTER_END === */
+/* === BUILDER_BLOCK: UI_CFG_HISTORY_ADAPTER_END === */
 
 
 document.querySelectorAll('.panel-toggle').forEach(toggle => {
@@ -3732,13 +3774,16 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
                 }
 
                 toggle.textContent = panel.classList.contains('collapsed') ? '+' : '−';
-                /* === BUILDER_BLOCK: HS_FITTER_P1_3_PANEL_EXPAND_DIRTY_START === */
+                /* === BUILDER_BLOCK: UI_CFG_PANEL_EXPAND_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_3_PANEL_EXPAND_DIRTY
+   === */
                 if (panel && panel.id === 'history-panel' && !panel.classList.contains('collapsed')) {
                     _popGraphDirty = true;
                     try { if (window.__hsHistory && window.__hsHistory.markGraphDirty) window.__hsHistory.markGraphDirty(); } catch(_) {}
                     try { updateHistoryPanelUI(); } catch(_) {}
                 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_PANEL_EXPAND_DIRTY_END === */
+/* === BUILDER_BLOCK: UI_CFG_PANEL_EXPAND_END === */
                 e.stopPropagation();
             });
         });
@@ -3747,6 +3792,7 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
 // --- Constants & Config ---
 /* === BUILDER_BLOCK: CFG_DEFAULTS_START ===
    [PATCH RECORD]
+   - 27.27 (cfg-defaults consolidate): add pillageEnergy/farmWorkTicks/farmCooldownTicks; bake tilthWearPerWorkTick*0.85 (v18.84 migration); remove COLLISION_CFG_GUARDS block
    - 26.25 (CM): addblock cfg defaults (may need partialize)
    === */
         let CFG = {
@@ -3847,9 +3893,14 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
 
             // ### PATCH 3C: Farm Phase 3C Constants (Lazy Decay/Tilth)
             cropDecayPerIdleTick: 0.00075,
-            tilthWearPerWorkTick: 0.00010,
+            tilthWearPerWorkTick: 0.000085, // 0.00010 * 0.85 (v18.84 migration baked in)
             tilthRegenPerIdleTick: 0.00003,
             farmGraceTicks: 60,
+            farmWorkTicks: 8,
+            farmCooldownTicks: 2,
+
+            // ### Combat / Pillage
+            pillageEnergy: 100,
 
             // --- Scent Sensor Config (Phase B) ---
             scentRadius: 110,
@@ -3994,6 +4045,8 @@ EvoSim.debug.setCFG = (patch) => {
         const FARM_COOP_EFF_K = 1.0;
 
 /* === BUILDER_BLOCK: CFG_DEFAULTS_END === */
+
+
 /* === BUILDER_BLOCK: NN_IO_ENUMS_START ===
    [PATCH RECORD]
    - 27.01 (input27 cleanup): remove SENSOR legacy aliases; compress sensor header comments; drop long labels
@@ -4122,7 +4175,10 @@ const OUTPUT = Object.freeze({
         
 /* === BUILDER_BLOCK: VISION_CACHE_DERIVED_END === */
 
-/* === BUILDER_BLOCK: HS_OCCLUSION_21RAY_GLOBALS_START === */
+/* === BUILDER_BLOCK: VISION_OCCLUSION_GLOBALS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_OCCLUSION_21RAY_GLOBALS
+   === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  */
@@ -4236,7 +4292,7 @@ function occSectorIndex(dot, cross) {
   return lo;
 }
 
-/* === BUILDER_BLOCK: HS_OCCLUSION_21RAY_GLOBALS_END === */
+/* === BUILDER_BLOCK: VISION_OCCLUSION_GLOBALS_END === */
 /* === BUILDER_BLOCK: AGRO_GLOBALS_START ===
 [PATCH RECORD]
  - 26.23 (CM): addblock (confirmed split)
@@ -4257,7 +4313,10 @@ function agroTileIndexAt(x, y) {
             return cy * AGRO.cols + cx;
         }
 
-        /* === BUILDER_BLOCK: HS_AGRO_BLOCKVIEW_UTILS_START === */
+        /* === BUILDER_BLOCK: AGRO_BLOCKVIEW_UTILS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_BLOCKVIEW_UTILS
+   === */
 
 function agroRepIdxFromTileIdx(tileIdx) {
   if (!AGRO || tileIdx == null || tileIdx < 0) return -1;
@@ -4443,7 +4502,7 @@ function agroMaybeConsumeSeedOnStageEnter(repIdx, prevStage, newStage) {
   return mode;
 }
 
-/* === BUILDER_BLOCK: HS_AGRO_BLOCKVIEW_UTILS_END === */
+/* === BUILDER_BLOCK: AGRO_BLOCKVIEW_UTILS_END === */
 
         
         // [Patch] Client(px in viewport) -> World coordinates (handles DPR/canvas scaling)
@@ -4482,9 +4541,12 @@ function clientToWorld(clientX, clientY) {
 
         function agroTouchTileLazy(idx, nowTick) {
             if(!AGRO || idx < 0) return;
-            /* === BUILDER_BLOCK: HS_AGRO_TOUCH_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_TOUCH_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_TOUCH_REPIDX
+   === */
             idx = agroRepIdxFromTileIdx(idx);
-            /* === BUILDER_BLOCK: HS_AGRO_TOUCH_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_TOUCH_REPIDX_END === */
             const last = AGRO.lastTick[idx];
             
             // First touch or reset
@@ -4515,7 +4577,10 @@ function clientToWorld(clientX, clientY) {
             AGRO.lastTick[idx] = nowTick;
         }
 
-/* === BUILDER_BLOCK: HS_AGRO_PEEK_TILE_START === */
+/* === BUILDER_BLOCK: AGRO_PEEK_TILE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_PEEK_TILE
+   === */
 // Read-only tile peek: NEVER mutate AGRO/world state here.
 // Accepts either (tileIdx) or (worldX, worldY).
 const __agroPeekTmp = { idx:-1, crop:0, tilth:0, lastTick:0 };
@@ -4536,16 +4601,19 @@ function agroPeekTile(a, b) {
   __agroPeekTmp.lastTick = (AGRO.lastTick && AGRO.lastTick[i] != null) ? AGRO.lastTick[i] : 0;
   return __agroPeekTmp;
 }
-/* === BUILDER_BLOCK: HS_AGRO_PEEK_TILE_END === */
+/* === BUILDER_BLOCK: AGRO_PEEK_TILE_END === */
 
 
 
         // ### PATCH 4: Farm Helper Functions (Phase 3B)
         function agroUpdateTop4(idx, agent, val) {
             if(!AGRO) return;
-            /* === BUILDER_BLOCK: HS_AGRO_TOP4_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_TOP4_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_TOP4_REPIDX
+   === */
             idx = agroRepIdxFromTileIdx(idx);
-            /* === BUILDER_BLOCK: HS_AGRO_TOP4_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_TOP4_REPIDX_END === */
             
             // Read current state
             let r0 = AGRO.topRef0[idx], v0 = AGRO.topVal0[idx];
@@ -4603,12 +4671,18 @@ function agroPeekTile(a, b) {
         }
 
         //#region ========== HS_AGRO_HARVEST ==========
-        /* === BUILDER_BLOCK: HS_AGRO_HARVEST_START === */
+        /* === BUILDER_BLOCK: AGRO_HARVEST_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_HARVEST
+   === */
 function agroHarvestTileIfReady(idx) {
             if (!AGRO) return;
-            /* === BUILDER_BLOCK: HS_AGRO_HARVEST_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_HARVEST_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_HARVEST_REPIDX
+   === */
             idx = agroRepIdxFromTileIdx(idx);
-            /* === BUILDER_BLOCK: HS_AGRO_HARVEST_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_HARVEST_REPIDX_END === */
             const crop = AGRO.crop[idx];
             if (crop < 1.0 - 1e-6) return;
             if (AGRO.harvestTick[idx] === simulatedTicks) return;
@@ -4653,7 +4727,10 @@ function agroHarvestTileIfReady(idx) {
                 });
                 
 
-                /* === BUILDER_BLOCK: HS_AGRO_HARVEST_FARMDROP_START === */
+                /* === BUILDER_BLOCK: AGRO_HARVEST_FARMDROP_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_HARVEST_FARMDROP
+   === */
 // Phase 5: drop FARM foods on successful harvest (after direct payout)
 // v2b: base=2 + farmsuit chance(+1) + seed bonus(+1 fixed +1 chance), and next-tick foodGrid rebuild (via _foodDirtyNextTick).
 {
@@ -4707,7 +4784,7 @@ function agroHarvestTileIfReady(idx) {
         }
     }
 }
-/* === BUILDER_BLOCK: HS_AGRO_HARVEST_FARMDROP_END === */
+/* === BUILDER_BLOCK: AGRO_HARVEST_FARMDROP_END === */
 
                 if(Math.random() < 0.05) logEvent(`농사 수확: ${n}명 참여, 총 ${(E_total/100).toFixed(0)}*100 에너지`, 'event');
             }
@@ -4724,7 +4801,7 @@ function agroHarvestTileIfReady(idx) {
             // Update lastTick to prevent immediate decay logic issues if any
             agroTouchTileLazy(idx, simulatedTicks);
         }
-/* === BUILDER_BLOCK: HS_AGRO_HARVEST_END === */
+/* === BUILDER_BLOCK: AGRO_HARVEST_END === */
 //#endregion
 
         /* === BUILDER_BLOCK: AGRO_FARM_WORK_TICK_START ===
@@ -4735,10 +4812,13 @@ function agroHarvestTileIfReady(idx) {
         function agroFarmWorkTick(agent, idx) {
             if(!AGRO || idx < 0) return;
 
-            /* === BUILDER_BLOCK: HS_AGRO_WORK_REPIDX_START === */
+            /* === BUILDER_BLOCK: AGRO_WORK_REPIDX_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGRO_WORK_REPIDX
+   === */
             const idxRaw = idx;
             idx = agroRepIdxFromTileIdx(idxRaw);
-            /* === BUILDER_BLOCK: HS_AGRO_WORK_REPIDX_END === */
+            /* === BUILDER_BLOCK: AGRO_WORK_REPIDX_END === */
             
             // 1. Lazy update first (catch up idle time)
             agroTouchTileLazy(idx, simulatedTicks);
@@ -4831,6 +4911,302 @@ function agroHarvestTileIfReady(idx) {
 
         /* === BUILDER_BLOCK: AGRO_FARM_WORK_TICK_END === */
 
+/* === BUILDER_BLOCK: AGRO_INIT_CORE_START ===
+[PATCH RECORD]
+ - 26.23 (CM): addblock (confirmed split)
+=== */
+function initClimate() {
+            if (!CFG.climateEnabled) { CLIMATE = null; return; }
+            CLIMATE = {
+            seed: CFG.climateSeed | 0,
+            amp: Math.max(0, +CFG.climateNoiseAmp || 0),
+            cell: Math.max(40, +CFG.climateNoiseCell || 220)
+            };
+        }
+        
+        function initAgro() {
+            if (!CFG.climateEnabled) { AGRO = null; return; }
+
+            const TILE = AGRO_TILE;
+            const cols = Math.ceil(CFG.worldWidth / TILE);
+            const rows = Math.ceil(CFG.worldHeight / TILE);
+            
+            AGRO = {
+                tile: TILE, cols, rows,
+                landMask: new Uint8Array(cols * rows),
+                temp: ((typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && GAIA.tempGrid.length === (cols*rows)) ? GAIA.tempGrid : new Float32Array(cols*rows)),
+                farmMask: new Uint8Array(cols * rows) // 0:None, 1:Big, 2:Small1, 3:Small2
+            };
+
+            if (!(typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && AGRO.temp === GAIA.tempGrid)) AGRO.temp.fill(0.5);
+const idxOf = (x, y) => y * cols + x;
+            const inBounds = (x, y) => x >= 0 && x < cols && y >= 0 && y < rows;
+
+            let landIndices = [];
+            
+            for(let y=0; y<rows; y++) {
+                for(let x=0; x<cols; x++) {
+                    const wx = (x + 0.5) * TILE;
+                    const wy = (y + 0.5) * TILE;
+                    const idx = idxOf(x, y);
+                    const onPassable = isPassable(wx, wy);
+                    if (onPassable) {
+                        AGRO.landMask[idx] = 1;
+                        landIndices.push({x,y,idx});
+                        if (!(typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && AGRO.temp === GAIA.tempGrid)) {
+                    AGRO.temp[idx] = tempNormAt(wx, wy);
+                }
+                    }
+}
+            }
+            
+
+            const N = cols * rows;
+            if (!(GAIA && GAIA.humidGrid && GAIA.humidGrid.length === N &&
+                  GAIA.riverMask && GAIA.riverMask.length === N &&
+                  Array.isArray(GAIA.riverPolylines))) {
+                throw new Error('initAgro: climateEnabled but GAIA hydrology/humid SOT missing');
+            }
+            AGRO.humidity = GAIA.humidGrid;
+            AGRO.riverMask = GAIA.riverMask;
+            AGRO.riverPolylines = GAIA.riverPolylines;
+
+const landCount = landIndices.length;
+            if (landCount > 100) {
+                /* === BUILDER_BLOCK: AGRO_FARM_BUILD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_INITAGRO_FARMBUILD_BLOCKS
+   === */
+                // Build 2x2 (60x60) land-only candidate blocks (exclude any sea tile)
+                const blockScores = [];
+                const blockScoreMap = new Float32Array(cols * rows).fill(-1);
+                const blockOk = new Uint8Array(cols * rows); // repIdx slots only
+
+                const rawTileScore = (ti) => {
+                    const t = AGRO.temp[ti];
+                    const tScore = Math.exp(-Math.pow((t - 0.55) / 0.18, 2));
+                    return tScore * Math.pow(AGRO.humidity[ti], 1.2);
+                };
+
+                for (let by = 0; by < rows - 1; by += 2) {
+                    for (let bx = 0; bx < cols - 1; bx += 2) {
+                        const rep = idxOf(bx, by);
+                        const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
+                        if (AGRO.landMask[a] && AGRO.landMask[b] && AGRO.landMask[c] && AGRO.landMask[d]) {
+                            const raw = 0.25 * (rawTileScore(a) + rawTileScore(b) + rawTileScore(c) + rawTileScore(d));
+                            blockOk[rep] = 1;
+                            blockScoreMap[rep] = raw;
+                            blockScores.push({ x: bx, y: by, idx: rep, score: raw });
+                        }
+                    }
+                }
+
+                blockScores.sort((u, v) => v.score - u.score);
+
+                const totalTargetTiles = Math.floor(landCount * CFG.farmLandPct);
+                let totalTargetBlocks = Math.floor(totalTargetTiles / 4); // do not exceed config
+                if (totalTargetBlocks > blockScores.length) totalTargetBlocks = blockScores.length;
+
+                const q1 = Math.floor(totalTargetBlocks * 0.45);
+                const q2 = Math.floor(totalTargetBlocks * 0.275);
+                const q3 = totalTargetBlocks - q1 - q2;
+                const quotas = [q1, q2, q3];
+
+                const paintBlock = (rep, r) => {
+                    const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
+                    AGRO.farmMask[a] = r; AGRO.farmMask[b] = r;
+                    AGRO.farmMask[c] = r; AGRO.farmMask[d] = r;
+                };
+
+                const tryBuildBlocks = (minSepBlocks) => {
+                    AGRO.farmMask.fill(0);
+                    const used = new Uint8Array(cols * rows); // repIdx only
+
+                    const getDistToFarmsBlocks = () => {
+                        const dMap = new Int32Array(cols * rows).fill(-1);
+                        const q = [];
+                        for (let by = 0; by < rows - 1; by += 2) {
+                            for (let bx = 0; bx < cols - 1; bx += 2) {
+                                const rep = idxOf(bx, by);
+                                if (AGRO.farmMask[rep] > 0) {
+                                    dMap[rep] = 0;
+                                    q.push(rep);
+                                }
+                            }
+                        }
+                        if (q.length === 0) return null;
+
+                        let h = 0;
+                        while (h < q.length) {
+                            const cur = q[h++];
+                            if (dMap[cur] >= minSepBlocks) continue;
+                            const cx = cur % cols;
+                            const cy = (cur / cols) | 0;
+                            const nbs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
+                            for (let dir of nbs) {
+                                const nx = cx + dir[0];
+                                const ny = cy + dir[1];
+                                if (nx >= 0 && nx < cols - 1 && ny >= 0 && ny < rows - 1) {
+                                    const nrep = idxOf(nx, ny);
+                                    if (!blockOk[nrep]) continue;
+                                    if (dMap[nrep] === -1) {
+                                        dMap[nrep] = dMap[cur] + 1;
+                                        q.push(nrep);
+                                    }
+                                }
+                            }
+                        }
+                        return dMap;
+                    };
+
+                    const addNbs = (rep, distMap, openList) => {
+                        const rx = rep % cols;
+                        const ry = (rep / cols) | 0;
+                        const nbs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
+                        for (let dir of nbs) {
+                            const nx = rx + dir[0];
+                            const ny = ry + dir[1];
+                            if (nx >= 0 && nx < cols - 1 && ny >= 0 && ny < rows - 1) {
+                                const nrep = idxOf(nx, ny);
+                                if (!blockOk[nrep]) continue;
+                                if (used[nrep]) continue;
+                                if (distMap) {
+                                    const d = distMap[nrep];
+                                    if (d !== -1 && d < minSepBlocks) continue;
+                                }
+                                used[nrep] = 1;
+                                openList.push({ idx: nrep, score: blockScoreMap[nrep] });
+                            }
+                        }
+                    };
+
+                    for (let r = 1; r <= 3; r++) {
+                        const need = quotas[r - 1];
+                        if (need <= 0) continue;
+
+                        const distMap = (r > 1) ? getDistToFarmsBlocks() : null;
+
+                        let seed = null;
+                        for (let cand of blockScores) {
+                            const rep = cand.idx;
+                            if (!blockOk[rep]) continue;
+                            if (used[rep]) continue;
+                            if (distMap) {
+                                const d = distMap[rep];
+                                if (d !== -1 && d < minSepBlocks) continue;
+                            }
+                            seed = cand;
+                            break;
+                        }
+                        if (!seed) return false;
+
+                        paintBlock(seed.idx, r);
+                        used[seed.idx] = 1;
+                        let count = 1;
+                        const openList = [];
+                        addNbs(seed.idx, distMap, openList);
+
+                        while (count < need && openList.length > 0) {
+                            openList.sort((u, v) => v.score - u.score);
+                            const curr = openList.shift();
+                            paintBlock(curr.idx, r);
+                            count++;
+                            addNbs(curr.idx, distMap, openList);
+                        }
+
+                        if (count < need) return false;
+                    }
+
+                    return true;
+                };
+
+                // Try larger separation first; if fails, relax.
+                const sepsBlocks = [9, 7, 5, 3, 1, 0];
+                for (let sepB of sepsBlocks) {
+                    if (tryBuildBlocks(sepB)) break;
+                }
+                /* === BUILDER_BLOCK: AGRO_FARM_BUILD_END === */
+            }
+
+            // ### PATCH B: Init Tile State & Calculate FarmSuit (Phase 3A)
+            AGRO.farmSuit = new Float32Array(cols * rows);
+            AGRO.tilth = new Float32Array(cols * rows);
+            AGRO.crop = new Float32Array(cols * rows);
+            AGRO.lastTick = new Int32Array(cols * rows).fill(-1);
+            
+            // New Saturation Arrays for Patch C (Agro Saturation)
+            AGRO.workTick = new Int32Array(cols * rows).fill(-1);
+            AGRO.workEffSum = new Float32Array(cols * rows);
+
+            // ### PATCH 2: Phase 3B State Arrays (Harvest & Contrib)
+            AGRO.epoch = new Uint16Array(cols * rows);          // harvest round
+            AGRO.harvestTick = new Int32Array(cols * rows).fill(-1); // 1 harvest per tick guard
+            AGRO.totalContrib = new Float32Array(cols * rows);  // total contrib (all workers)
+            AGRO.topRef0 = new Array(cols * rows).fill(null);
+            AGRO.topRef1 = new Array(cols * rows).fill(null);
+            AGRO.topRef2 = new Array(cols * rows).fill(null);
+            AGRO.topRef3 = new Array(cols * rows).fill(null);
+            AGRO.topVal0 = new Float32Array(cols * rows);
+            AGRO.topVal1 = new Float32Array(cols * rows);
+            AGRO.topVal2 = new Float32Array(cols * rows);
+            AGRO.topVal3 = new Float32Array(cols * rows);
+
+            /* === BUILDER_BLOCK: AGRO_FARM_SUIT_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_INITAGRO_FARMSUIT_BLOCKS
+   === */
+            let minS = Infinity, maxS = -Infinity;
+            const rawBlock = new Float32Array(cols * rows);
+
+            const rawTileScore2 = (ti) => {
+                const t = AGRO.temp[ti];
+                const tScore = Math.exp(-Math.pow((t - 0.55) / 0.18, 2));
+                return tScore * Math.pow(AGRO.humidity[ti], 1.2);
+            };
+
+            // Compute raw per 2x2 farm block, initialize tilth/lastTick for all 4 tiles
+            for (let by = 0; by < rows - 1; by += 2) {
+                for (let bx = 0; bx < cols - 1; bx += 2) {
+                    const rep = idxOf(bx, by);
+                    const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
+                    if (AGRO.farmMask[a] > 0 && AGRO.farmMask[b] > 0 && AGRO.farmMask[c] > 0 && AGRO.farmMask[d] > 0) {
+                        const r = 0.25 * (rawTileScore2(a) + rawTileScore2(b) + rawTileScore2(c) + rawTileScore2(d));
+                        rawBlock[rep] = r;
+                        if (r < minS) minS = r;
+                        if (r > maxS) maxS = r;
+
+                        AGRO.tilth[a] = 1.0; AGRO.tilth[b] = 1.0; AGRO.tilth[c] = 1.0; AGRO.tilth[d] = 1.0;
+                        AGRO.lastTick[a] = -1; AGRO.lastTick[b] = -1; AGRO.lastTick[c] = -1; AGRO.lastTick[d] = -1;
+                    }
+                }
+            }
+
+            const range = maxS - minS;
+            for (let by = 0; by < rows - 1; by += 2) {
+                for (let bx = 0; bx < cols - 1; bx += 2) {
+                    const rep = idxOf(bx, by);
+                    const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
+                    if (AGRO.farmMask[a] > 0 && AGRO.farmMask[b] > 0 && AGRO.farmMask[c] > 0 && AGRO.farmMask[d] > 0) {
+                        const r = rawBlock[rep];
+                        const norm = (range < 1e-6) ? 1.0 : (r - minS) / range;
+                        const suit = 0.5 + 0.5 * norm;
+                        AGRO.farmSuit[a] = suit; AGRO.farmSuit[b] = suit; AGRO.farmSuit[c] = suit; AGRO.farmSuit[d] = suit;
+                    }
+                }
+            }
+            
+// --- Agro v2: per-representative(2x2) state holders (allocated full-size, only repIdx positions used) ---
+// stage: 0=NONE/CLR, 1=GROW, 2=HARV; seedMode: 0=NONE, 1=NAT, 2=FARM
+if (!AGRO.repStage || AGRO.repStage.length !== (cols * rows)) {
+    AGRO.repStage = new Uint8Array(cols * rows);
+    AGRO.repSeedMode = new Uint8Array(cols * rows);
+    AGRO.repLastSeedTick = new Int32Array(cols * rows);
+}
+AGRO.repStage.fill(0);
+AGRO.repSeedMode.fill(0);
+AGRO.repLastSeedTick.fill(-1);
+            /* === BUILDER_BLOCK: AGRO_FARM_SUIT_END === */
+        }   // initAgro()
 /* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_START ===
 [PATCH RECORD]
  - 26.23 (CM): addblock (confirmed split)
@@ -4839,41 +5215,12 @@ function _clamp01(x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
         function _lerp(a, b, t) { return a + (b - a) * t; }
         function _smoothstep(u) { return u * u * (3 - 2 * u); }
         
-        // Prestige saturation function: sat(x, k) = x / (x + k)
-        function _sat(x, k) {
-            if (k <= 0) return x > 0 ? 1 : 0;
-            return x / (x + k);
-        }
-
 // --- SoftMod: expose tiny pure utils (no call-site changes)
 Object.assign(EvoSim.util, {
   clamp01: _clamp01,
   lerp: _lerp,
   smoothstep: _smoothstep,
-  sat: _sat,
 });
-
-// --- Prestige calculation function
-function calcPrestige01(agent) {
-    if (!agent || agent.dead) return 0;
-    
-    // Age component: sat(ageYears, 80)
-    const ageYears = agent.age / CAL_TICKS_PER_YR;
-    const ageN = _sat(ageYears, 80);
-    
-    // Reproduction component: sat(reproCount, 12)
-    const reproN = _sat(agent.stats.reproCount, 12);
-    
-    // Activity component: sat(actRaw, 40)
-    const actRaw = agent.stats.huntCount + agent.stats.harvestCount +
-                  agent.stats.tribeBattleCount + (agent.stats.gatherCount || 0);
-    const actN = _sat(actRaw, 40);
-    
-    // Final prestige: 0.3*ageN + 0.3*reproN + 0.4*actN
-    const prestige = 0.3 * ageN + 0.3 * reproN + 0.4 * actN;
-    
-    return _clamp01(prestige);
-}
 
 // --- SoftMod: expose energy helpers as a pseudo-module (no behavior change)
 EvoSim.modules.Energy = EvoSim.modules.Energy || {};
@@ -5027,296 +5374,119 @@ function applyDamageResult(target, dmg) {
 
         
 /* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_END === */
-/* === BUILDER_BLOCK: AGRO_INIT_CORE_START ===
-[PATCH RECORD]
- - 26.23 (CM): addblock (confirmed split)
-=== */
-function initClimate() {
-            if (!CFG.climateEnabled) { CLIMATE = null; return; }
-            CLIMATE = {
-            seed: CFG.climateSeed | 0,
-            amp: Math.max(0, +CFG.climateNoiseAmp || 0),
-            cell: Math.max(40, +CFG.climateNoiseCell || 220)
-            };
+
+/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from CORE_MATH_ENERGY_UTILS (_sat + calcPrestige01)
+   === */
+        // Prestige saturation function: sat(x, k) = x / (x + k)
+        function _sat(x, k) {
+            if (k <= 0) return x > 0 ? 1 : 0;
+            return x / (x + k);
         }
-        
-        function initAgro() {
-            if (!CFG.climateEnabled) { AGRO = null; return; }
+EvoSim.util.sat = _sat;
 
-            const TILE = AGRO_TILE;
-            const cols = Math.ceil(CFG.worldWidth / TILE);
-            const rows = Math.ceil(CFG.worldHeight / TILE);
-            
-            AGRO = {
-                tile: TILE, cols, rows,
-                landMask: new Uint8Array(cols * rows),
-                temp: ((typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && GAIA.tempGrid.length === (cols*rows)) ? GAIA.tempGrid : new Float32Array(cols*rows)),
-                farmMask: new Uint8Array(cols * rows) // 0:None, 1:Big, 2:Small1, 3:Small2
-            };
-
-            if (!(typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && AGRO.temp === GAIA.tempGrid)) AGRO.temp.fill(0.5);
-const idxOf = (x, y) => y * cols + x;
-            const inBounds = (x, y) => x >= 0 && x < cols && y >= 0 && y < rows;
-
-            let landIndices = [];
-            
-            for(let y=0; y<rows; y++) {
-                for(let x=0; x<cols; x++) {
-                    const wx = (x + 0.5) * TILE;
-                    const wy = (y + 0.5) * TILE;
-                    const idx = idxOf(x, y);
-                    const onPassable = isPassable(wx, wy);
-                    if (onPassable) {
-                        AGRO.landMask[idx] = 1;
-                        landIndices.push({x,y,idx});
-                        if (!(typeof GAIA!=='undefined' && GAIA && GAIA.tempGrid && AGRO.temp === GAIA.tempGrid)) {
-                    AGRO.temp[idx] = tempNormAt(wx, wy);
-                }
-                    }
+// --- Prestige calculation function
+function calcPrestige01(agent) {
+    if (!agent || agent.dead) return 0;
+    const ageYears = agent.age / CAL_TICKS_PER_YR;
+    const ageN = _sat(ageYears, 80);
+    const reproN = _sat(agent.stats.reproCount, 12);
+    const actRaw = agent.stats.huntCount + agent.stats.harvestCount +
+                  agent.stats.tribeBattleCount + (agent.stats.gatherCount || 0);
+    const actN = _sat(actRaw, 40);
+    const prestige = 0.3 * ageN + 0.3 * reproN + 0.4 * actN;
+    return _clamp01(prestige);
 }
-            }
-            
+/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_END === */
 
-            const N = cols * rows;
-            if (!(GAIA && GAIA.humidGrid && GAIA.humidGrid.length === N &&
-                  GAIA.riverMask && GAIA.riverMask.length === N &&
-                  Array.isArray(GAIA.riverPolylines))) {
-                throw new Error('initAgro: climateEnabled but GAIA hydrology/humid SOT missing');
-            }
-            AGRO.humidity = GAIA.humidGrid;
-            AGRO.riverMask = GAIA.riverMask;
-            AGRO.riverPolylines = GAIA.riverPolylines;
+/* === BUILDER_BLOCK: BREATH_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; NN breath input system (전역 유틸)
+   === */
+const BREATH = {
+  E2H: 0.0125,
+  K_ATK: 0.01, K_HIT: 0.02, K_BIRTH: 0.006, K_WORK: 0.01,
+  D_ATK: Math.pow(0.1, 1/8),
+  D_HIT: Math.pow(0.1, 1/16),
+  D_BIRTH: Math.pow(0.1, 1/2),
+  D_WORK: Math.pow(0.1, 1/16)
+};
+// === SHARE system (collision peace-branch) ===
+const SHARE_COOLDOWN_TICKS = 30;
+const SHARE_DONOR_MIN_E = 2400;
+const SHARE_RECV_MAX_E  = 1600;
+const SHARE_DONOR_LOSS = 200;
+const SHARE_RECV_GAIN  = 180;
+const SHARE_SAME_ACC_MIN  = 0.70;
+const SHARE_OTHER_ACC_MIN = 0.85;
+const SHARE_SAME_AGG_MAX  = 0.40;
+const SHARE_OTHER_AGG_MAX = 0.20;
+const SHARE_RECV_AGG_MAX  = 0.50;
 
-const landCount = landIndices.length;
-            if (landCount > 100) {
-                /* === BUILDER_BLOCK: HS_INITAGRO_FARMBUILD_BLOCKS_START === */
-                // Build 2x2 (60x60) land-only candidate blocks (exclude any sea tile)
-                const blockScores = [];
-                const blockScoreMap = new Float32Array(cols * rows).fill(-1);
-                const blockOk = new Uint8Array(cols * rows); // repIdx slots only
-
-                const rawTileScore = (ti) => {
-                    const t = AGRO.temp[ti];
-                    const tScore = Math.exp(-Math.pow((t - 0.55) / 0.18, 2));
-                    return tScore * Math.pow(AGRO.humidity[ti], 1.2);
-                };
-
-                for (let by = 0; by < rows - 1; by += 2) {
-                    for (let bx = 0; bx < cols - 1; bx += 2) {
-                        const rep = idxOf(bx, by);
-                        const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
-                        if (AGRO.landMask[a] && AGRO.landMask[b] && AGRO.landMask[c] && AGRO.landMask[d]) {
-                            const raw = 0.25 * (rawTileScore(a) + rawTileScore(b) + rawTileScore(c) + rawTileScore(d));
-                            blockOk[rep] = 1;
-                            blockScoreMap[rep] = raw;
-                            blockScores.push({ x: bx, y: by, idx: rep, score: raw });
-                        }
-                    }
-                }
-
-                blockScores.sort((u, v) => v.score - u.score);
-
-                const totalTargetTiles = Math.floor(landCount * CFG.farmLandPct);
-                let totalTargetBlocks = Math.floor(totalTargetTiles / 4); // do not exceed config
-                if (totalTargetBlocks > blockScores.length) totalTargetBlocks = blockScores.length;
-
-                const q1 = Math.floor(totalTargetBlocks * 0.45);
-                const q2 = Math.floor(totalTargetBlocks * 0.275);
-                const q3 = totalTargetBlocks - q1 - q2;
-                const quotas = [q1, q2, q3];
-
-                const paintBlock = (rep, r) => {
-                    const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
-                    AGRO.farmMask[a] = r; AGRO.farmMask[b] = r;
-                    AGRO.farmMask[c] = r; AGRO.farmMask[d] = r;
-                };
-
-                const tryBuildBlocks = (minSepBlocks) => {
-                    AGRO.farmMask.fill(0);
-                    const used = new Uint8Array(cols * rows); // repIdx only
-
-                    const getDistToFarmsBlocks = () => {
-                        const dMap = new Int32Array(cols * rows).fill(-1);
-                        const q = [];
-                        for (let by = 0; by < rows - 1; by += 2) {
-                            for (let bx = 0; bx < cols - 1; bx += 2) {
-                                const rep = idxOf(bx, by);
-                                if (AGRO.farmMask[rep] > 0) {
-                                    dMap[rep] = 0;
-                                    q.push(rep);
-                                }
-                            }
-                        }
-                        if (q.length === 0) return null;
-
-                        let h = 0;
-                        while (h < q.length) {
-                            const cur = q[h++];
-                            if (dMap[cur] >= minSepBlocks) continue;
-                            const cx = cur % cols;
-                            const cy = (cur / cols) | 0;
-                            const nbs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
-                            for (let dir of nbs) {
-                                const nx = cx + dir[0];
-                                const ny = cy + dir[1];
-                                if (nx >= 0 && nx < cols - 1 && ny >= 0 && ny < rows - 1) {
-                                    const nrep = idxOf(nx, ny);
-                                    if (!blockOk[nrep]) continue;
-                                    if (dMap[nrep] === -1) {
-                                        dMap[nrep] = dMap[cur] + 1;
-                                        q.push(nrep);
-                                    }
-                                }
-                            }
-                        }
-                        return dMap;
-                    };
-
-                    const addNbs = (rep, distMap, openList) => {
-                        const rx = rep % cols;
-                        const ry = (rep / cols) | 0;
-                        const nbs = [[2, 0], [-2, 0], [0, 2], [0, -2]];
-                        for (let dir of nbs) {
-                            const nx = rx + dir[0];
-                            const ny = ry + dir[1];
-                            if (nx >= 0 && nx < cols - 1 && ny >= 0 && ny < rows - 1) {
-                                const nrep = idxOf(nx, ny);
-                                if (!blockOk[nrep]) continue;
-                                if (used[nrep]) continue;
-                                if (distMap) {
-                                    const d = distMap[nrep];
-                                    if (d !== -1 && d < minSepBlocks) continue;
-                                }
-                                used[nrep] = 1;
-                                openList.push({ idx: nrep, score: blockScoreMap[nrep] });
-                            }
-                        }
-                    };
-
-                    for (let r = 1; r <= 3; r++) {
-                        const need = quotas[r - 1];
-                        if (need <= 0) continue;
-
-                        const distMap = (r > 1) ? getDistToFarmsBlocks() : null;
-
-                        let seed = null;
-                        for (let cand of blockScores) {
-                            const rep = cand.idx;
-                            if (!blockOk[rep]) continue;
-                            if (used[rep]) continue;
-                            if (distMap) {
-                                const d = distMap[rep];
-                                if (d !== -1 && d < minSepBlocks) continue;
-                            }
-                            seed = cand;
-                            break;
-                        }
-                        if (!seed) return false;
-
-                        paintBlock(seed.idx, r);
-                        used[seed.idx] = 1;
-                        let count = 1;
-                        const openList = [];
-                        addNbs(seed.idx, distMap, openList);
-
-                        while (count < need && openList.length > 0) {
-                            openList.sort((u, v) => v.score - u.score);
-                            const curr = openList.shift();
-                            paintBlock(curr.idx, r);
-                            count++;
-                            addNbs(curr.idx, distMap, openList);
-                        }
-
-                        if (count < need) return false;
-                    }
-
-                    return true;
-                };
-
-                // Try larger separation first; if fails, relax.
-                const sepsBlocks = [9, 7, 5, 3, 1, 0];
-                for (let sepB of sepsBlocks) {
-                    if (tryBuildBlocks(sepB)) break;
-                }
-                /* === BUILDER_BLOCK: HS_INITAGRO_FARMBUILD_BLOCKS_END === */
-            }
-
-            // ### PATCH B: Init Tile State & Calculate FarmSuit (Phase 3A)
-            AGRO.farmSuit = new Float32Array(cols * rows);
-            AGRO.tilth = new Float32Array(cols * rows);
-            AGRO.crop = new Float32Array(cols * rows);
-            AGRO.lastTick = new Int32Array(cols * rows).fill(-1);
-            
-            // New Saturation Arrays for Patch C (Agro Saturation)
-            AGRO.workTick = new Int32Array(cols * rows).fill(-1);
-            AGRO.workEffSum = new Float32Array(cols * rows);
-
-            // ### PATCH 2: Phase 3B State Arrays (Harvest & Contrib)
-            AGRO.epoch = new Uint16Array(cols * rows);          // harvest round
-            AGRO.harvestTick = new Int32Array(cols * rows).fill(-1); // 1 harvest per tick guard
-            AGRO.totalContrib = new Float32Array(cols * rows);  // total contrib (all workers)
-            AGRO.topRef0 = new Array(cols * rows).fill(null);
-            AGRO.topRef1 = new Array(cols * rows).fill(null);
-            AGRO.topRef2 = new Array(cols * rows).fill(null);
-            AGRO.topRef3 = new Array(cols * rows).fill(null);
-            AGRO.topVal0 = new Float32Array(cols * rows);
-            AGRO.topVal1 = new Float32Array(cols * rows);
-            AGRO.topVal2 = new Float32Array(cols * rows);
-            AGRO.topVal3 = new Float32Array(cols * rows);
-
-            /* === BUILDER_BLOCK: HS_INITAGRO_FARMSUIT_BLOCKS_START === */
-            let minS = Infinity, maxS = -Infinity;
-            const rawBlock = new Float32Array(cols * rows);
-
-            const rawTileScore2 = (ti) => {
-                const t = AGRO.temp[ti];
-                const tScore = Math.exp(-Math.pow((t - 0.55) / 0.18, 2));
-                return tScore * Math.pow(AGRO.humidity[ti], 1.2);
-            };
-
-            // Compute raw per 2x2 farm block, initialize tilth/lastTick for all 4 tiles
-            for (let by = 0; by < rows - 1; by += 2) {
-                for (let bx = 0; bx < cols - 1; bx += 2) {
-                    const rep = idxOf(bx, by);
-                    const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
-                    if (AGRO.farmMask[a] > 0 && AGRO.farmMask[b] > 0 && AGRO.farmMask[c] > 0 && AGRO.farmMask[d] > 0) {
-                        const r = 0.25 * (rawTileScore2(a) + rawTileScore2(b) + rawTileScore2(c) + rawTileScore2(d));
-                        rawBlock[rep] = r;
-                        if (r < minS) minS = r;
-                        if (r > maxS) maxS = r;
-
-                        AGRO.tilth[a] = 1.0; AGRO.tilth[b] = 1.0; AGRO.tilth[c] = 1.0; AGRO.tilth[d] = 1.0;
-                        AGRO.lastTick[a] = -1; AGRO.lastTick[b] = -1; AGRO.lastTick[c] = -1; AGRO.lastTick[d] = -1;
-                    }
-                }
-            }
-
-            const range = maxS - minS;
-            for (let by = 0; by < rows - 1; by += 2) {
-                for (let bx = 0; bx < cols - 1; bx += 2) {
-                    const rep = idxOf(bx, by);
-                    const a = rep, b = rep + 1, c = rep + cols, d = c + 1;
-                    if (AGRO.farmMask[a] > 0 && AGRO.farmMask[b] > 0 && AGRO.farmMask[c] > 0 && AGRO.farmMask[d] > 0) {
-                        const r = rawBlock[rep];
-                        const norm = (range < 1e-6) ? 1.0 : (r - minS) / range;
-                        const suit = 0.5 + 0.5 * norm;
-                        AGRO.farmSuit[a] = suit; AGRO.farmSuit[b] = suit; AGRO.farmSuit[c] = suit; AGRO.farmSuit[d] = suit;
-                    }
-                }
-            }
-            
-// --- Agro v2: per-representative(2x2) state holders (allocated full-size, only repIdx positions used) ---
-// stage: 0=NONE/CLR, 1=GROW, 2=HARV; seedMode: 0=NONE, 1=NAT, 2=FARM
-if (!AGRO.repStage || AGRO.repStage.length !== (cols * rows)) {
-    AGRO.repStage = new Uint8Array(cols * rows);
-    AGRO.repSeedMode = new Uint8Array(cols * rows);
-    AGRO.repLastSeedTick = new Int32Array(cols * rows);
+// === SS-24.2: Interaction stamp (state-change only) ===
+const SS_EVT_COMBAT = 1;
+const SS_EVT_SHARE  = 2;
+const SS_EVT_REPRO  = 4;
+const SS_EVT_HUNT   = 8;
+const SS_EVT_PRED   = 16;
+function _ss_stamp(a, bit, tick){
+  if(!a) return;
+  // Only these events skip solitary (policy locked)
+  if (!(bit === SS_EVT_COMBAT || bit === SS_EVT_HUNT || bit === SS_EVT_PRED || bit === SS_EVT_REPRO || bit === SS_EVT_SHARE)) return;
+  const uid = (a.uid|0);
+  if (uid <= 0) return;
+  if (_agentE2I_dirty) throw new Error('[TS_solitarySkip] _agentE2I dirty in _ss_stamp');
+  const idx = _agentE2I.get(uid);
+  if (idx == null || (idx|0) < 0) return;
+  const i = idx|0;
+  if (TS_solitarySkip[i] === 0) {
+    TS_solitarySkip[i] = 1;
+    TS_solitarySkipTouched[TS_solitarySkipTouchedN++] = i;
+  }
 }
-AGRO.repStage.fill(0);
-AGRO.repSeedMode.fill(0);
-AGRO.repLastSeedTick.fill(-1);
-            /* === BUILDER_BLOCK: HS_INITAGRO_FARMSUIT_BLOCKS_END === */
-        }
+
+function hsBreathEnsure(a) {
+  if (!a) return;
+  if (a.bAtk == null) {
+    a.bAtk = 0; a.bHit = 0; a.bBirth = 0; a.bWork = 0;
+    a.breathMass = 0; a.breath01 = 0;
+  }
+  if (a.farmWorkLeft == null) { a.farmWorkLeft = 0; a.farmCooldownLeft = 0; }
+}
+function hsBreathDecay(a, extraWorkDecay) {
+  if (!a || a.dead) return;
+  a.bAtk *= BREATH.D_ATK;
+  a.bHit *= BREATH.D_HIT;
+  a.bBirth *= BREATH.D_BIRTH;
+  a.bWork *= BREATH.D_WORK;
+  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
+  if (a.isResting) {
+    a.bAtk *= BREATH.D_ATK;
+    a.bHit *= BREATH.D_HIT;
+    a.bBirth *= BREATH.D_BIRTH;
+    a.bWork *= BREATH.D_WORK;
+  }
+  a.breathMass = Math.max(0, a.bAtk + a.bHit + a.bBirth + a.bWork);
+  a.breath01 = 1 - Math.exp(-a.breathMass);
+}
+// [TS_PATCH 26.41] PRE-only decay (NO breath01 recompute here)
+function hsBreathDecayOnly(a, extraWorkDecay) {
+  if (!a || a.dead) return;
+  a.bAtk *= BREATH.D_ATK;
+  a.bHit *= BREATH.D_HIT;
+  a.bBirth *= BREATH.D_BIRTH;
+  a.bWork *= BREATH.D_WORK;
+  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
+  if (a.isResting) {
+    a.bAtk *= BREATH.D_ATK;
+    a.bHit *= BREATH.D_HIT;
+    a.bBirth *= BREATH.D_BIRTH;
+    a.bWork *= BREATH.D_WORK;
+  }
+}
+/* === BUILDER_BLOCK: BREATH_SYSTEM_END === */
+
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_END === */
 
 
@@ -7707,7 +7877,10 @@ function _natAreaScale() {
 
 /* === BUILDER_BLOCK: SIM_GLOBALS_POST_GAIA_ENV30_END === */
 
-/* === BUILDER_BLOCK: HS_19_CLAMOR_CORE_ADD_START === */
+/* === BUILDER_BLOCK: SOCIAL_CLAMOR_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_19_CLAMOR_CORE_ADD
+   === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  */
@@ -8031,8 +8204,13 @@ function _fillHearingSensors(agent, sensors) {
 }
 
 // [TS_PATCH 26.41] _clamorShoutLegacyRemoved removed (was clamor immediate write).
-/* === BUILDER_BLOCK: HS_19_CLAMOR_CORE_ADD_END === */
+/* === BUILDER_BLOCK: SOCIAL_CLAMOR_CORE_END === */
 
+/* === BUILDER_BLOCK: SHOUT_EMIT_CORE_START
+   Signal Sweep 샤웃 emit 인프라: voice event 큐 + 에이전트 순회 emit.
+   SIM_LOOP_CORE Signal Sweep에서 TS_evalShoutEveryTick 호출,
+   voice commit 단계에서 TS_CL_VOICE_EVENTS → _clamorAddVoiceXY 적용.
+   === */
 // [TS_PATCH 26.45] Shout enqueue is unified: SWEEP emits events; COMMIT writes clamor.
 const TS_CL_VOICE_EVENTS = []; // {x,y,amp}
 
@@ -8048,8 +8226,14 @@ function TS_evalShoutEveryTick(tick) {
     a._nextShoutTick = tick + 12;
   }
 }
+/* === BUILDER_BLOCK: SHOUT_EMIT_CORE_END === */
 
-
+/* === BUILDER_BLOCK: SOL_SKIP_INFRA_START
+   SolitaryAction 스킵 scratch: 인터랙션 참여 에이전트를 같은 틱 내
+   solitary(농사/휴식)에서 제외하기 위한 typed-array 기반 플래그.
+   SIM_LOOP_CORE 틱 시작 시 TS_solSkipEnsureCap+TS_solSkipReset 호출,
+   SOLITARY_ACTION_HELPERS의 _ss_applySolitaryActions에서 소비.
+   === */
 // [TS_PATCH 26.43] Solitary skip scratch (typed arrays, touched-reset)
 // - Marked in _ss_stamp via E2I idx; cleared each tick via touched list.
 let TS_solitarySkip = new Uint8Array(1024);
@@ -8076,11 +8260,13 @@ function TS_solSkipReset(){
   }
   TS_solitarySkipTouchedN = 0;
 }
+/* === BUILDER_BLOCK: SOL_SKIP_INFRA_END === */
 
-
-
-
-
+/* === BUILDER_BLOCK: AGENT_GRID_CORE_START ===
+   [PATCH RECORD]
+   - 26.24 (CM): addblock agent grid core (clamor/query excluded)
+   - 27.28 (builder-block GAP finalize): 상단 경계를 _agentCellId 포함하도록 확장 (ISS-13 흡수)
+   === */
         function _agentCellId(x, y) {
             _ensureAgentGridDims();
             let cx = Math.floor(x / AGENT_CELL);
@@ -8089,18 +8275,17 @@ function TS_solSkipReset(){
             if (cy < 0) cy = 0; else if (cy >= AGENT_GRID_ROWS) cy = AGENT_GRID_ROWS - 1;
             return cy * AGENT_GRID_COLS + cx;
         }
-/* === BUILDER_BLOCK: AGENT_GRID_CORE_START ===
+        /* === BUILDER_BLOCK: AGENT_GRID_GLOBALS_START
    [PATCH RECORD]
-   - 26.24 (CM): addblock agent grid core (clamor/query excluded)
+   - 27.21 (builder block refactor): renamed from HS_18_7_GLOBALS
    === */
-        /* === BUILDER_BLOCK: HS_18_7_GLOBALS_START === */
         // [Optimization] AgentGrid 재사용을 위한 더블 버퍼 및 배열 풀
         let _agentGridBuf0 = null;
         let _agentGridBuf1 = null;
         const _agentCellPool = [];
         const _AGENT_CELL_POOL_MAX = 8192; // 풀 개수 상한
         const _AGENT_CELL_CAP_LIMIT = 128; // 비만 배열 방지(직전 사용량 컷)
-        /* === BUILDER_BLOCK: HS_18_7_GLOBALS_END === */
+        /* === BUILDER_BLOCK: AGENT_GRID_GLOBALS_END === */
 
 
         class AgentGrid1D {
@@ -8117,7 +8302,10 @@ function TS_solSkipReset(){
             set(id, v) { this.cells[id] = v; }
         }
 
-                /* === BUILDER_BLOCK: HS_18_7_BUILD_FUNC_REPLACE_START === */
+                /* === BUILDER_BLOCK: AGENT_GRID_BUILD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_18_7_BUILD_FUNC_REPLACE
+   === */
         function _buildAgentGrid(agents) {
             _ensureAgentGridDims();
             const cols = AGENT_GRID_COLS, rows = AGENT_GRID_ROWS;
@@ -8192,7 +8380,13 @@ function TS_solSkipReset(){
 
             return grid;
         }
-        /* === BUILDER_BLOCK: HS_18_7_BUILD_FUNC_REPLACE_END === */
+        /* === BUILDER_BLOCK: AGENT_GRID_BUILD_END === */
+/* === BUILDER_BLOCK: LEADER_ANCHOR_CORE_START
+   리더십/앵커 갱신 코어: agent grid를 소비해 clan 리더 선출 및
+   팔로워 앵커(extraTurn 조향 기반)를 계산한다.
+   TS_preBarrier에서 매 틱(refreshClanLeadership: LEADER_REFRESH_TICKS 주기,
+   refreshAnchors: ANCHOR_REFRESH_TICKS 주기) 호출.
+   === */
 function _forNeighborAgentCells(ax, ay, fn) {
   _ensureAgentGridDims();
   const cols = AGENT_GRID_COLS, rows = AGENT_GRID_ROWS;
@@ -8609,6 +8803,8 @@ function _forNeighborAgentCells(ax, ay, fn) {
         }
 
 
+
+/* === BUILDER_BLOCK: LEADER_ANCHOR_CORE_END === */
 
         /* === BUILDER_SUBBLOCK: LDR_UX_VIZ_START ===
            Phase1: Leader UX markers (cheap, always-on)
@@ -9079,7 +9275,10 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
    [PATCH RECORD]
    - 26.24 (CM): elevate HS_QUERY_API as standalone grid query API
    === */
-        /* === BUILDER_BLOCK: HS_QUERY_API_START === */
+        /* === BUILDER_BLOCK: AGENT_QUERY_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_QUERY_API
+   === */
         // HS-2: Query API (non-alloc convenience wrappers; keep small & frozen)
         EvoSim.query = EvoSim.query || Object.freeze({
             forEachFoodCell(foodGrid, x, y, cbArr) {
@@ -9111,7 +9310,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
                 });
             },
         });
-/* === BUILDER_BLOCK: HS_QUERY_API_END === */
+/* === BUILDER_BLOCK: AGENT_QUERY_CORE_END === */
 
 /* === BUILDER_BLOCK: GRID_QUERY_API_END === */
         //#endregion
@@ -9123,7 +9322,10 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
   _forCellsInRadiusCore(ax, ay, radius, AGENT_CELL, cols, rows, fn);
 }
 
-                /* === BUILDER_BLOCK: HS_18_7_ADD_AGENT_REPLACE_START === */
+                /* === BUILDER_BLOCK: AGENT_GRID_ADD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_18_7_ADD_AGENT_REPLACE
+   === */
         function _addAgentToGrid(grid, idx, a) {
             if (!a || a.dead) return;
             _ensureAgentGridDims();
@@ -9146,7 +9348,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
             }
             arr.push((a.uid|0));
         }
-        /* === BUILDER_BLOCK: HS_18_7_ADD_AGENT_REPLACE_END === */
+        /* === BUILDER_BLOCK: AGENT_GRID_ADD_END === */
 /* === BUILDER_BLOCK: GRIDDBG_HELPERS_START ===
    [PATCH RECORD]
    - 26.24 (CM): addblock grid debug helpers
@@ -9241,14 +9443,17 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
         }
 
 
-        /* === BUILDER_BLOCK: HS_A2_HERBGRID_GLOBALS_START === */
+        /* === BUILDER_BLOCK: HERB_GRID_GLOBALS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A2_HERBGRID_GLOBALS
+   === */
         // [Optimization] HerbGrid 재사용(더블 버퍼 + 배열 풀)
         let _herbGridBuf0 = null;
         let _herbGridBuf1 = null;
         const _herbCellPool = [];
         const _HERB_CELL_POOL_MAX = 8192;  // 풀 개수 상한
         const _HERB_CELL_CAP_LIMIT = 128;  // 비만 배열 방지(직전 사용량 컷)
-        /* === BUILDER_BLOCK: HS_A2_HERBGRID_GLOBALS_END === */
+        /* === BUILDER_BLOCK: HERB_GRID_GLOBALS_END === */
 
         class HerbGrid1D {
             constructor(cols, rows) {
@@ -9269,7 +9474,10 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
             return cy * HERB_GRID_COLS + cx;
         }
 
-        /* === BUILDER_BLOCK: HS_A2_BUILD_HERBGRID_REPLACE_START === */
+        /* === BUILDER_BLOCK: HERB_GRID_BUILD_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A2_BUILD_HERBGRID_REPLACE
+   === */
         function _buildHerbivoreGrid(list) {
           _ensureHerbGridDims();
           const cols = HERB_GRID_COLS, rows = HERB_GRID_ROWS;
@@ -9326,7 +9534,7 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
 
           return grid;
         }
-        /* === BUILDER_BLOCK: HS_A2_BUILD_HERBGRID_REPLACE_END === */
+        /* === BUILDER_BLOCK: HERB_GRID_BUILD_END === */
 
 
         function _forNeighborHerbCells(ax, ay, fn) {
@@ -10443,7 +10651,10 @@ CFG.crisisRecoverSpeed = getCrisisRecoverSpeedFromUI();
                 cachedHerbGrid = null; // let animate rebuild from current herbivores
                 cachedPredGrid = null; // Patch PREDGRID: rebuild from current predators
                 try { if (typeof logEvent === "function") logEvent("Cache reset: food/agent/herb grids", "debug"); } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_CLAMOR_RESET_ON_START_INSERT_START === */
+/* === BUILDER_BLOCK: UI_NAV_CLAMOR_RESET_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_19_CLAMOR_RESET_ON_START_INSERT
+   === */
 try {
   // world dims are set before this block; allocate/resize if needed then clear
   _ensureClamorGridDims();
@@ -10465,14 +10676,17 @@ try {
     if (typeof window.__evoRebuildClanStrokeCache === 'function') window.__evoRebuildClanStrokeCache();
   }
 } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_CLAMOR_RESET_ON_START_INSERT_END === */
+/* === BUILDER_BLOCK: UI_NAV_CLAMOR_RESET_END === */
 
 
                 ERA = 'PALEOLITHIC'; 
-                /* === BUILDER_BLOCK: HS_A3_POP_RESET_REPLACE_START === */
+                /* === BUILDER_BLOCK: UI_NAV_POP_RESET_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_A3_POP_RESET_REPLACE
+   === */
                 // 기존: popHistory = [];
                 _popHistReset();
-                /* === BUILDER_BLOCK: HS_A3_POP_RESET_REPLACE_END === */
+                /* === BUILDER_BLOCK: UI_NAV_POP_RESET_END === */
 document.getElementById('disp-era').textContent = "구석기";
                 document.getElementById('disp-era').style.color = '#eee';
                 
@@ -10809,7 +11023,10 @@ document.getElementById('disp-era').textContent = "구석기";
         }
 
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PATH2D_CACHE_START === */
+/* === BUILDER_BLOCK: RENDER_PATH2D_CACHE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_PATH2D_CACHE; UI_NAV_→RENDER_ 귀속 수정(M11)
+   === */
 const _P_AGENT_TRI = (typeof Path2D !== 'undefined') ? new Path2D() : null;
 if (_P_AGENT_TRI) {
   _P_AGENT_TRI.moveTo(8, 0);
@@ -10817,7 +11034,7 @@ if (_P_AGENT_TRI) {
   _P_AGENT_TRI.lineTo(-5, -5);
   _P_AGENT_TRI.closePath();
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PATH2D_CACHE_END === */
+/* === BUILDER_BLOCK: RENDER_PATH2D_CACHE_END === */
 
 class Agent {
             constructor(x, y, brain) {
@@ -10876,9 +11093,12 @@ this.color = CFG.clans[0];
                     gainHuntDropE: 0,
                     gainHuntDirectE: 0,
                     gainFarmDirectE: 0,
-                    /* === BUILDER_BLOCK: HS_STATS_FARM_DROP_INIT_START === */
+                    /* === BUILDER_BLOCK: AGENT_STATS_FARMDROP_INIT_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_STATS_FARM_DROP_INIT; UI_NAV_→AGENT_ 귀속 수정
+   === */
                     gainFarmDropE: 0,
-                    /* === BUILDER_BLOCK: HS_STATS_FARM_DROP_INIT_END === */
+                    /* === BUILDER_BLOCK: AGENT_STATS_FARMDROP_INIT_END === */
                     shareGiveCount: 0,
                     shareGiveEnergy: 0,
                     shareRecvCount: 0,
@@ -11083,7 +11303,10 @@ return;
                             else if (signal > foodR2) { foodR2 = signal; }
                         }
                     
-                /* === BUILDER_BLOCK: HS_AGGVIZ_UPDATE_MOVED_START === */
+                /* === BUILDER_BLOCK: AGENT_AGGVIZ_UPDATE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_AGGVIZ_UPDATE_MOVED; UI_NAV_→AGENT_ 귀속 수정
+   === */
                 // moved from draw(): keep aggression viz hysteresis updated in update path only (viz only; gameplay unchanged)
                 if (!this.dead) {
                   if (this._aggViz == null) this._aggViz = 0;
@@ -11103,7 +11326,7 @@ return;
                     if (a >= 0.72) this._aggViz = 1;
                   }
                 }
-                /* === BUILDER_BLOCK: HS_AGGVIZ_UPDATE_MOVED_END === */
+                /* === BUILDER_BLOCK: AGENT_AGGVIZ_UPDATE_END === */
 
 } else if (type === 'THREAT') {
                         if (inOverlap || isLeft) {
@@ -11470,7 +11693,10 @@ this.stats.totalAggro += this.aggression;
             //#region ========== HS_AGENT_UPDATE ==========
             /* === BUILDER_BLOCK: UI_NAV_ROUTING_END === */
             //#endregion
-            /* === BUILDER_BLOCK: HS_AGENT_UPDATE_START === */
+            /* === BUILDER_BLOCK: UI_AGENT_UPDATE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_AGENT_UPDATE
+   === */
 update() {
                 if(this.dead) return;
 
@@ -11568,7 +11794,7 @@ let force = new Vec2(cosA, sinA);
 
 
 
-/* === BUILDER_BLOCK: HS_AGENT_UPDATE_END === */
+/* === BUILDER_BLOCK: UI_AGENT_UPDATE_END === */
 //#endregion
 
             draw(ctx, isSelected) {
@@ -11685,7 +11911,10 @@ let force = new Vec2(cosA, sinA);
 
                 // Draw agent triangle (unchanged geometry)
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_START === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TRI_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_AGENT_TRI_REPLACE; UI_AGENT_→AGENT_DRAW_ 귀속 수정(M11)
+   === */
 if (_P_AGENT_TRI) {
     ctx.fill(_P_AGENT_TRI);
     ctx.stroke(_P_AGENT_TRI);
@@ -11712,7 +11941,7 @@ if (_P_AGENT_TRI) {
                     ctx.restore();
                 }
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_AGENT_TRI_REPLACE_END === */
+/* === BUILDER_BLOCK: AGENT_DRAW_TRI_END === */
 /* === BUILDER_BLOCK: AGENT_DRAW_TAIL_START === */
 
                 // Charcoal tribe halo (1px ivory outline) [disabled; replaced by cached contrast outline]
@@ -12406,6 +12635,16 @@ if (inBrake) speedCap = 0;
 
 /* === BUILDER_BLOCK: HERBIVORE_CLASS_CORE_END === */
 
+/* === BUILDER_BLOCK: HERB_CONTRIB_CORE_START
+   [PATCH RECORD]
+   - 27.25 (builder block refactor 3C fix1): extracted from BREATH_SYSTEM; 초식동물 사냥 기여도 추적
+   === */
+const HerbContrib = {
+  addHit(h, a, dmg) { _recordHerbContrib(h, a, dmg); },
+  settleOnKill(h, killer) { _distributeHerbivoreBonus(h, killer); }
+};
+/* === BUILDER_BLOCK: HERB_CONTRIB_CORE_END === */
+
 /* === BUILDER_BLOCK: CANVAS_CONTEXT_INIT_START === */
         const canvas = document.getElementById('simCanvas');
         const ctx = canvas.getContext('2d');
@@ -12503,7 +12742,10 @@ const uiEra = document.getElementById('disp-era');
         const inspectorContent = document.getElementById('inspector-content');
         const brainOutputsEl = document.getElementById('brain-outputs');
         
-                /* === BUILDER_BLOCK: HS_A3_POP_RING_REPLACE_START === */
+                /* === BUILDER_BLOCK: POP_RING_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_POP_RING_REPLACE
+   === */
         const popGraphCanvas = document.getElementById('popGraphCanvas');
         const popGraphCtx = popGraphCanvas.getContext('2d');
         const MAX_HISTORY_LEN = 150;
@@ -12581,13 +12823,16 @@ const uiEra = document.getElementById('disp-era');
           popGraphCtx.fillText(last, w - 2, h / 2);
         }
 
-        /* === BUILDER_BLOCK: HS_FITTER_P1_2_POP_SAMPLE_START === */
+        /* === BUILDER_BLOCK: POP_SAMPLE_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P1_2_POP_SAMPLE
+   === */
         function _samplePopHistory500(){
           // collect only (no draw)
           try { _popHistPush(agents.length); } catch(_) {}
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P1_2_POP_SAMPLE_END === */
-        /* === BUILDER_BLOCK: HS_A3_POP_RING_REPLACE_END === */
+        /* === BUILDER_BLOCK: POP_SAMPLE_CORE_END === */
+        /* === BUILDER_BLOCK: POP_RING_CORE_END === */
 
 
         function resize() {
@@ -13589,12 +13834,15 @@ function updateHerbivorePacks(dtTicks = 1) {
         function renderLogs(nowMs) {
             if (!_logsDirty) return;
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_RENDERLOGS_GUARD_START === */
+/* === BUILDER_BLOCK: SPAWN_RENDERLOGS_GUARD_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_1_RENDERLOGS_GUARD
+   === */
 // DOM-only work: skip if history drawer / log view isn't visible (data accumulation must remain elsewhere)
 if (!document.body.classList.contains('drawer-right-open')) return;
 if (!_isPanelBodyVisible('history-panel')) return;
 if (logContainer && logContainer.getClientRects && logContainer.getClientRects().length === 0) return;
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_RENDERLOGS_GUARD_END === */
+/* === BUILDER_BLOCK: SPAWN_RENDERLOGS_GUARD_END === */
 
             if (nowMs - _lastLogUIAt < LOG_UI_INTERVAL_MS) return;
             _lastLogUIAt = nowMs;
@@ -13612,230 +13860,10 @@ if (logContainer && logContainer.getClientRects && logContainer.getClientRects()
         }
         /* === BUILDER_BLOCK: SPAWN_AND_LOG_CORE_END === */
 
-const FOOD_CELL = 60; 
-        const EAT_RADIUS = 10;
-        const EAT_R2 = EAT_RADIUS * EAT_RADIUS;
-
-        // --- Food spatial grid (1D array; int cellId) ---
-        // Replaces Map<string,"cx,cy"> to remove string creation & Map hashing overhead.
-        let FOOD_GRID_COLS = 0;
-        let FOOD_GRID_ROWS = 0;
-
-        function _ensureFoodGridDims() {
-            const cols = Math.max(1, Math.ceil(CFG.worldWidth / FOOD_CELL));
-            const rows = Math.max(1, Math.ceil(CFG.worldHeight / FOOD_CELL));
-            if (cols !== FOOD_GRID_COLS || rows !== FOOD_GRID_ROWS) {
-                FOOD_GRID_COLS = cols;
-                FOOD_GRID_ROWS = rows;
-            }
-        }
-
-        class FoodGrid1D {
-            constructor(cols, rows) {
-                this.cols = cols;
-                this.rows = rows;
-                this.cells = new Array(cols * rows);
-            }
-            get(id) { return this.cells[id]; }
-            set(id, v) { this.cells[id] = v; }
-        }
-
-        function _foodCellId(x, y) {
-            _ensureFoodGridDims();
-            let cx = Math.floor(x / FOOD_CELL);
-            let cy = Math.floor(y / FOOD_CELL);
-            if (cx < 0) cx = 0; else if (cx >= FOOD_GRID_COLS) cx = FOOD_GRID_COLS - 1;
-            if (cy < 0) cy = 0; else if (cy >= FOOD_GRID_ROWS) cy = FOOD_GRID_ROWS - 1;
-            return cy * FOOD_GRID_COLS + cx;
-        }
-
-        function _buildFoodGrid() {
-            _ensureFoodGridDims();
-            const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
-            const grid = new FoodGrid1D(cols, rows);
-
-            for (let i = 0; i < foods.length; i++) {
-                const f = foods[i];
-                if (!f || f.active === false) continue;
-                let cx = Math.floor(f.pos.x / FOOD_CELL);
-                let cy = Math.floor(f.pos.y / FOOD_CELL);
-                if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
-                if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
-
-                const id = cy * cols + cx;
-                let arr = grid.get(id);
-                if (!arr) { arr = []; grid.set(id, arr); }
-                arr.push(i);
-            }
-            return grid;
-        }
-
-        function _forNeighborFoodCells(ax, ay, fn) {
-  _ensureFoodGridDims();
-  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
-  _forNeighborCellsCore(ax, ay, FOOD_CELL, cols, rows, fn);
-}
-
-        function _forFoodCellsInRadius(ax, ay, radius, fn) {
-  _ensureFoodGridDims();
-  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
-  _forCellsInRadiusCore(ax, ay, radius, FOOD_CELL, cols, rows, fn);
-}
-
-        // ### PATCH A: Compact Foods Fix
-                function _compactFoodsIfNeeded() {
-          if (simulatedTicks % 30 !== 0) return;
-
-          const before = foods.length;
-          const now = simulatedTicks;
-
-          let w = 0;
-          for (let i = 0; i < before; i++) {
-            const f = foods[i];
-            if (!f) continue;
-            if (f.active === false) continue;
-
-            if (now > f.expiryTick) {
-              // [PATCH B] Record ONLY NAT foods that expired by TTL (NOT consumed removals)
-              if (f.source === FOOD_SRC_NAT && f.pos) {
-                _foodExpPush(f.pos.x, f.pos.y);
-              }
-              continue;
-            }
-
-            foods[w++] = f;
-          }
-
-          if (w !== before) {
-            foods.length = w;
-            cachedFoodGrid = null;
-            cachedFoodGridTick = -1e15;
-          }
-        }
-
-        function _inFront180_fromAngle(ax, ay, angle, tx, ty) {
-        const fx = Math.cos(angle), fy = Math.sin(angle);
-        const dx = tx - ax, dy = ty - ay;
-        return (fx*dx + fy*dy) > 0;
-        }
-        function _inFront180_fromVel(ax, ay, vx, vy, tx, ty) {
-        const mag2 = vx*vx + vy*vy;
-        if (mag2 < 1e-6) return true; 
-        const dx = tx - ax, dy = ty - ay;
-        return (vx*dx + vy*dy) > 0;
-        }
-
-        //#region ========== HS_COLLISION_LOOP ==========
-        /* === BUILDER_BLOCK: HS_COLLISION_LOOP_START === */
-/* [PATCH RECORD]
- - 26.22 (CM patch record): add patch record header (see inline comments for details)
- */
-
-/* === HS_PATCH: BREATH + FARM_COOLDOWN CFG GUARDS (18.84) === */
-if (typeof CFG === 'object' && CFG) {
-  if (CFG.pillageEnergy == null) CFG.pillageEnergy = 100;
-  if (CFG.farmWorkTicks == null) CFG.farmWorkTicks = 8;
-  if (CFG.farmCooldownTicks == null) CFG.farmCooldownTicks = 2;
-  if (!CFG.__tilthWear085Applied) {
-    if (typeof CFG.tilthWearPerWorkTick === 'number') CFG.tilthWearPerWorkTick *= 0.85;
-    CFG.__tilthWear085Applied = true;
-  }
-}
-const BREATH = {
-  E2H: 0.0125,
-  K_ATK: 0.01, K_HIT: 0.02, K_BIRTH: 0.006, K_WORK: 0.01,
-  D_ATK: Math.pow(0.1, 1/8),
-  D_HIT: Math.pow(0.1, 1/16),
-  D_BIRTH: Math.pow(0.1, 1/2),
-  D_WORK: Math.pow(0.1, 1/16)
-};
-// === SHARE system (collision peace-branch) ===
-const SHARE_COOLDOWN_TICKS = 30;
-
-const SHARE_DONOR_MIN_E = 2400;
-const SHARE_RECV_MAX_E  = 1600;
-
-const SHARE_DONOR_LOSS = 200;
-const SHARE_RECV_GAIN  = 180;
-
-const SHARE_SAME_ACC_MIN  = 0.70;
-const SHARE_OTHER_ACC_MIN = 0.85;
-
-const SHARE_SAME_AGG_MAX  = 0.40;
-const SHARE_OTHER_AGG_MAX = 0.20;
-
-const SHARE_RECV_AGG_MAX  = 0.50; 
-
-// === SS-24.2: Interaction stamp (state-change only) ===
-const SS_EVT_COMBAT = 1;
-const SS_EVT_SHARE  = 2;
-const SS_EVT_REPRO  = 4;
-const SS_EVT_HUNT   = 8;
-const SS_EVT_PRED   = 16;
-function _ss_stamp(a, bit, tick){
-  if(!a) return;
-  // Only these events skip solitary (policy locked)
-  if (!(bit === SS_EVT_COMBAT || bit === SS_EVT_HUNT || bit === SS_EVT_PRED || bit === SS_EVT_REPRO || bit === SS_EVT_SHARE)) return;
-  const uid = (a.uid|0);
-  if (uid <= 0) return;
-  if (_agentE2I_dirty) throw new Error('[TS_solitarySkip] _agentE2I dirty in _ss_stamp');
-  const idx = _agentE2I.get(uid);
-  if (idx == null || (idx|0) < 0) return;
-  const i = idx|0;
-  if (TS_solitarySkip[i] === 0) {
-    TS_solitarySkip[i] = 1;
-    TS_solitarySkipTouched[TS_solitarySkipTouchedN++] = i;
-  }
-}
-// same/other 동일
-
-function hsBreathEnsure(a) {
-  if (!a) return;
-  if (a.bAtk == null) {
-    a.bAtk = 0; a.bHit = 0; a.bBirth = 0; a.bWork = 0;
-    a.breathMass = 0; a.breath01 = 0;
-  }
-  if (a.farmWorkLeft == null) { a.farmWorkLeft = 0; a.farmCooldownLeft = 0; }
-}
-function hsBreathDecay(a, extraWorkDecay) {
-  if (!a || a.dead) return;
-  a.bAtk *= BREATH.D_ATK;
-  a.bHit *= BREATH.D_HIT;
-  a.bBirth *= BREATH.D_BIRTH;
-  a.bWork *= BREATH.D_WORK;
-  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
-  if (a.isResting) {
-    a.bAtk *= BREATH.D_ATK;
-    a.bHit *= BREATH.D_HIT;
-    a.bBirth *= BREATH.D_BIRTH;
-    a.bWork *= BREATH.D_WORK;
-  }
-  a.breathMass = Math.max(0, a.bAtk + a.bHit + a.bBirth + a.bWork);
-  a.breath01 = 1 - Math.exp(-a.breathMass);
-}
-
-// [TS_PATCH 26.41] PRE-only decay (NO breath01 recompute here)
-function hsBreathDecayOnly(a, extraWorkDecay) {
-  if (!a || a.dead) return;
-  a.bAtk *= BREATH.D_ATK;
-  a.bHit *= BREATH.D_HIT;
-  a.bBirth *= BREATH.D_BIRTH;
-  a.bWork *= BREATH.D_WORK;
-  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
-  if (a.isResting) {
-    a.bAtk *= BREATH.D_ATK;
-    a.bHit *= BREATH.D_HIT;
-    a.bBirth *= BREATH.D_BIRTH;
-    a.bWork *= BREATH.D_WORK;
-  }
-}
-/* === HS_PATCH: END === */
-
-const HerbContrib = {
-  addHit(h, a, dmg) { _recordHerbContrib(h, a, dmg); },
-  settleOnKill(h, killer) { _distributeHerbivoreBonus(h, killer); }
-};
-
+/* === BUILDER_BLOCK: POP_INFLUX_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; population influx (crisis + periodic)
+   === */
 // === Population Influx System (Phase 2-4 + Stabilization v1) ===
 let _lastCrisisInfluxTick = -1e15;        // last time we QUEUED crisis groups (anti-spam)
 let _lastCrisisGroupSpawnTick = -1e15;    // last time we SPAWNED a crisis group
@@ -14160,8 +14188,150 @@ function _influxPeriodicGroupV2(agentGrid) {
     logEvent(`정기 유입(징후, 7세 코호트): +${newborns.length}명 (top ${topPct}%, 다양도 ${hPct}%, unique ${m.unique})`, "event");
     try { EvoSim.modules?.POP?.onInflux && EvoSim.modules.POP.onInflux(newborns.length); } catch (_) { }
 }
+/* === BUILDER_BLOCK: POP_INFLUX_SYSTEM_END === */
 
+/* === BUILDER_BLOCK: FOOD_GRID_CORE_START
+   Food 공간 그리드 인프라: FoodGrid1D 클래스 + 셀 매핑/빌드/조회 유틸.
+   _compactFoodsIfNeeded(음식 TTL 압축)과 _inFront180 공간 헬퍼 포함.
+   COLLISION_SYSTEM의 eat/harvest 경로 및 _ensureFoodGridCurrent가 소비.
+   === */
+const FOOD_CELL = 60; 
+        const EAT_RADIUS = 10;
+        const EAT_R2 = EAT_RADIUS * EAT_RADIUS;
 
+        // --- Food spatial grid (1D array; int cellId) ---
+        // Replaces Map<string,"cx,cy"> to remove string creation & Map hashing overhead.
+        let FOOD_GRID_COLS = 0;
+        let FOOD_GRID_ROWS = 0;
+
+        function _ensureFoodGridDims() {
+            const cols = Math.max(1, Math.ceil(CFG.worldWidth / FOOD_CELL));
+            const rows = Math.max(1, Math.ceil(CFG.worldHeight / FOOD_CELL));
+            if (cols !== FOOD_GRID_COLS || rows !== FOOD_GRID_ROWS) {
+                FOOD_GRID_COLS = cols;
+                FOOD_GRID_ROWS = rows;
+            }
+        }
+
+        class FoodGrid1D {
+            constructor(cols, rows) {
+                this.cols = cols;
+                this.rows = rows;
+                this.cells = new Array(cols * rows);
+            }
+            get(id) { return this.cells[id]; }
+            set(id, v) { this.cells[id] = v; }
+        }
+
+        function _foodCellId(x, y) {
+            _ensureFoodGridDims();
+            let cx = Math.floor(x / FOOD_CELL);
+            let cy = Math.floor(y / FOOD_CELL);
+            if (cx < 0) cx = 0; else if (cx >= FOOD_GRID_COLS) cx = FOOD_GRID_COLS - 1;
+            if (cy < 0) cy = 0; else if (cy >= FOOD_GRID_ROWS) cy = FOOD_GRID_ROWS - 1;
+            return cy * FOOD_GRID_COLS + cx;
+        }
+
+        function _buildFoodGrid() {
+            _ensureFoodGridDims();
+            const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
+            const grid = new FoodGrid1D(cols, rows);
+
+            for (let i = 0; i < foods.length; i++) {
+                const f = foods[i];
+                if (!f || f.active === false) continue;
+                let cx = Math.floor(f.pos.x / FOOD_CELL);
+                let cy = Math.floor(f.pos.y / FOOD_CELL);
+                if (cx < 0) cx = 0; else if (cx >= cols) cx = cols - 1;
+                if (cy < 0) cy = 0; else if (cy >= rows) cy = rows - 1;
+
+                const id = cy * cols + cx;
+                let arr = grid.get(id);
+                if (!arr) { arr = []; grid.set(id, arr); }
+                arr.push(i);
+            }
+            return grid;
+        }
+
+        function _forNeighborFoodCells(ax, ay, fn) {
+  _ensureFoodGridDims();
+  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
+  _forNeighborCellsCore(ax, ay, FOOD_CELL, cols, rows, fn);
+}
+
+        function _forFoodCellsInRadius(ax, ay, radius, fn) {
+  _ensureFoodGridDims();
+  const cols = FOOD_GRID_COLS, rows = FOOD_GRID_ROWS;
+  _forCellsInRadiusCore(ax, ay, radius, FOOD_CELL, cols, rows, fn);
+}
+
+        // ### PATCH A: Compact Foods Fix
+                function _compactFoodsIfNeeded() {
+          if (simulatedTicks % 30 !== 0) return;
+
+          const before = foods.length;
+          const now = simulatedTicks;
+
+          let w = 0;
+          for (let i = 0; i < before; i++) {
+            const f = foods[i];
+            if (!f) continue;
+            if (f.active === false) continue;
+
+            if (now > f.expiryTick) {
+              // [PATCH B] Record ONLY NAT foods that expired by TTL (NOT consumed removals)
+              if (f.source === FOOD_SRC_NAT && f.pos) {
+                _foodExpPush(f.pos.x, f.pos.y);
+              }
+              continue;
+            }
+
+            foods[w++] = f;
+          }
+
+          if (w !== before) {
+            foods.length = w;
+            cachedFoodGrid = null;
+            cachedFoodGridTick = -1e15;
+          }
+        }
+
+        function _inFront180_fromAngle(ax, ay, angle, tx, ty) {
+        const fx = Math.cos(angle), fy = Math.sin(angle);
+        const dx = tx - ax, dy = ty - ay;
+        return (fx*dx + fy*dy) > 0;
+        }
+        function _inFront180_fromVel(ax, ay, vx, vy, tx, ty) {
+        const mag2 = vx*vx + vy*vy;
+        if (mag2 < 1e-6) return true; 
+        const dx = tx - ax, dy = ty - ay;
+        return (vx*dx + vy*dy) > 0;
+        }
+
+/* === BUILDER_BLOCK: FOOD_GRID_CORE_END === */
+
+        //#region ========== COLLISION_SYSTEM ==========
+        /* === BUILDER_BLOCK: COLLISION_SYSTEM_START === */
+/* [PATCH RECORD]
+ - 26.22 (CM patch record): add patch record header (see inline comments for details)
+ - 27.24 (builder block refactor 3C): extracted COLLISION_CFG_GUARDS / BREATH_SYSTEM / POP_INFLUX_SYSTEM; added _pendCollisionNewborns + COLLISION_CHECK_FN
+ - 27.26 (builder block refactor 3D): renamed from HS_COLLISION_LOOP
+ */
+
+function _pendCollisionNewborns(ctx, newborns, agentGrid) {
+    const n = newborns.length|0;
+    if (n > 0) {
+        TS_pendAgents(newborns, 'born');
+        STAT_BIRTH_COLLISION += n;
+        try{ if (EvoSim.modules?.POP?.onBorn) EvoSim.modules.POP.onBorn(n); }catch(_){ }
+        newborns.length = 0;
+    }
+}
+
+/* === BUILDER_BLOCK: COLLISION_CHECK_FN_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): wrapper for checkCollisions function
+   === */
 function checkCollisions(foodGrid, agentGrid, herbivoreGrid) {
             if (!foodGrid) foodGrid = _buildFoodGrid();
 
@@ -14468,12 +14638,15 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                 }
                 if (a.stats && __dE > 0) {
                     if (__fs === FOOD_SRC_HUNT) a.stats.gainHuntDropE += __dE;
-                    /* === BUILDER_BLOCK: HS_APPLYEAT_FARM_DROP_STATS_START === */
+                    /* === BUILDER_BLOCK: SIM_APPLYEAT_FARMDROP_STAT_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_APPLYEAT_FARM_DROP_STATS
+   === */
                     else if (__fs === FOOD_SRC_FARM) {
                         // Phase 5: FARM food drop energy tracked separately
                         a.stats.gainFarmDropE = (a.stats.gainFarmDropE || 0) + __dE;
                     }
-                    /* === BUILDER_BLOCK: HS_APPLYEAT_FARM_DROP_STATS_END === */
+                    /* === BUILDER_BLOCK: SIM_APPLYEAT_FARMDROP_STAT_END === */
                     else a.stats.gainNatE += __dE;
                     // gatherCount: NAT food consumption count (only when dE>0)
                     if (__fs !== FOOD_SRC_HUNT && __fs !== FOOD_SRC_FARM) {
@@ -14504,10 +14677,13 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                     });
                 }
 
-                /* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_START === */
+                /* === BUILDER_BLOCK: SIM_NAT_REGEN_SCALE_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_NAT_AREA_SCALE
+   === */
 const __natP = FOOD_MAP[foodRegenIndex] * _natAreaScale();
 if (Math.random() < __natP) generateFood(12, null, {staggerCluster:true});
-/* === BUILDER_BLOCK: HS_NAT_AREA_SCALE_END === */
+/* === BUILDER_BLOCK: SIM_NAT_REGEN_SCALE_END === */
             }
             function _hs3_layerHunt(ctx, a) {
                     if (Pred.shouldTryHunt(a)) {
@@ -14659,15 +14835,6 @@ if (d2 < COLLIDE_R2) {
                         }
                     });
             }
-            function _hs3_commitNewborns(ctx, newborns, agentGrid) {
-                const n = newborns.length|0;
-                if (n > 0) {
-                    TS_pendAgents(newborns, 'born');
-                    STAT_BIRTH_COLLISION += n;
-                    try{ if (EvoSim.modules?.POP?.onBorn) EvoSim.modules.POP.onBorn(n); }catch(_){ }
-                    newborns.length = 0;
-                }
-            }
             function _hs3_layerPredators(ctx) {
                 const agentGrid = ctx.agentGrid;
 
@@ -14734,12 +14901,18 @@ if (d2 < COLLIDE_R2) {
                 _hs3_layerAgentAgent(ctx, a, i, n0, newborns);
 }
 
-                        _hs3_commitNewborns(ctx, newborns, agentGrid);
+                        _pendCollisionNewborns(ctx, newborns, agentGrid);
 
             _hs3_layerPredators(ctx);
-}/* === BUILDER_BLOCK: HS_COLLISION_LOOP_END === */
+}
+/* === BUILDER_BLOCK: COLLISION_CHECK_FN_END === */
+        /* === BUILDER_BLOCK: COLLISION_SYSTEM_END === */
 //#endregion
 
+/* === BUILDER_BLOCK: BRAIN_CANVAS_DRAW_START
+   brainCanvas 신경망 시각화 렌더러: GRU 가중치(Wh/Who) + 히든 상태(h) +
+   입출력 노드를 Canvas 2D로 그린다. SIM_BRAIN_THROTTLE에서 throttle 후 호출.
+   === */
         // ... (drawBrain, mouse events, and animate loop remain unchanged) ...
 
 // [최적화] drawBrain 함수 (1D Array 대응)
@@ -14839,8 +15012,12 @@ if (d2 < COLLIDE_R2) {
             }
         }
 
-        
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_INPUT_BINDINGS_START === */
+/* === BUILDER_BLOCK: BRAIN_CANVAS_DRAW_END === */
+
+        /* === BUILDER_BLOCK: UI_INPUT_BINDINGS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_INPUT_BINDINGS
+   === */
         /* (INPUT BINDINGS REGION) DOM listeners only */
         canvas.addEventListener('wheel', (e) => {
             e.preventDefault();
@@ -14852,7 +15029,10 @@ if (d2 < COLLIDE_R2) {
         
         // --- Debug hotkeys (Grid Overlay) ---
         //#region ========== HS_HOTKEYS ==========
-        /* === BUILDER_BLOCK: HS_HOTKEYS_START === */
+        /* === BUILDER_BLOCK: UI_HOTKEYS_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_HOTKEYS
+   === */
 window.addEventListener('keydown', (e) => {
             const ae = document.activeElement;
             if (ae) {
@@ -14976,7 +15156,10 @@ else if (e.code === 'Digit1') {
 if (e.code === 'KeyG') { GRIDDBG.enabled = !GRIDDBG.enabled; }
             else if (e.code === 'KeyN') { GRIDDBG.showNeighbors = !GRIDDBG.showNeighbors; }
             else if (e.code === 'KeyR') { GRIDDBG.showRadius = !GRIDDBG.showRadius; }
-            /* === BUILDER_BLOCK: HS_A3_KEYP_REPLACE_START === */
+            /* === BUILDER_BLOCK: UI_HOTKEYS_KEYP_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_KEYP_REPLACE
+   === */
             // KeyP: mini-profiler toggle (single command)
             else if (e.code === 'KeyP') {
               try {
@@ -14993,9 +15176,9 @@ if (e.code === 'KeyG') { GRIDDBG.enabled = !GRIDDBG.enabled; }
               } catch(_) {}
               return;
             }
-            /* === BUILDER_BLOCK: HS_A3_KEYP_REPLACE_END === */
+            /* === BUILDER_BLOCK: UI_HOTKEYS_KEYP_END === */
         }, { capture: true });
-/* === BUILDER_BLOCK: HS_HOTKEYS_END === */
+/* === BUILDER_BLOCK: UI_HOTKEYS_END === */
 //#endregion
 
         // [Patch] Clear Shift-hover agro preview when Shift is released (even if mouse doesn't move)
@@ -15141,7 +15324,7 @@ isDragging = true;
         // [Patch] Safety: if touch ends outside canvas, stop dragging
         window.addEventListener('touchend', () => { isDragging = false; });
 
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_INPUT_BINDINGS_END === */
+        /* === BUILDER_BLOCK: UI_INPUT_BINDINGS_END === */
         document.getElementById('era-btn').addEventListener('click', () => {
             const btn = document.getElementById('era-btn');
                         /* === BUILDER_BLOCK: ERA_BTN_SURNAME_AUTO_WIRE_START === */
@@ -15199,6 +15382,11 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             /* === BUILDER_BLOCK: ERA_BTN_SURNAME_AUTO_WIRE_END === */
         });
 
+        /* === BUILDER_BLOCK: GEMINI_MODAL_BINDINGS_START
+   Gemini AI 모달 버튼 이벤트 바인딩.
+   analyze-btn(역사 서술) / analyze-psych-btn(개체 심리) / 2×close 버튼.
+   ensureAI() 경유 Gemini API 호출; 시뮬레이션 일시정지/재개 연동.
+   === */
         document.getElementById('analyze-btn').addEventListener('click', async () => {
             paused = true;
             const modal = document.getElementById('narrative-modal');
@@ -15308,7 +15496,13 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             document.getElementById('psych-modal').style.display = 'none';
             paused = false;
         });
+        /* === BUILDER_BLOCK: GEMINI_MODAL_BINDINGS_END === */
 
+        /* === BUILDER_BLOCK: UI_SYSTEM_PANELS_UPDATE_START
+   updateSystemPanels() 함수 및 캐시 변수 선언.
+   drawer-left(시스템)·drawer-dev(개발자) 패널 갱신; 500ms uiTick에서 호출.
+   내부에 UI_FARM_OBS_BLOCKVIEW sub-block 포함.
+   === */
         let lastHeavyStatsTick = -1e15;
         let cachedUiLifeText = "";
         let cachedStatsHTML = "";
@@ -15347,7 +15541,10 @@ _setTextIfChanged(uiPredCount, predators.length);
              _setTextIfChanged(uiLife, cachedUiLifeText);
 
              if (uiFarmObsMini) {
-                /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_START === */
+                /* === BUILDER_BLOCK: UI_FARM_OBS_BLOCKVIEW_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FARM_OBS_MINI_BLOCKVIEW
+   === */
                 if (!uiFarmObsMini.__localeRows) {
                     const mkSubRow = (k) => {
                         const row = document.createElement('div');
@@ -15497,7 +15694,7 @@ _setTextIfChanged(uiPredCount, predators.length);
                     }
                     _setTextIfChanged(rows.hint, 'Shift+클릭 타일');
                 }
-                /* === BUILDER_BLOCK: HS_FARM_OBS_MINI_BLOCKVIEW_END === */
+                /* === BUILDER_BLOCK: UI_FARM_OBS_BLOCKVIEW_END === */
             }
             }
 
@@ -15519,8 +15716,12 @@ _setTextIfChanged(uiPredCount, predators.length);
             if(uiProfSignal) _setTextIfChanged(uiProfSignal, _disp_mp_signal);
             }
         }
+        /* === BUILDER_BLOCK: UI_SYSTEM_PANELS_UPDATE_END === */
 
-        /* === BUILDER_BLOCK: HS_BRAIN_THROTTLE_HELPER_START === */
+        /* === BUILDER_BLOCK: SIM_BRAIN_THROTTLE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_BRAIN_THROTTLE_HELPER
+   === */
         let _brainLastDrawMs = 0;
         let _brainLastUid = -1;
         let _brainLastSig = 0;
@@ -15557,7 +15758,7 @@ _setTextIfChanged(uiPredCount, predators.length);
           _brainLastDrawMs = now;
           drawBrain(ctx, agent.brain);
         }
-        /* === BUILDER_BLOCK: HS_BRAIN_THROTTLE_HELPER_END === */
+        /* === BUILDER_BLOCK: SIM_BRAIN_THROTTLE_END === */
 
         /* === BUILDER_BLOCK: UI_INSPECTOR_PANEL_UPDATE_START ===
    [PATCH RECORD]
@@ -15651,9 +15852,10 @@ function updateInspectorPanel() {
                     <div class="stat-row"><span>수렵 드롭E:</span> <span class="value">${(selectedAgent.stats.gainHuntDropE||0).toFixed(0)}</span></div>
                     <div class="stat-row"><span>수렵 직접E:</span> <span class="value">${(selectedAgent.stats.gainHuntDirectE||0).toFixed(0)}</span></div>
                     <div class="stat-row"><span>농사 직접E:</span> <span class="value">${(selectedAgent.stats.gainFarmDirectE||0).toFixed(0)}</span></div>
-                    <!-- BUILDER_BLOCK: HS_INSPECTOR_SUBST_FARM_DROP_ROW_START -->
+                    <!-- BUILDER_BLOCK: UI_INSPECTOR_FARM_DROP_ROW_START -->
+                    <!-- [PATCH RECORD] 27.24 (builder block refactor 3B-3): renamed from HS_INSPECTOR_SUBST_FARM_DROP_ROW -->
                     <div class="stat-row"><span>농사 드롭E:</span> <span class="value">${(selectedAgent.stats.gainFarmDropE||0).toFixed(0)}</span></div>
-                    <!-- BUILDER_BLOCK: HS_INSPECTOR_SUBST_FARM_DROP_ROW_END -->
+                    <!-- BUILDER_BLOCK: UI_INSPECTOR_FARM_DROP_ROW_END -->
                 `;
                 _setHTMLIfChanged(inspectorContent, html);
                 
@@ -15721,10 +15923,19 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
 
         /* === BUILDER_BLOCK: UI_INSPECTOR_PANEL_UPDATE_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_START === */
+/* === BUILDER_BLOCK: UI_UITICK_REGION_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P4_1_UITICK_REGION; SIM_→UI_ 접두사 수정
+   === */
         /* (UI TICKS REGION) uiTick200/uiTick500 routers */
-        /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_START === */
-        /* === BUILDER_BLOCK: HS_FITTER_P1_4_UITICK500_ROUTER_START === */
+        /* === BUILDER_BLOCK: UI_UITICK_WRAPPERS_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_UITICK_WRAPPERS; SIM_→UI_ 접두사 수정
+   === */
+        /* === BUILDER_BLOCK: UI_UITICK500_ROUTER_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P1_4_UITICK500_ROUTER; SIM_→UI_ 접두사 수정
+   === */
         function _uiTick500() {
           if (paused) return;
 
@@ -15740,15 +15951,18 @@ _setHTMLIfChanged(brainOutputsEl, brainHTML);
           const rightOn = document.body.classList.contains('drawer-right-open');
           if (rightOn) updateHistoryPanelUI();
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P1_4_UITICK500_ROUTER_END === */
+        /* === BUILDER_BLOCK: UI_UITICK500_ROUTER_END === */
         function _uiTick200() {
           if (paused) return;
           updateInspectorPanel();
         }
-        /* === BUILDER_BLOCK: HS_UITICK_WRAPPERS_END === */
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_UITICK_REGION_END === */
+        /* === BUILDER_BLOCK: UI_UITICK_WRAPPERS_END === */
+        /* === BUILDER_BLOCK: UI_UITICK_REGION_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PANELVISIBLE_START === */
+/* === BUILDER_BLOCK: UI_PANEL_VISIBLE_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_1_PANELVISIBLE
+   === */
 function _isPanelBodyVisible(panelElOrId){
   const el = (typeof panelElOrId === 'string') ? document.getElementById(panelElOrId) : panelElOrId;
   if (!el) return false;
@@ -15758,9 +15972,12 @@ function _isPanelBodyVisible(panelElOrId){
   if (body.getClientRects && body.getClientRects().length === 0) return false;
   return true;
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_1_PANELVISIBLE_END === */
+/* === BUILDER_BLOCK: UI_PANEL_VISIBLE_END === */
 
-/* === BUILDER_BLOCK: HS_FITTER_P1_2_HISTORY_UI_START === */
+/* === BUILDER_BLOCK: UI_HISTORY_PANEL_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_2_HISTORY_UI
+   === */
 function updateHistoryPanelUI(){
   // Right drawer only: keep history independent from left drawer
   if (!document.body.classList.contains('drawer-right-open')) return;
@@ -15776,7 +15993,10 @@ function updateHistoryPanelUI(){
   }
 
   // trend tab only: draw graph only when actually visible
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_HISTORY_DRAW_CONTROL_START === */
+/* === BUILDER_BLOCK: UI_HISTORY_DRAW_CTRL_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_HISTORY_DRAW_CONTROL
+   === */
   // Prefer internal tab state (robust to future DOM restructure); fallback to DOM 'active' class.
   let trendActive = false;
   if (typeof _histChronTab !== 'undefined') {
@@ -15795,15 +16015,21 @@ function updateHistoryPanelUI(){
       try { updatePopGraph(); } catch(_) {}
     }
   }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_HISTORY_DRAW_CONTROL_END === */
+/* === BUILDER_BLOCK: UI_HISTORY_DRAW_CTRL_END === */
 
   // stats detail (cached HTML)
   try { if (typeof cachedStatsHTML !== 'undefined' && statsContainer) _setHTMLIfChanged(statsContainer, cachedStatsHTML); } catch(_) {}
 }
-/* === BUILDER_BLOCK: HS_FITTER_P1_2_HISTORY_UI_END === */
+/* === BUILDER_BLOCK: UI_HISTORY_PANEL_END === */
 
 
 
+        /* === BUILDER_BLOCK: SIM_RAF_LOOP_INIT_START
+   RAF 애니메이션 루프 진입 전 전역 초기화 영역.
+   ① UI 타이머 기동(setInterval), ② RAF 타이밍 변수,
+   ③ 식품·에이전트·허브·포식자 그리드 캐시 vars + _ensureFoodGridCurrent,
+   ④ Phase0 캐시 통합 정책 + _tickDeathFlags.
+   === */
         setInterval(_uiTick500, 500);
         setInterval(_uiTick200, 200);
 
@@ -15846,8 +16072,14 @@ function updateHistoryPanelUI(){
         const _tickDeathFlags = { agent:false, herb:false, pred:false };
   // Phase2.5: pred snapshot cache matches agent/herb pattern (reuse if no pred death/compaction).
   // FoodGrid(60) is periodic+incremental cache; do NOT force CELL=80 unification (Phase3 shares query utils only). // reused; reset each tick
+        /* === BUILDER_BLOCK: SIM_RAF_LOOP_INIT_END === */
 
-        
+
+        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_DEV_PERF_API
+   - 27.21 (gap resolution): START 경계를 perf vars 앞으로 앞당김; perf 상태 변수·SS 버퍼 편입
+   === */
         // --- Performance Measurement Vars ---
         let _perf_lastTime = 0;
         let _perf_frames = 0;
@@ -15887,7 +16119,6 @@ function updateHistoryPanelUI(){
         }
 
 
-        /* === BUILDER_BLOCK: HS_A3_DEV_PERF_API_START === */
         (function(){
           const root = (typeof window !== 'undefined') ? window : globalThis;
           root.DEV = root.DEV || {};
@@ -15932,7 +16163,7 @@ function updateHistoryPanelUI(){
             }
           } catch(_) {}
         })();
-        /* === BUILDER_BLOCK: HS_A3_DEV_PERF_API_END === */
+        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_END === */
 
         // --- Bench Mode (30s) ---
         let _bench_running = false;
@@ -15952,7 +16183,10 @@ function updateHistoryPanelUI(){
         let _bench_birth1 = 0, _bench_death1 = 0, _bench_influx1 = 0;
 
         // --- Render-only (used while paused to allow zoom/pan without sim stepping) ---
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_RENDER_LOOP_START === */
+        /* === BUILDER_BLOCK: RENDER_LOOP_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_RENDER_LOOP
+   === */
         /* (RENDER ONLY REGION) must be draw-only */
 
         // [ATLAS-9K] Overview LOD state (hysteresis; draw-only)
@@ -16206,13 +16440,19 @@ if (GRIDDBG.enabled && selectedAgent) {
             
             if (doMeasure) _mp_render += (performance.now() - __tRender);
         }
-        /* === BUILDER_BLOCK: HS_FITTER_P4_1_RENDER_LOOP_END === */
+        /* === BUILDER_BLOCK: RENDER_LOOP_CORE_END === */
 
 
 
 
-/* === BUILDER_BLOCK: HS_PHASE1_HELPERS_START === */
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_SIM_LOOP_START === */
+/* === BUILDER_BLOCK: SIM_ENGINE_CORE_START
+   [PATCH RECORD]
+   - 27.26 (builder block refactor 3D): renamed from HS_PHASE1_HELPERS
+   === */
+/* === BUILDER_BLOCK: SIM_LOOP_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_SIM_LOOP
+   === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  */
@@ -16387,15 +16627,21 @@ function _simStepWhileAccumulated(dt, time) {
       // v26.02: World.Pre food TTL compact (gated internally; ok to call each tick)
       _compactFoodsIfNeeded();
 
-/* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_START === */
+/* === BUILDER_BLOCK: SIM_LOOP_DECAY_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_19_SIMLOOP_DECAY_INSERT
+   === */
 try {
   if (_clamorComFast && _clamorHotN > 0 && (simulatedTicks % CLAMOR_DECAY_PERIOD_TICKS === 0)) {
     _clamorDecayTick(simulatedTicks);
   }
 } catch(_) {}
-/* === BUILDER_BLOCK: HS_19_SIMLOOP_DECAY_INSERT_END === */
+/* === BUILDER_BLOCK: SIM_LOOP_DECAY_END === */
 
-      /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_START === */
+      /* === BUILDER_BLOCK: AGRO_TILE_LAZY_TOUCH_START
+         [PATCH RECORD]
+         - 27.26 (builder block refactor 3D): renamed from HS_AGRO_SELECTED_TILE_LAZY_TOUCH
+         === */
       // Selected tile: keep agro stats fresh at low frequency (moved from UI update)
       try {
         if (AGRO && selectedTileIdx !== -1) {
@@ -16409,7 +16655,7 @@ try {
           }
         }
       } catch (_) {}
-      /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_END === */
+      /* === BUILDER_BLOCK: AGRO_TILE_LAZY_TOUCH_END === */
       /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_START === */
       try {
         if (CFG && CFG.clanMode === 'SURNAME_AUTO') {
@@ -16901,7 +17147,7 @@ if (
       _perf_frames = 0; _perf_ticks = 0; _perf_simTime = 0; _perf_long = 0;
   }
 }
-/* === BUILDER_BLOCK: HS_FITTER_P4_1_SIM_LOOP_END === */
+/* === BUILDER_BLOCK: SIM_LOOP_CORE_END === */
 
 
 function _postFrameCameraFollow() {
@@ -17104,12 +17350,14 @@ function _e2i_onPredAdded(idx) {
   _predE2I.set(id, idx);
 }
 
-/* === BUILDER_BLOCK: HS_PHASE1_HELPERS_END === */
+/* === BUILDER_BLOCK: SIM_ENGINE_CORE_END === */
 
-/* === BUILDER_BLOCK: HS_RAF_SINGLETON_21_1_START ===
+/* === BUILDER_BLOCK: SIM_RAF_SINGLETON_START ===
    v21.1: RAF loop singleton guard + stop support (prevents stacked RAF chains on restart/End World)
    - __evoRafKick(): start only once
    - __evoRafStop(): cancel pending frame + prevent re-scheduling
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_RAF_SINGLETON_21_1
 === */
 let __evoRafId = 0;
 let __evoRafRunning = false;
@@ -17137,11 +17385,13 @@ function __evoRafStop(){
     }catch(e){}
     __evoRafId = 0;
 }
-/* === BUILDER_BLOCK: HS_RAF_SINGLETON_21_1_END === */
+/* === BUILDER_BLOCK: SIM_RAF_SINGLETON_END === */
 
-/* === BUILDER_BLOCK: HS_DISPOSE_WORLD_21_1_START ===
+/* === BUILDER_BLOCK: SIM_DISPOSE_WORLD_START ===
    v21.1: World dispose hook (End World) — clears large references & caches, stops RAF.
    NOTE: defensive try/catch used intentionally (dispose is rare; avoids hard crashes).
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_DISPOSE_WORLD_21_1
 === */
 (function __installDisposeWorld21_1(){
     try{
@@ -17202,7 +17452,7 @@ function __evoRafStop(){
         EvoSim.sim.disposeWorld.__evo_v21_1 = true;
     }catch(e){}
 })();
- /* === BUILDER_BLOCK: HS_DISPOSE_WORLD_21_1_END === */
+ /* === BUILDER_BLOCK: SIM_DISPOSE_WORLD_END === */
 
 function animate(time) {
             if (!__evoRafRunning) return;
@@ -17233,7 +17483,10 @@ function animate(time) {
 
 /* --- SoftMod: runtime hooks & state bridges (no behavior change) --- */
 //#region ========== HS_MONITOR_CORE ==========
-/* === BUILDER_BLOCK: HS_MONITOR_CORE_START === */
+/* === BUILDER_BLOCK: UI_MONITOR_CORE_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_MONITOR_CORE
+   === */
 /* HS-1: Gate/Non-gate occurrence monitor (NO behavior change)
    - Purpose: HS-1~HS-4에서 "행위 발생여부"만 검증 가능하도록, 핵심 상호작용 발생 여부를 누적 기록.
    - Gate(중단 기준): eat, hunt, retal, push, combat, share, repro, pred_to_human, human_to_pred
@@ -17840,7 +18093,7 @@ gate_push: (hs && hs.gate && hs.gate.push) ? (hs.gate.push|0) : 0,
   }catch(e){ try{ console.warn("[SAFESET-1] init failed", e); }catch(_){ } }
 })();
 
-/* === BUILDER_BLOCK: HS_MONITOR_CORE_END === */
+/* === BUILDER_BLOCK: UI_MONITOR_CORE_END === */
 //#endregion
 
 // Lazy entity getters (avoid copying arrays)
@@ -17902,7 +18155,10 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
 
 
 
-/* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_START === */
+/* === BUILDER_BLOCK: JS_CORE_API_FACADE_START
+   [PATCH RECORD]
+   - 27.23 (builder block refactor 3B-2): renamed from HS_FITTER_P3_1_CORE_API; UI_→JS_ 귀속 수정(JS_TOP 전역 facade)
+   === */
 (function(){
   try{
     window.EvoSim = window.EvoSim || {};
@@ -17933,7 +18189,7 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
     };
   }catch(_){}
 })();
-/* === BUILDER_BLOCK: HS_FITTER_P3_1_CORE_API_END === */
+/* === BUILDER_BLOCK: JS_CORE_API_FACADE_END === */
 
 /* === BUILDER_BLOCK: UI_DRAWERS_STEP1_INIT_START === */
 /* === UI DRAWERS: Step1 ==================================================
@@ -18094,12 +18350,16 @@ EvoSim.debug.eventSnapshot = () => EvoSim.events.snapshot();
       state.rightOpen = !state.rightOpen;
       apply();
       saveState(state);
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_START === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_STEP1_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3B-3): renamed from HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1; DIRTY+LEGACY 접미사 제거
+   === */
+      // LEGACY: Step1 IIFE 경로 — toggleRight 이중 진입 분기 중 Step1(IIFE 즉시실행) 경로
       if (state.rightOpen) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1_END === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_STEP1_END === */
     }
 
     function toggleDev(){
@@ -18252,12 +18512,15 @@ function saveLegacyApprox(){
 
     function toggleLeft(){ __pnrevClearCollapsed(); body.classList.toggle('drawer-left-open'); saveLegacyApprox(); updateOverlay(); }
     function toggleRight(){ __pnrevClearCollapsed(); body.classList.toggle('drawer-right-open'); saveLegacyApprox(); updateOverlay();
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_START === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_TOGGLERIGHT_DIRTY
+   === */
       if (body.classList.contains('drawer-right-open')) {
         _popGraphDirty = true;
         try { updateHistoryPanelUI(); } catch(_) {}
       }
-      /* === BUILDER_BLOCK: HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_END === */
+      /* === BUILDER_BLOCK: UI_DRAWERS_TOGGLERIGHT_END === */
     }
     function toggleInspector(){ __pnrevClearCollapsed(); body.classList.toggle('inspector-hidden'); saveLegacyApprox(); updateOverlay(); }
     function closeAll(){
@@ -18411,6 +18674,11 @@ function saveLegacyApprox(){
 
     /* === BUILDER_BLOCK: UI_DRAWER_TOGGLES_CORE_END === */
 
+/* === BUILDER_BLOCK: UI_CHIP_TABS_PNREV_INIT_START
+   PNREV Rev31 칩 탭 초기화: Dashboard(pnrev-dash-chipbar)와
+   Chronicle(pnrev-chron-chipbar) 칩 탭 바인딩 및 localStorage 상태 복원.
+   UI_DRAWERS_TREND_TAB sub-block을 내부에 포함.
+   === */
 /* === PNREV_P2: chip tabs init (Rev31 only) === */
     try{
       if(parseInt(localStorage.getItem('hs_ui_layoutRev')||'31',10)!==31) { /* noop */ }
@@ -18467,7 +18735,10 @@ function saveLegacyApprox(){
               detailBtn.style.pointerEvents = (tab==='trend') ? 'auto' : 'none';
             }
             try{ localStorage.setItem(key, tab); }catch(e){}
-            /* === BUILDER_BLOCK: HS_FITTER_P1_3_TREND_TAB_DIRTY_START === */
+            /* === BUILDER_BLOCK: UI_DRAWERS_TREND_TAB_START
+   [PATCH RECORD]
+   - 27.22 (builder block refactor 3B-1): renamed from HS_FITTER_P1_3_TREND_TAB_DIRTY
+   === */
             // Keep internal tab state for future history redesign (no UX change).
             try { if (typeof window.__hsHistory !== 'undefined' && window.__hsHistory.setChronTab) window.__hsHistory.setChronTab(tab); } catch(_) {}
             if (typeof _histChronTab !== 'undefined') _histChronTab = tab;
@@ -18476,7 +18747,7 @@ function saveLegacyApprox(){
               _popGraphDirty = true;
               try { updateHistoryPanelUI(); } catch(_) {}
             }
-/* === BUILDER_BLOCK: HS_FITTER_P1_3_TREND_TAB_DIRTY_END === */
+/* === BUILDER_BLOCK: UI_DRAWERS_TREND_TAB_END === */
           }
           btns.forEach(b=>{
             b.addEventListener('click', (ev)=>{
@@ -18490,6 +18761,7 @@ function saveLegacyApprox(){
     }catch(e){ console.warn('PNREV_P2 chip init failed', e); }
 
 })();
+/* === BUILDER_BLOCK: UI_CHIP_TABS_PNREV_INIT_END === */
 /* --- PNREV P1a end --- */
 
 

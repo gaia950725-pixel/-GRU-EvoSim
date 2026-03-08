@@ -11,6 +11,50 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.28 — builder-block GAP finalize (mid)
+- Change: GAP-D/E/I 블록 신설 — FOOD_GRID_CORE, BRAIN_CANVAS_DRAW, UI_CHIP_TABS_PNREV_INIT 3개.
+- Change: floating 행동 함수 3개 블록화 — SHOUT_EMIT_CORE, SOL_SKIP_INFRA, LEADER_ANCHOR_CORE.
+- Change: GAP-F 2분할 — GEMINI_MODAL_BINDINGS + UI_SYSTEM_PANELS_UPDATE. GAP-G 2블록 — SIM_RAF_LOOP_INIT + SIM_DEV_PERF_API 경계 확장.
+- Change: ISS-13 흡수 — AGENT_GRID_CORE_START 상단 경계를 _agentCellId 포함하도록 이동. HS_ 완전 소멸 이후 마지막 잔존 GAP 제거.
+- Why: 27.2x 계열 builder-block 리팩터 GAP 커버리지 완결. 계획서 ISS-09~14 전량 해소.
+- Impact: 코드 동작 변경 없음. 마커 삽입/이동만. START=END=132, mismatch=0.
+- Verify: grep -c "BUILDER_BLOCK:.*_START" index.html → 132
+
+### 27.10 fix1 — initAgro scope fix (critical)
+- Change: CORE_MATH_ENERGY_UTILS / AGENT_PRESTIGE_SYSTEM / BREATH_SYSTEM 블록이 initAgro() 내부에 갇혀 _clamp01·_tempFromLat가 module scope에서 비가시 상태였던 버그 수정. initAgro() 닫는 `}` 위치를 AGRO_FARM_SUIT_END 직후로 이동, 중복 `}` 제거.
+- Why: `<script type="module">` strict mode에서 함수 선언은 블록 스코프로 제한 — gaiaBuildAltitudeGrid/HumidGrid/TempGrid 호출 시 ReferenceError.
+- Impact: Initialize Simulation 클릭 시 GAIA 빌드 실패 → 시뮬레이션 로드 불가 버그 해소.
+- Verify: Initialize Simulation 정상 진행, 콘솔 _clamp01/_tempFromLat ReferenceError 없음.
+
+### 27.27 — cfg-defaults consolidate (mid)
+- Change: pillageEnergy(100) / farmWorkTicks(8) / farmCooldownTicks(2) → CFG_DEFAULTS 직접 정의로 이관.
+- Change: tilthWearPerWorkTick 0.00010 → 0.000085 (v18.84 *0.85 마이그레이션 값 고정 반영).
+- Change: COLLISION_CFG_GUARDS 블록 제거 (런타임 guard 불요 — CFG 값 직접 정의로 대체).
+- Why: 잘못 배치된 guard 블록 해소; CFG_DEFAULTS가 단일 진실 소스가 되도록 통합.
+- Impact: 동작 동일. pillageEnergy 등 값 출처가 guard→defaults로 변경.
+- Verify: grep -c "COLLISION_CFG_GUARDS" index.html → 0 (PATCH RECORD 언급만 잔존)
+
+### 27.26 — builder block refactor 3D (mid)
+- Change: 잔존 HS_ 3개 rename 완료 — HS_COLLISION_LOOP→COLLISION_SYSTEM, HS_PHASE1_HELPERS→SIM_ENGINE_CORE, HS_AGRO_SELECTED_TILE_LAZY_TOUCH→AGRO_TILE_LAZY_TOUCH. HS_ 접두사 완전 소멸.
+- Change: AGRO 군집 복원 — CORE_MATH_ENERGY_UTILS / AGENT_PRESTIGE_SYSTEM / BREATH_SYSTEM을 AGRO_FARM_WORK_TICK~AGRO_INIT_CORE 사이에서 AGRO_FARM_SUIT 직후로 이동. AGRO #24~37 연속 달성.
+- Why: Phase 3-A~3-C 마무리 + 순서재배치 사전작업 완결.
+- Impact: 코드 동작 변경 없음. 블록 순서 및 명칭만 변경.
+- Verify: grep -c "BUILDER_BLOCK: HS_" index.html → 0
+
+### 27.25 — builder block refactor 3C (mid)
+- Change: HS_COLLISION_LOOP 5분할 + 2개 블록 신설. COLLISION_CFG_GUARDS(CFG_DEFAULTS 직후), AGENT_PRESTIGE_SYSTEM(CORE_MATH_ENERGY_UTILS 직후), BREATH_SYSTEM(prestige 직후), POP_INFLUX_SYSTEM(SPAWN_AND_LOG_CORE 직후), COLLISION_CHECK_FN(checkCollisions 래핑).
+- Change: _hs3_commitNewborns → _pendCollisionNewborns로 이름 교정 후 checkCollisions 외부로 추출. calcPrestige01 + _sat을 CORE_MATH_ENERGY_UTILS에서 AGENT_PRESTIGE_SYSTEM으로 분리.
+- Why: 순서재배치 사전작업. BREATH(NN 입력 전역 유틸), POP_INFLUX(외부 유입), prestige(사회 지위)가 collision 블록에 혼재하던 구조 해소.
+- Impact: 코드 동작 변경 없음. 블록 경계 및 심볼 위치만 변경.
+- Verify: grep -c "^const BREATH\|^function hsBreathEnsure\|^function calcPrestige01" index.html → 각 1
+
+### 27.24 — builder block refactor 3B-3 (mid)
+- Change: Phase 3-A 실행 — HS_ 접두사 유물 블록 36개를 서브시스템 귀속 명칭으로 rename. 각 START 마커에 `[PATCH RECORD] - 27.21 (builder block refactor): renamed from HS_<원본명>` 한 줄 삽입.
+- Change: 23개 보류 (HS_COLLISION_LOOP 분할 선결, UI_NAV_/UITICK 클러스터 내용 검증 후 처리, 청사진 미등록 2건 포함). 보류 원인표는 실행보고 참조.
+- Why: HS_ 임시패치 접두사를 제거하고 서브시스템 경계를 블록명에 직접 반영하기 위함.
+- Impact: BUILDER_BLOCK 가독성 및 모듈 귀속 추적성 향상. 코드 동작 변경 없음(마커+주석만 수정).
+- Verify: grep "BUILDER_BLOCK: HS_" index.html 결과 23개 (보류/유지/미등록 합산)만 남아야 함.
+
 ### 27.20 — Hard module base FINAL (mid)
 - Change: `index.html` GAP-C/B/H 구간에 BUILDER_BLOCK 12쌍을 삽입(`AGENT_DRAW_TAIL`, `PREDATOR_CLASS_CORE`, `SOLITARY_ACTION_HELPERS`, `HERBIVORE_CLASS_CORE`, `CANVAS_CONTEXT_INIT`, `UI_STARTUP_CONTROLS_INIT` + 5개 서브블록, `UI_DRAWERS_STEP1_INIT`).
 - Change: Step1 IIFE 내부 중복 마커를 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY_LEGACY_STEP1`로 개명하고 Rev31 경로 `HS_FITTER_P1_3_TOGGLERIGHT_DIRTY`는 유지했다.

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.28 builder-block GAP finalize</title>
+    <title>EvoSim 27.27 cfg-defaults consolidate</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -2425,44 +2425,8 @@ BUILDER_BLOCK: CSS_END === */
     <script type="module">
 /* === BUILDER_BLOCK: ARCHITECTURE_OVERVIEW_START ===
 [ARCHITECTURE OVERVIEW]
-
-[1-TICK EXECUTION ORDER — SIM_LOOP_CORE 기준]
- 1. SIM_LOOP_DECAY          — clamor 감쇠
- 2. AGRO_TILE_LAZY_TOUCH    — 선택 타일 agro 갱신
- 3. AUTOCLAN_ANIMATE_HOOK   — 씨족 애니메이션 훅
- 4. _processFoodSpawnQueue  — 음식 스폰 큐 처리 (인라인)
- 5. prestige 갱신 (120틱)   — calcPrestige01 (인라인)
- 6. compaction              — agents/herbs/preds 압축 (인라인)
- 7. herb pack update        — updateHerbivorePacks (인라인)
- 8. TS_preBarrier           — E2I rebuild + breath decay(PRE) + ecology(herb/pred) update
-                              + agentGrid/herbGrid/predGrid 빌드
-                              + refreshClanLeadership / refreshAnchors
-                              (정의: SIM_ENGINE_CORE 내 함수; 리더십 함수는 floating range)
- 9. Think Sweep             — a.think() GRU/NN 추론 (인라인; NN gate: nnPeriodTicks)
-10. Signal Sweep            — TS_evalShoutEveryTick [샤웃]
-                              + extraTurn 계산 [리더조향] (인라인)
-                              (TS_evalShoutEveryTick 정의: SOCIAL_CLAMOR_CORE 이후 floating range)
-11. Body Sweep              — a.update() [이동/물리] (인라인)
-                              (a.update 정의: UI_AGENT_UPDATE)
-12. pred respawn queue      — predatorRespawnQueue 처리 (인라인)
-13. Population Influx       — POP_INFLUX_SYSTEM (crisis + periodic)
-14. checkCollisions         — COLLISION_CHECK_FN [전투/음식/번식/AGRO_HARVEST]
-15. SolitaryAction Sweep    — SOLITARY_ACTION_HELPERS [농사 → 휴식]
-                              (농사 성공 시 휴식 스킵; 인터랙션 참여 시 전체 스킵)
-16. voice commit            — TS_CL_VOICE_EVENTS → _clamorAddVoiceXY (인라인)
-17. breath01 recompute      — breathMass + breath01 (인라인)
-18. TS_commitPending        — 신생아/influx/food/pred flush (인라인)
-
-[BLOCK → 행동 매핑 요약]
-- 농사(farming)    : SOLITARY_ACTION_HELPERS (_ss_applySolitaryActions)
-- 휴식(rest)       : SOLITARY_ACTION_HELPERS (_ss_applySolitaryActions, 농사 이후)
-- 이동(movement)   : UI_AGENT_UPDATE (a.update) → Body Sweep에서 호출
-- 샤웃(shout)      : SOCIAL_CLAMOR_CORE 이후 floating (TS_evalShoutEveryTick) → Signal Sweep
-- 리더조향(leader) : SIM_LOOP_CORE 인라인 Signal Sweep (extraTurn) +
-                     TS_preBarrier의 refreshClanLeadership/refreshAnchors
-
-[FLOATING / UNBLOCKED 행동 함수]
-- (없음: 27.10 기준 SHOUT_EMIT_CORE / SOL_SKIP_INFRA / LEADER_ANCHOR_CORE 블록화 완료)
+- HS blocks: HS_QUERY_API / HS_AGENT_UPDATE / HS_COLLISION_LOOP / HS_MONITOR_CORE / HS_HOTKEYS / HS_AGRO_HARVEST
+- Policy: HS-5(우선순위/타이브레이커)는 문서만, HS-0~4는 “현행 순서 유지”
 
 [VERSION HISTORY]
 | 버전 | 패치명 | 요약 |
@@ -5206,7 +5170,6 @@ AGRO.repStage.fill(0);
 AGRO.repSeedMode.fill(0);
 AGRO.repLastSeedTick.fill(-1);
             /* === BUILDER_BLOCK: AGRO_FARM_SUIT_END === */
-        }   // initAgro()
 /* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_START ===
 [PATCH RECORD]
  - 26.23 (CM): addblock (confirmed split)
@@ -5487,6 +5450,7 @@ function hsBreathDecayOnly(a, extraWorkDecay) {
 }
 /* === BUILDER_BLOCK: BREATH_SYSTEM_END === */
 
+        }
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_END === */
 
 
@@ -8206,11 +8170,6 @@ function _fillHearingSensors(agent, sensors) {
 // [TS_PATCH 26.41] _clamorShoutLegacyRemoved removed (was clamor immediate write).
 /* === BUILDER_BLOCK: SOCIAL_CLAMOR_CORE_END === */
 
-/* === BUILDER_BLOCK: SHOUT_EMIT_CORE_START
-   Signal Sweep 샤웃 emit 인프라: voice event 큐 + 에이전트 순회 emit.
-   SIM_LOOP_CORE Signal Sweep에서 TS_evalShoutEveryTick 호출,
-   voice commit 단계에서 TS_CL_VOICE_EVENTS → _clamorAddVoiceXY 적용.
-   === */
 // [TS_PATCH 26.45] Shout enqueue is unified: SWEEP emits events; COMMIT writes clamor.
 const TS_CL_VOICE_EVENTS = []; // {x,y,amp}
 
@@ -8226,14 +8185,8 @@ function TS_evalShoutEveryTick(tick) {
     a._nextShoutTick = tick + 12;
   }
 }
-/* === BUILDER_BLOCK: SHOUT_EMIT_CORE_END === */
 
-/* === BUILDER_BLOCK: SOL_SKIP_INFRA_START
-   SolitaryAction 스킵 scratch: 인터랙션 참여 에이전트를 같은 틱 내
-   solitary(농사/휴식)에서 제외하기 위한 typed-array 기반 플래그.
-   SIM_LOOP_CORE 틱 시작 시 TS_solSkipEnsureCap+TS_solSkipReset 호출,
-   SOLITARY_ACTION_HELPERS의 _ss_applySolitaryActions에서 소비.
-   === */
+
 // [TS_PATCH 26.43] Solitary skip scratch (typed arrays, touched-reset)
 // - Marked in _ss_stamp via E2I idx; cleared each tick via touched list.
 let TS_solitarySkip = new Uint8Array(1024);
@@ -8260,13 +8213,11 @@ function TS_solSkipReset(){
   }
   TS_solitarySkipTouchedN = 0;
 }
-/* === BUILDER_BLOCK: SOL_SKIP_INFRA_END === */
 
-/* === BUILDER_BLOCK: AGENT_GRID_CORE_START ===
-   [PATCH RECORD]
-   - 26.24 (CM): addblock agent grid core (clamor/query excluded)
-   - 27.28 (builder-block GAP finalize): 상단 경계를 _agentCellId 포함하도록 확장 (ISS-13 흡수)
-   === */
+
+
+
+
         function _agentCellId(x, y) {
             _ensureAgentGridDims();
             let cx = Math.floor(x / AGENT_CELL);
@@ -8275,6 +8226,10 @@ function TS_solSkipReset(){
             if (cy < 0) cy = 0; else if (cy >= AGENT_GRID_ROWS) cy = AGENT_GRID_ROWS - 1;
             return cy * AGENT_GRID_COLS + cx;
         }
+/* === BUILDER_BLOCK: AGENT_GRID_CORE_START ===
+   [PATCH RECORD]
+   - 26.24 (CM): addblock agent grid core (clamor/query excluded)
+   === */
         /* === BUILDER_BLOCK: AGENT_GRID_GLOBALS_START
    [PATCH RECORD]
    - 27.21 (builder block refactor): renamed from HS_18_7_GLOBALS
@@ -8381,12 +8336,6 @@ function TS_solSkipReset(){
             return grid;
         }
         /* === BUILDER_BLOCK: AGENT_GRID_BUILD_END === */
-/* === BUILDER_BLOCK: LEADER_ANCHOR_CORE_START
-   리더십/앵커 갱신 코어: agent grid를 소비해 clan 리더 선출 및
-   팔로워 앵커(extraTurn 조향 기반)를 계산한다.
-   TS_preBarrier에서 매 틱(refreshClanLeadership: LEADER_REFRESH_TICKS 주기,
-   refreshAnchors: ANCHOR_REFRESH_TICKS 주기) 호출.
-   === */
 function _forNeighborAgentCells(ax, ay, fn) {
   _ensureAgentGridDims();
   const cols = AGENT_GRID_COLS, rows = AGENT_GRID_ROWS;
@@ -8803,8 +8752,6 @@ function _forNeighborAgentCells(ax, ay, fn) {
         }
 
 
-
-/* === BUILDER_BLOCK: LEADER_ANCHOR_CORE_END === */
 
         /* === BUILDER_SUBBLOCK: LDR_UX_VIZ_START ===
            Phase1: Leader UX markers (cheap, always-on)
@@ -14190,11 +14137,7 @@ function _influxPeriodicGroupV2(agentGrid) {
 }
 /* === BUILDER_BLOCK: POP_INFLUX_SYSTEM_END === */
 
-/* === BUILDER_BLOCK: FOOD_GRID_CORE_START
-   Food 공간 그리드 인프라: FoodGrid1D 클래스 + 셀 매핑/빌드/조회 유틸.
-   _compactFoodsIfNeeded(음식 TTL 압축)과 _inFront180 공간 헬퍼 포함.
-   COLLISION_SYSTEM의 eat/harvest 경로 및 _ensureFoodGridCurrent가 소비.
-   === */
+
 const FOOD_CELL = 60; 
         const EAT_RADIUS = 10;
         const EAT_R2 = EAT_RADIUS * EAT_RADIUS;
@@ -14307,8 +14250,6 @@ const FOOD_CELL = 60;
         const dx = tx - ax, dy = ty - ay;
         return (vx*dx + vy*dy) > 0;
         }
-
-/* === BUILDER_BLOCK: FOOD_GRID_CORE_END === */
 
         //#region ========== COLLISION_SYSTEM ==========
         /* === BUILDER_BLOCK: COLLISION_SYSTEM_START === */
@@ -14909,10 +14850,6 @@ if (d2 < COLLIDE_R2) {
         /* === BUILDER_BLOCK: COLLISION_SYSTEM_END === */
 //#endregion
 
-/* === BUILDER_BLOCK: BRAIN_CANVAS_DRAW_START
-   brainCanvas 신경망 시각화 렌더러: GRU 가중치(Wh/Who) + 히든 상태(h) +
-   입출력 노드를 Canvas 2D로 그린다. SIM_BRAIN_THROTTLE에서 throttle 후 호출.
-   === */
         // ... (drawBrain, mouse events, and animate loop remain unchanged) ...
 
 // [최적화] drawBrain 함수 (1D Array 대응)
@@ -15012,8 +14949,7 @@ if (d2 < COLLIDE_R2) {
             }
         }
 
-/* === BUILDER_BLOCK: BRAIN_CANVAS_DRAW_END === */
-
+        
         /* === BUILDER_BLOCK: UI_INPUT_BINDINGS_START
    [PATCH RECORD]
    - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_INPUT_BINDINGS
@@ -15382,11 +15318,6 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             /* === BUILDER_BLOCK: ERA_BTN_SURNAME_AUTO_WIRE_END === */
         });
 
-        /* === BUILDER_BLOCK: GEMINI_MODAL_BINDINGS_START
-   Gemini AI 모달 버튼 이벤트 바인딩.
-   analyze-btn(역사 서술) / analyze-psych-btn(개체 심리) / 2×close 버튼.
-   ensureAI() 경유 Gemini API 호출; 시뮬레이션 일시정지/재개 연동.
-   === */
         document.getElementById('analyze-btn').addEventListener('click', async () => {
             paused = true;
             const modal = document.getElementById('narrative-modal');
@@ -15496,13 +15427,7 @@ if (typeof window.__evoApplySurnameSessionPalette9to5 === 'function') window.__e
             document.getElementById('psych-modal').style.display = 'none';
             paused = false;
         });
-        /* === BUILDER_BLOCK: GEMINI_MODAL_BINDINGS_END === */
 
-        /* === BUILDER_BLOCK: UI_SYSTEM_PANELS_UPDATE_START
-   updateSystemPanels() 함수 및 캐시 변수 선언.
-   drawer-left(시스템)·drawer-dev(개발자) 패널 갱신; 500ms uiTick에서 호출.
-   내부에 UI_FARM_OBS_BLOCKVIEW sub-block 포함.
-   === */
         let lastHeavyStatsTick = -1e15;
         let cachedUiLifeText = "";
         let cachedStatsHTML = "";
@@ -15716,7 +15641,6 @@ _setTextIfChanged(uiPredCount, predators.length);
             if(uiProfSignal) _setTextIfChanged(uiProfSignal, _disp_mp_signal);
             }
         }
-        /* === BUILDER_BLOCK: UI_SYSTEM_PANELS_UPDATE_END === */
 
         /* === BUILDER_BLOCK: SIM_BRAIN_THROTTLE_START
    [PATCH RECORD]
@@ -16024,12 +15948,6 @@ function updateHistoryPanelUI(){
 
 
 
-        /* === BUILDER_BLOCK: SIM_RAF_LOOP_INIT_START
-   RAF 애니메이션 루프 진입 전 전역 초기화 영역.
-   ① UI 타이머 기동(setInterval), ② RAF 타이밍 변수,
-   ③ 식품·에이전트·허브·포식자 그리드 캐시 vars + _ensureFoodGridCurrent,
-   ④ Phase0 캐시 통합 정책 + _tickDeathFlags.
-   === */
         setInterval(_uiTick500, 500);
         setInterval(_uiTick200, 200);
 
@@ -16072,14 +15990,8 @@ function updateHistoryPanelUI(){
         const _tickDeathFlags = { agent:false, herb:false, pred:false };
   // Phase2.5: pred snapshot cache matches agent/herb pattern (reuse if no pred death/compaction).
   // FoodGrid(60) is periodic+incremental cache; do NOT force CELL=80 unification (Phase3 shares query utils only). // reused; reset each tick
-        /* === BUILDER_BLOCK: SIM_RAF_LOOP_INIT_END === */
 
-
-        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_START
-   [PATCH RECORD]
-   - 27.21 (builder block refactor): renamed from HS_A3_DEV_PERF_API
-   - 27.21 (gap resolution): START 경계를 perf vars 앞으로 앞당김; perf 상태 변수·SS 버퍼 편입
-   === */
+        
         // --- Performance Measurement Vars ---
         let _perf_lastTime = 0;
         let _perf_frames = 0;
@@ -16119,6 +16031,10 @@ function updateHistoryPanelUI(){
         }
 
 
+        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_DEV_PERF_API
+   === */
         (function(){
           const root = (typeof window !== 'undefined') ? window : globalThis;
           root.DEV = root.DEV || {};
@@ -18674,11 +18590,6 @@ function saveLegacyApprox(){
 
     /* === BUILDER_BLOCK: UI_DRAWER_TOGGLES_CORE_END === */
 
-/* === BUILDER_BLOCK: UI_CHIP_TABS_PNREV_INIT_START
-   PNREV Rev31 칩 탭 초기화: Dashboard(pnrev-dash-chipbar)와
-   Chronicle(pnrev-chron-chipbar) 칩 탭 바인딩 및 localStorage 상태 복원.
-   UI_DRAWERS_TREND_TAB sub-block을 내부에 포함.
-   === */
 /* === PNREV_P2: chip tabs init (Rev31 only) === */
     try{
       if(parseInt(localStorage.getItem('hs_ui_layoutRev')||'31',10)!==31) { /* noop */ }
@@ -18761,7 +18672,6 @@ function saveLegacyApprox(){
     }catch(e){ console.warn('PNREV_P2 chip init failed', e); }
 
 })();
-/* === BUILDER_BLOCK: UI_CHIP_TABS_PNREV_INIT_END === */
 /* --- PNREV P1a end --- */
 
 
