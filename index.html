@@ -16025,6 +16025,12 @@ function updateHistoryPanelUI(){
 
 
 
+        /* === BUILDER_BLOCK: SIM_RAF_LOOP_INIT_START
+   RAF 애니메이션 루프 진입 전 전역 초기화 영역.
+   ① UI 타이머 기동(setInterval), ② RAF 타이밍 변수,
+   ③ 식품·에이전트·허브·포식자 그리드 캐시 vars + _ensureFoodGridCurrent,
+   ④ Phase0 캐시 통합 정책 + _tickDeathFlags.
+   === */
         setInterval(_uiTick500, 500);
         setInterval(_uiTick200, 200);
 
@@ -16067,8 +16073,14 @@ function updateHistoryPanelUI(){
         const _tickDeathFlags = { agent:false, herb:false, pred:false };
   // Phase2.5: pred snapshot cache matches agent/herb pattern (reuse if no pred death/compaction).
   // FoodGrid(60) is periodic+incremental cache; do NOT force CELL=80 unification (Phase3 shares query utils only). // reused; reset each tick
+        /* === BUILDER_BLOCK: SIM_RAF_LOOP_INIT_END === */
 
-        
+
+        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_START
+   [PATCH RECORD]
+   - 27.21 (builder block refactor): renamed from HS_A3_DEV_PERF_API
+   - 27.21 (gap resolution): START 경계를 perf vars 앞으로 앞당김; perf 상태 변수·SS 버퍼 편입
+   === */
         // --- Performance Measurement Vars ---
         let _perf_lastTime = 0;
         let _perf_frames = 0;
@@ -16108,10 +16120,6 @@ function updateHistoryPanelUI(){
         }
 
 
-        /* === BUILDER_BLOCK: SIM_DEV_PERF_API_START
-   [PATCH RECORD]
-   - 27.21 (builder block refactor): renamed from HS_A3_DEV_PERF_API
-   === */
         (function(){
           const root = (typeof window !== 'undefined') ? window : globalThis;
           root.DEV = root.DEV || {};
