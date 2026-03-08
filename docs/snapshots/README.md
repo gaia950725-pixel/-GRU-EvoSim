@@ -11,3 +11,4 @@
 현재 등록된 longterm project:
 
 - `builder-block-refactor`
+- `ts-worker-refactor`
