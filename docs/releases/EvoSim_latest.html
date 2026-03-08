@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.25 builder block refactor 3C fix1</title>
+    <title>EvoSim 27.26 builder block refactor 3D</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -4884,286 +4884,6 @@ function agroHarvestTileIfReady(idx) {
 
         /* === BUILDER_BLOCK: AGRO_FARM_WORK_TICK_END === */
 
-/* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_START ===
-[PATCH RECORD]
- - 26.23 (CM): addblock (confirmed split)
-=== */
-function _clamp01(x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
-        function _lerp(a, b, t) { return a + (b - a) * t; }
-        function _smoothstep(u) { return u * u * (3 - 2 * u); }
-        
-// --- SoftMod: expose tiny pure utils (no call-site changes)
-Object.assign(EvoSim.util, {
-  clamp01: _clamp01,
-  lerp: _lerp,
-  smoothstep: _smoothstep,
-});
-
-// --- SoftMod: expose energy helpers as a pseudo-module (no behavior change)
-EvoSim.modules.Energy = EvoSim.modules.Energy || {};
-Object.assign(EvoSim.modules.Energy, {
-  clampEnergy,
-  giveEnergy,
-  spendEnergy,
-});
-
-
-
-        function clampEnergy(a) {
-            if (!a) return;
-            if (a.energy > a.maxEnergy) a.energy = a.maxEnergy;
-            if (a.energy < 0) a.energy = 0;
-        }
-
-        function giveEnergy(a, amt) {
-            if (!a || !amt) { clampEnergy(a); return; }
-            a.energy += amt;
-            clampEnergy(a);
-        }
-
-        function spendEnergy(a, amt) {
-            if (!a || !amt) { clampEnergy(a); return; }
-            a.energy -= amt;
-            clampEnergy(a);
-        }
-
-        function transferEnergy(victim, thief, amt) {
-            if (!victim || !thief || !amt) { clampEnergy(victim); clampEnergy(thief); return 0; }
-            const victimEnergy = Math.max(0, victim.energy);
-            const steal = Math.min(amt, victimEnergy);
-            if (steal <= 0) { clampEnergy(victim); clampEnergy(thief); return 0; }
-            victim.energy -= steal;
-            thief.energy += steal;
-            clampEnergy(victim);
-            clampEnergy(thief);
-            return steal;
-        }
-
-        function applyDamage(target, dmg) {
-  if (!target || !dmg) return false;
-
-  // Phase 19: commotion write (hit)
-  try {
-    if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
-  } catch (_) {}
-
-  target.health -= dmg;
-  if (target.health <= 0) {
-    target.dead = true;
-    // Phase1: death flag for cache invalidation (fail-fast grid contract)
-    if (target instanceof Agent) _tickDeathFlags.agent = true;
-    else if (target instanceof Herbivore) _tickDeathFlags.herb = true;
-    else if (target instanceof Predator) _tickDeathFlags.pred = true;
-
-
-    // Phase 19: commotion write (death)
-    try {
-      if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
-    } catch (_) {}
-
-    return true;
-  }
-  return false;
-}
-        
-function applyDamageSilent(target, dmg) {
-  // Silent damage path: no CLAMOR commotion writes (e.g., starvation)
-  if (!target || !dmg) return false;
-  target.health -= dmg;
-  if (target.health <= 0) {
-    target.dead = true;
-    // Phase1: death flag for cache invalidation (fail-fast grid contract)
-    if (target instanceof Agent) _tickDeathFlags.agent = true;
-    else if (target instanceof Herbivore) _tickDeathFlags.herb = true;
-    else if (target instanceof Predator) _tickDeathFlags.pred = true;
-
-    return true;
-  }
-  return false;
-}
-
-function applyDamageResult(target, dmg) {
-            if (!target || !dmg) return { hit:false, killed:false };
-
-            // Phase 19: commotion write (hit)
-            try {
-                if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
-            } catch (_) {}
-
-            const prevHealth = target.health;
-            target.health -= dmg;
-
-            // --- PATCH: herbivore split drop + calf off at half HP ---
-            // Note: applyDamageResult is used for herbivore hunting only in this build.
-            try {
-                if (typeof Herbivore !== 'undefined' && target instanceof Herbivore) {
-                    const maxH = (typeof target.maxHealth === 'number' ? target.maxHealth : (target.profile && typeof target.profile.maxHealth === 'number' ? target.profile.maxHealth : null));
-                    if (maxH && !target.halfDropDone && prevHealth > maxH * 0.5 && target.health <= maxH * 0.5) {
-                        const total = (target.profile && typeof target.profile.dropFood === 'number') ? target.profile.dropFood : 0;
-                        const halfN = total > 0 ? Math.max(1, Math.round(total / 3)) : 0;
-
-                        target.halfDropDone = true;
-                        target.halfDropN = halfN;
-                        target.hasCalf = false; // calf disappears at half HP
-
-                        if (halfN > 0) generateFood(halfN, target.pos, { source: FOOD_SRC_HUNT });
-                    }
-                }
-            } catch (e) { /* fail safe */ }
-
-            if (target.health <= 0) {
-                target.dead = true;
-    // Phase1: death flag for cache invalidation (fail-fast grid contract)
-    if (target instanceof Agent) _tickDeathFlags.agent = true;
-    else if (target instanceof Herbivore) _tickDeathFlags.herb = true;
-    else if (target instanceof Predator) _tickDeathFlags.pred = true;
-
-
-                // Phase 19: commotion write (death)
-                try {
-                    if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
-                } catch (_) {}
-
-                return { hit:true, killed:true };
-            }
-            return { hit:true, killed:false };
-        }
-
-        function _hash2D(ix, iy, seed) {
-            let h = (ix * 374761393 + iy * 668265263) ^ (seed * 1442695041);
-            h = (h ^ (h >> 13)) * 1274126177;
-            h = h ^ (h >> 16);
-            return ((h >>> 0) / 4294967295);
-        }
-
-        function _tempFromLat(lat) {
-            lat = _clamp01(lat);
-            if (lat < 0.2) {
-                return _lerp(0.1, 0.35, lat / 0.2); 
-            } else if (lat < 0.45) {
-                return _lerp(0.35, 0.85, (lat - 0.2) / 0.25); 
-            } else if (lat < 0.7) {
-                return _lerp(0.85, 0.70, (lat - 0.45) / 0.25);
-            } else {
-                return _lerp(0.70, 0.20, (lat - 0.7) / 0.3); 
-            }
-        }
-
-        
-/* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_END === */
-
-/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_START
-   [PATCH RECORD]
-   - 27.24 (builder block refactor 3C): extracted from CORE_MATH_ENERGY_UTILS (_sat + calcPrestige01)
-   === */
-        // Prestige saturation function: sat(x, k) = x / (x + k)
-        function _sat(x, k) {
-            if (k <= 0) return x > 0 ? 1 : 0;
-            return x / (x + k);
-        }
-EvoSim.util.sat = _sat;
-
-// --- Prestige calculation function
-function calcPrestige01(agent) {
-    if (!agent || agent.dead) return 0;
-    const ageYears = agent.age / CAL_TICKS_PER_YR;
-    const ageN = _sat(ageYears, 80);
-    const reproN = _sat(agent.stats.reproCount, 12);
-    const actRaw = agent.stats.huntCount + agent.stats.harvestCount +
-                  agent.stats.tribeBattleCount + (agent.stats.gatherCount || 0);
-    const actN = _sat(actRaw, 40);
-    const prestige = 0.3 * ageN + 0.3 * reproN + 0.4 * actN;
-    return _clamp01(prestige);
-}
-/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_END === */
-
-/* === BUILDER_BLOCK: BREATH_SYSTEM_START
-   [PATCH RECORD]
-   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; NN breath input system (전역 유틸)
-   === */
-const BREATH = {
-  E2H: 0.0125,
-  K_ATK: 0.01, K_HIT: 0.02, K_BIRTH: 0.006, K_WORK: 0.01,
-  D_ATK: Math.pow(0.1, 1/8),
-  D_HIT: Math.pow(0.1, 1/16),
-  D_BIRTH: Math.pow(0.1, 1/2),
-  D_WORK: Math.pow(0.1, 1/16)
-};
-// === SHARE system (collision peace-branch) ===
-const SHARE_COOLDOWN_TICKS = 30;
-const SHARE_DONOR_MIN_E = 2400;
-const SHARE_RECV_MAX_E  = 1600;
-const SHARE_DONOR_LOSS = 200;
-const SHARE_RECV_GAIN  = 180;
-const SHARE_SAME_ACC_MIN  = 0.70;
-const SHARE_OTHER_ACC_MIN = 0.85;
-const SHARE_SAME_AGG_MAX  = 0.40;
-const SHARE_OTHER_AGG_MAX = 0.20;
-const SHARE_RECV_AGG_MAX  = 0.50;
-
-// === SS-24.2: Interaction stamp (state-change only) ===
-const SS_EVT_COMBAT = 1;
-const SS_EVT_SHARE  = 2;
-const SS_EVT_REPRO  = 4;
-const SS_EVT_HUNT   = 8;
-const SS_EVT_PRED   = 16;
-function _ss_stamp(a, bit, tick){
-  if(!a) return;
-  // Only these events skip solitary (policy locked)
-  if (!(bit === SS_EVT_COMBAT || bit === SS_EVT_HUNT || bit === SS_EVT_PRED || bit === SS_EVT_REPRO || bit === SS_EVT_SHARE)) return;
-  const uid = (a.uid|0);
-  if (uid <= 0) return;
-  if (_agentE2I_dirty) throw new Error('[TS_solitarySkip] _agentE2I dirty in _ss_stamp');
-  const idx = _agentE2I.get(uid);
-  if (idx == null || (idx|0) < 0) return;
-  const i = idx|0;
-  if (TS_solitarySkip[i] === 0) {
-    TS_solitarySkip[i] = 1;
-    TS_solitarySkipTouched[TS_solitarySkipTouchedN++] = i;
-  }
-}
-
-function hsBreathEnsure(a) {
-  if (!a) return;
-  if (a.bAtk == null) {
-    a.bAtk = 0; a.bHit = 0; a.bBirth = 0; a.bWork = 0;
-    a.breathMass = 0; a.breath01 = 0;
-  }
-  if (a.farmWorkLeft == null) { a.farmWorkLeft = 0; a.farmCooldownLeft = 0; }
-}
-function hsBreathDecay(a, extraWorkDecay) {
-  if (!a || a.dead) return;
-  a.bAtk *= BREATH.D_ATK;
-  a.bHit *= BREATH.D_HIT;
-  a.bBirth *= BREATH.D_BIRTH;
-  a.bWork *= BREATH.D_WORK;
-  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
-  if (a.isResting) {
-    a.bAtk *= BREATH.D_ATK;
-    a.bHit *= BREATH.D_HIT;
-    a.bBirth *= BREATH.D_BIRTH;
-    a.bWork *= BREATH.D_WORK;
-  }
-  a.breathMass = Math.max(0, a.bAtk + a.bHit + a.bBirth + a.bWork);
-  a.breath01 = 1 - Math.exp(-a.breathMass);
-}
-// [TS_PATCH 26.41] PRE-only decay (NO breath01 recompute here)
-function hsBreathDecayOnly(a, extraWorkDecay) {
-  if (!a || a.dead) return;
-  a.bAtk *= BREATH.D_ATK;
-  a.bHit *= BREATH.D_HIT;
-  a.bBirth *= BREATH.D_BIRTH;
-  a.bWork *= BREATH.D_WORK;
-  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
-  if (a.isResting) {
-    a.bAtk *= BREATH.D_ATK;
-    a.bHit *= BREATH.D_HIT;
-    a.bBirth *= BREATH.D_BIRTH;
-    a.bWork *= BREATH.D_WORK;
-  }
-}
-/* === BUILDER_BLOCK: BREATH_SYSTEM_END === */
-
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_START ===
 [PATCH RECORD]
  - 26.23 (CM): addblock (confirmed split)
@@ -5459,6 +5179,286 @@ AGRO.repStage.fill(0);
 AGRO.repSeedMode.fill(0);
 AGRO.repLastSeedTick.fill(-1);
             /* === BUILDER_BLOCK: AGRO_FARM_SUIT_END === */
+/* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_START ===
+[PATCH RECORD]
+ - 26.23 (CM): addblock (confirmed split)
+=== */
+function _clamp01(x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
+        function _lerp(a, b, t) { return a + (b - a) * t; }
+        function _smoothstep(u) { return u * u * (3 - 2 * u); }
+        
+// --- SoftMod: expose tiny pure utils (no call-site changes)
+Object.assign(EvoSim.util, {
+  clamp01: _clamp01,
+  lerp: _lerp,
+  smoothstep: _smoothstep,
+});
+
+// --- SoftMod: expose energy helpers as a pseudo-module (no behavior change)
+EvoSim.modules.Energy = EvoSim.modules.Energy || {};
+Object.assign(EvoSim.modules.Energy, {
+  clampEnergy,
+  giveEnergy,
+  spendEnergy,
+});
+
+
+
+        function clampEnergy(a) {
+            if (!a) return;
+            if (a.energy > a.maxEnergy) a.energy = a.maxEnergy;
+            if (a.energy < 0) a.energy = 0;
+        }
+
+        function giveEnergy(a, amt) {
+            if (!a || !amt) { clampEnergy(a); return; }
+            a.energy += amt;
+            clampEnergy(a);
+        }
+
+        function spendEnergy(a, amt) {
+            if (!a || !amt) { clampEnergy(a); return; }
+            a.energy -= amt;
+            clampEnergy(a);
+        }
+
+        function transferEnergy(victim, thief, amt) {
+            if (!victim || !thief || !amt) { clampEnergy(victim); clampEnergy(thief); return 0; }
+            const victimEnergy = Math.max(0, victim.energy);
+            const steal = Math.min(amt, victimEnergy);
+            if (steal <= 0) { clampEnergy(victim); clampEnergy(thief); return 0; }
+            victim.energy -= steal;
+            thief.energy += steal;
+            clampEnergy(victim);
+            clampEnergy(thief);
+            return steal;
+        }
+
+        function applyDamage(target, dmg) {
+  if (!target || !dmg) return false;
+
+  // Phase 19: commotion write (hit)
+  try {
+    if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
+  } catch (_) {}
+
+  target.health -= dmg;
+  if (target.health <= 0) {
+    target.dead = true;
+    // Phase1: death flag for cache invalidation (fail-fast grid contract)
+    if (target instanceof Agent) _tickDeathFlags.agent = true;
+    else if (target instanceof Herbivore) _tickDeathFlags.herb = true;
+    else if (target instanceof Predator) _tickDeathFlags.pred = true;
+
+
+    // Phase 19: commotion write (death)
+    try {
+      if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+    } catch (_) {}
+
+    return true;
+  }
+  return false;
+}
+        
+function applyDamageSilent(target, dmg) {
+  // Silent damage path: no CLAMOR commotion writes (e.g., starvation)
+  if (!target || !dmg) return false;
+  target.health -= dmg;
+  if (target.health <= 0) {
+    target.dead = true;
+    // Phase1: death flag for cache invalidation (fail-fast grid contract)
+    if (target instanceof Agent) _tickDeathFlags.agent = true;
+    else if (target instanceof Herbivore) _tickDeathFlags.herb = true;
+    else if (target instanceof Predator) _tickDeathFlags.pred = true;
+
+    return true;
+  }
+  return false;
+}
+
+function applyDamageResult(target, dmg) {
+            if (!target || !dmg) return { hit:false, killed:false };
+
+            // Phase 19: commotion write (hit)
+            try {
+                if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
+            } catch (_) {}
+
+            const prevHealth = target.health;
+            target.health -= dmg;
+
+            // --- PATCH: herbivore split drop + calf off at half HP ---
+            // Note: applyDamageResult is used for herbivore hunting only in this build.
+            try {
+                if (typeof Herbivore !== 'undefined' && target instanceof Herbivore) {
+                    const maxH = (typeof target.maxHealth === 'number' ? target.maxHealth : (target.profile && typeof target.profile.maxHealth === 'number' ? target.profile.maxHealth : null));
+                    if (maxH && !target.halfDropDone && prevHealth > maxH * 0.5 && target.health <= maxH * 0.5) {
+                        const total = (target.profile && typeof target.profile.dropFood === 'number') ? target.profile.dropFood : 0;
+                        const halfN = total > 0 ? Math.max(1, Math.round(total / 3)) : 0;
+
+                        target.halfDropDone = true;
+                        target.halfDropN = halfN;
+                        target.hasCalf = false; // calf disappears at half HP
+
+                        if (halfN > 0) generateFood(halfN, target.pos, { source: FOOD_SRC_HUNT });
+                    }
+                }
+            } catch (e) { /* fail safe */ }
+
+            if (target.health <= 0) {
+                target.dead = true;
+    // Phase1: death flag for cache invalidation (fail-fast grid contract)
+    if (target instanceof Agent) _tickDeathFlags.agent = true;
+    else if (target instanceof Herbivore) _tickDeathFlags.herb = true;
+    else if (target instanceof Predator) _tickDeathFlags.pred = true;
+
+
+                // Phase 19: commotion write (death)
+                try {
+                    if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+                } catch (_) {}
+
+                return { hit:true, killed:true };
+            }
+            return { hit:true, killed:false };
+        }
+
+        function _hash2D(ix, iy, seed) {
+            let h = (ix * 374761393 + iy * 668265263) ^ (seed * 1442695041);
+            h = (h ^ (h >> 13)) * 1274126177;
+            h = h ^ (h >> 16);
+            return ((h >>> 0) / 4294967295);
+        }
+
+        function _tempFromLat(lat) {
+            lat = _clamp01(lat);
+            if (lat < 0.2) {
+                return _lerp(0.1, 0.35, lat / 0.2); 
+            } else if (lat < 0.45) {
+                return _lerp(0.35, 0.85, (lat - 0.2) / 0.25); 
+            } else if (lat < 0.7) {
+                return _lerp(0.85, 0.70, (lat - 0.45) / 0.25);
+            } else {
+                return _lerp(0.70, 0.20, (lat - 0.7) / 0.3); 
+            }
+        }
+
+        
+/* === BUILDER_BLOCK: CORE_MATH_ENERGY_UTILS_END === */
+
+/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from CORE_MATH_ENERGY_UTILS (_sat + calcPrestige01)
+   === */
+        // Prestige saturation function: sat(x, k) = x / (x + k)
+        function _sat(x, k) {
+            if (k <= 0) return x > 0 ? 1 : 0;
+            return x / (x + k);
+        }
+EvoSim.util.sat = _sat;
+
+// --- Prestige calculation function
+function calcPrestige01(agent) {
+    if (!agent || agent.dead) return 0;
+    const ageYears = agent.age / CAL_TICKS_PER_YR;
+    const ageN = _sat(ageYears, 80);
+    const reproN = _sat(agent.stats.reproCount, 12);
+    const actRaw = agent.stats.huntCount + agent.stats.harvestCount +
+                  agent.stats.tribeBattleCount + (agent.stats.gatherCount || 0);
+    const actN = _sat(actRaw, 40);
+    const prestige = 0.3 * ageN + 0.3 * reproN + 0.4 * actN;
+    return _clamp01(prestige);
+}
+/* === BUILDER_BLOCK: AGENT_PRESTIGE_SYSTEM_END === */
+
+/* === BUILDER_BLOCK: BREATH_SYSTEM_START
+   [PATCH RECORD]
+   - 27.24 (builder block refactor 3C): extracted from HS_COLLISION_LOOP; NN breath input system (전역 유틸)
+   === */
+const BREATH = {
+  E2H: 0.0125,
+  K_ATK: 0.01, K_HIT: 0.02, K_BIRTH: 0.006, K_WORK: 0.01,
+  D_ATK: Math.pow(0.1, 1/8),
+  D_HIT: Math.pow(0.1, 1/16),
+  D_BIRTH: Math.pow(0.1, 1/2),
+  D_WORK: Math.pow(0.1, 1/16)
+};
+// === SHARE system (collision peace-branch) ===
+const SHARE_COOLDOWN_TICKS = 30;
+const SHARE_DONOR_MIN_E = 2400;
+const SHARE_RECV_MAX_E  = 1600;
+const SHARE_DONOR_LOSS = 200;
+const SHARE_RECV_GAIN  = 180;
+const SHARE_SAME_ACC_MIN  = 0.70;
+const SHARE_OTHER_ACC_MIN = 0.85;
+const SHARE_SAME_AGG_MAX  = 0.40;
+const SHARE_OTHER_AGG_MAX = 0.20;
+const SHARE_RECV_AGG_MAX  = 0.50;
+
+// === SS-24.2: Interaction stamp (state-change only) ===
+const SS_EVT_COMBAT = 1;
+const SS_EVT_SHARE  = 2;
+const SS_EVT_REPRO  = 4;
+const SS_EVT_HUNT   = 8;
+const SS_EVT_PRED   = 16;
+function _ss_stamp(a, bit, tick){
+  if(!a) return;
+  // Only these events skip solitary (policy locked)
+  if (!(bit === SS_EVT_COMBAT || bit === SS_EVT_HUNT || bit === SS_EVT_PRED || bit === SS_EVT_REPRO || bit === SS_EVT_SHARE)) return;
+  const uid = (a.uid|0);
+  if (uid <= 0) return;
+  if (_agentE2I_dirty) throw new Error('[TS_solitarySkip] _agentE2I dirty in _ss_stamp');
+  const idx = _agentE2I.get(uid);
+  if (idx == null || (idx|0) < 0) return;
+  const i = idx|0;
+  if (TS_solitarySkip[i] === 0) {
+    TS_solitarySkip[i] = 1;
+    TS_solitarySkipTouched[TS_solitarySkipTouchedN++] = i;
+  }
+}
+
+function hsBreathEnsure(a) {
+  if (!a) return;
+  if (a.bAtk == null) {
+    a.bAtk = 0; a.bHit = 0; a.bBirth = 0; a.bWork = 0;
+    a.breathMass = 0; a.breath01 = 0;
+  }
+  if (a.farmWorkLeft == null) { a.farmWorkLeft = 0; a.farmCooldownLeft = 0; }
+}
+function hsBreathDecay(a, extraWorkDecay) {
+  if (!a || a.dead) return;
+  a.bAtk *= BREATH.D_ATK;
+  a.bHit *= BREATH.D_HIT;
+  a.bBirth *= BREATH.D_BIRTH;
+  a.bWork *= BREATH.D_WORK;
+  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
+  if (a.isResting) {
+    a.bAtk *= BREATH.D_ATK;
+    a.bHit *= BREATH.D_HIT;
+    a.bBirth *= BREATH.D_BIRTH;
+    a.bWork *= BREATH.D_WORK;
+  }
+  a.breathMass = Math.max(0, a.bAtk + a.bHit + a.bBirth + a.bWork);
+  a.breath01 = 1 - Math.exp(-a.breathMass);
+}
+// [TS_PATCH 26.41] PRE-only decay (NO breath01 recompute here)
+function hsBreathDecayOnly(a, extraWorkDecay) {
+  if (!a || a.dead) return;
+  a.bAtk *= BREATH.D_ATK;
+  a.bHit *= BREATH.D_HIT;
+  a.bBirth *= BREATH.D_BIRTH;
+  a.bWork *= BREATH.D_WORK;
+  if (extraWorkDecay) a.bWork *= BREATH.D_WORK;
+  if (a.isResting) {
+    a.bAtk *= BREATH.D_ATK;
+    a.bHit *= BREATH.D_HIT;
+    a.bBirth *= BREATH.D_BIRTH;
+    a.bWork *= BREATH.D_WORK;
+  }
+}
+/* === BUILDER_BLOCK: BREATH_SYSTEM_END === */
+
         }
 /* === BUILDER_BLOCK: AGRO_INIT_CORE_END === */
 
@@ -14260,11 +14260,12 @@ const FOOD_CELL = 60;
         return (vx*dx + vy*dy) > 0;
         }
 
-        //#region ========== HS_COLLISION_LOOP ==========
-        /* === BUILDER_BLOCK: HS_COLLISION_LOOP_START === */
+        //#region ========== COLLISION_SYSTEM ==========
+        /* === BUILDER_BLOCK: COLLISION_SYSTEM_START === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
  - 27.24 (builder block refactor 3C): extracted COLLISION_CFG_GUARDS / BREATH_SYSTEM / POP_INFLUX_SYSTEM; added _pendCollisionNewborns + COLLISION_CHECK_FN
+ - 27.26 (builder block refactor 3D): renamed from HS_COLLISION_LOOP
  */
 
 function _pendCollisionNewborns(ctx, newborns, agentGrid) {
@@ -14855,7 +14856,7 @@ if (d2 < COLLIDE_R2) {
             _hs3_layerPredators(ctx);
 }
 /* === BUILDER_BLOCK: COLLISION_CHECK_FN_END === */
-        /* === BUILDER_BLOCK: HS_COLLISION_LOOP_END === */
+        /* === BUILDER_BLOCK: COLLISION_SYSTEM_END === */
 //#endregion
 
         // ... (drawBrain, mouse events, and animate loop remain unchanged) ...
@@ -16369,7 +16370,10 @@ if (GRIDDBG.enabled && selectedAgent) {
 
 
 
-/* === BUILDER_BLOCK: HS_PHASE1_HELPERS_START === */
+/* === BUILDER_BLOCK: SIM_ENGINE_CORE_START
+   [PATCH RECORD]
+   - 27.26 (builder block refactor 3D): renamed from HS_PHASE1_HELPERS
+   === */
 /* === BUILDER_BLOCK: SIM_LOOP_CORE_START
    [PATCH RECORD]
    - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_SIM_LOOP
@@ -16559,7 +16563,10 @@ try {
 } catch(_) {}
 /* === BUILDER_BLOCK: SIM_LOOP_DECAY_END === */
 
-      /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_START === */
+      /* === BUILDER_BLOCK: AGRO_TILE_LAZY_TOUCH_START
+         [PATCH RECORD]
+         - 27.26 (builder block refactor 3D): renamed from HS_AGRO_SELECTED_TILE_LAZY_TOUCH
+         === */
       // Selected tile: keep agro stats fresh at low frequency (moved from UI update)
       try {
         if (AGRO && selectedTileIdx !== -1) {
@@ -16573,7 +16580,7 @@ try {
           }
         }
       } catch (_) {}
-      /* === BUILDER_BLOCK: HS_AGRO_SELECTED_TILE_LAZY_TOUCH_END === */
+      /* === BUILDER_BLOCK: AGRO_TILE_LAZY_TOUCH_END === */
       /* === BUILDER_BLOCK: AUTOCLAN_ANIMATE_HOOK_START === */
       try {
         if (CFG && CFG.clanMode === 'SURNAME_AUTO') {
@@ -17268,7 +17275,7 @@ function _e2i_onPredAdded(idx) {
   _predE2I.set(id, idx);
 }
 
-/* === BUILDER_BLOCK: HS_PHASE1_HELPERS_END === */
+/* === BUILDER_BLOCK: SIM_ENGINE_CORE_END === */
 
 /* === BUILDER_BLOCK: SIM_RAF_SINGLETON_START ===
    v21.1: RAF loop singleton guard + stop support (prevents stacked RAF chains on restart/End World)

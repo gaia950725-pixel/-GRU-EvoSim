@@ -11,6 +11,13 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.26 — builder block refactor 3D (mid)
+- Change: 잔존 HS_ 3개 rename 완료 — HS_COLLISION_LOOP→COLLISION_SYSTEM, HS_PHASE1_HELPERS→SIM_ENGINE_CORE, HS_AGRO_SELECTED_TILE_LAZY_TOUCH→AGRO_TILE_LAZY_TOUCH. HS_ 접두사 완전 소멸.
+- Change: AGRO 군집 복원 — CORE_MATH_ENERGY_UTILS / AGENT_PRESTIGE_SYSTEM / BREATH_SYSTEM을 AGRO_FARM_WORK_TICK~AGRO_INIT_CORE 사이에서 AGRO_FARM_SUIT 직후로 이동. AGRO #24~37 연속 달성.
+- Why: Phase 3-A~3-C 마무리 + 순서재배치 사전작업 완결.
+- Impact: 코드 동작 변경 없음. 블록 순서 및 명칭만 변경.
+- Verify: grep -c "BUILDER_BLOCK: HS_" index.html → 0
+
 ### 27.25 — builder block refactor 3C (mid)
 - Change: HS_COLLISION_LOOP 5분할 + 2개 블록 신설. COLLISION_CFG_GUARDS(CFG_DEFAULTS 직후), AGENT_PRESTIGE_SYSTEM(CORE_MATH_ENERGY_UTILS 직후), BREATH_SYSTEM(prestige 직후), POP_INFLUX_SYSTEM(SPAWN_AND_LOG_CORE 직후), COLLISION_CHECK_FN(checkCollisions 래핑).
 - Change: _hs3_commitNewborns → _pendCollisionNewborns로 이름 교정 후 checkCollisions 외부로 추출. calcPrestige01 + _sat을 CORE_MATH_ENERGY_UTILS에서 AGENT_PRESTIGE_SYSTEM으로 분리.
