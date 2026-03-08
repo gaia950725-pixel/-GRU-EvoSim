@@ -1,0 +1,47 @@
+EvoSim Patch 1 (HerbNav v2 · A안) — Herbivore Policy Snapshot
+작성일: 2026-03-03 (KST)
+기준 코드: /mnt/data/EvoSim_27.06_terrain_slope_fix3.html  (title: "EvoSim 27.06 terrain slope fix3")
+
+[목표(패치1)]
+- 초식 전 종을 boids-lite 조향으로 전면 개편
+- 장기 목표(팩 단위) = 환경(GAIA 30px tile 3x3 평가)
+- 단기 목표(팩 단위) = 소동장(Clamor grid 3x3) 기반 micro-safe
+- 개체 이동물리는 현행 유지(vel 누적 + speedCap limit, 반사/튕김 최소 유지)
+- 모드/상태 모델을 팩/개체 2레이어로 분리하고, 실제 물리 적용은 우선순위 규칙으로 결정
+
+[정책 확정(제거/폐기)]
+- catch-up(팩 중심 거리 기반 speedCap 보너스) 제거
+- food 섭취/삭제 로직(초식이 f.active=false로 지우는 write) 제거 (리스크는 감수; food-초식 관계는 후속 설계)
+- grazing(초식 grazeTimer 기반 정지/감속 상태) 폐기 → ROAM 중심으로 단순화(후속 시스템에 맞춰 복구)
+
+[상태/모드(레이어 분리)]
+(팩 단위 state)
+- CALM / ALERT / CONFUSED / STUCK
+- 우선순위: STUCK > CONFUSED > ALERT > CALM
+
+(개체 단위 state)
+- ROAM / PANIC / BRAKE
+- 우선순위: BRAKE > PANIC > ROAM
+
+[트리거 정책(확정)]
+- ALERT(팩): clamor fast 혼합(voice+commotion) 임계치 초과 시 (히스테리시스: thr_on / thr_off + holdTicks)
+- CONFUSED(팩): 최근 피격(hit) 사건 전파(recentHitUntilTick)로 유지시간 동안
+- STUCK(팩): 패스불가/튕김 누적 + 진척 없음 기반(쿨다운 포함)
+
+- PANIC(개체): hit 확정(기존 panicTimer>0 활용)
+- BRAKE(개체): retaliate(반격) 성공 시 brakeTimer>0 (일시정지/강감속 유지)
+
+[목표점/방향(저주기 갱신 분리)]
+- 목표점 자체 갱신과 “그 목표를 향한 방향 벡터 갱신”을 분리한다.
+- 장기 목표점(macroEnvGoal): 매우 저주기 + (팩 중심 도달 / STUCK 등 이벤트 시 즉시 갱신)
+- 단기 목표점(microSafeGoal): 상태별 동적 주기 (CALM 느림, ALERT/CONFUSED/STUCK 빠름)
+- 방향 갱신(macroDir/microDir): 목표점보다 더 자주 갱신(상태별 동적)
+
+[단기 소동 0(평탄 구간) 폴백 정책]
+- clamor가 0(또는 매우 미약)인 구간이 가능하므로, micro-safe는
+  (소동 기반 벡터) 가중치가 0으로 떨어질 때 장기 방향/계절 방향/관성(mem)로 자연스럽게 폴백하도록 설계한다.
+  → “micro-safe = 점(point) 고정”보다 “micro-safe = 방향(vec) + 저주기 갱신”이 기본.
+
+[계측/DEV 정책]
+- 계측 코드는 삭제하지 않는다(회귀/비교에 필요). 필요시 DEV.flags로 비활성화.
+- Patch 1에서 새 계측은 “저주기 카운터 몇 개”만 허용(예: sep 재계산 횟수, micro 갱신 횟수, STUCK 진입 횟수).

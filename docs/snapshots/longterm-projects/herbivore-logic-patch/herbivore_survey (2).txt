@@ -1,0 +1,149 @@
+EvoSim Patch 1 준비 — Herbivore Survey (Phase 1: code survey)
+작성일: 2026-03-03 (KST)
+기준 코드: /mnt/data/EvoSim_27.06_terrain_slope_fix3.html
+
+============================================================
+0) 빠른 결론(의존점 요약)
+- Herbivore 이동/상태는 현재: 고정 경로(p1/p2 왕복) + grazeTimer + catch-up speedCap + eatTimer로 food 삭제(write) + panic/brake 이벤트
+- TS_preBarrier(PRE)에서 herbivores 전체에 h.update(foodGridPre)를 매 tick 호출함(현재 herb 업데이트가 PRE write임)
+- HerbGrid는 1D grid이며 cell 값은 "hid(EID)"를 저장하고, _herbE2I를 통해 idx로 resolve해야 함.
+- Clamor는 4틱 주기 decay(FAST=0.6, SLOW=0.95)이며, world XY에서 4채널 peek API가 존재.
+- GAIA 30px tile lookup API가 존재(altitude01At, oceanicity01At, coastDistAt 등).
+
+============================================================
+1) Herbivore 클래스(현행)
+- 위치: line 12116 시작 (class Herbivore)
+- constructor 핵심 필드:
+  - pos/vel, hid(EID), species/profile, health/maxHealth
+  - hasCalf/calfPos(시각용), packId
+  - pathStart/pathEnd/targetPos (고정 경로 앵커) 12151~12158
+  - state='WALK', eatTimer, grazeTimer 12160~12162
+  - retaliateCooldownUntilTick, panicTimer/hitFlashTimer/panicDir 12163~12167
+  - brakeTimer 12168
+
+============================================================
+2) Herbivore.update(foodGrid) 현행 로직(제거 대상/의존점)
+- update 시작: line 12172
+
+(2-1) 타이머/상태
+- hitFlashTimer 감소: 12217
+- inPanic = (panicTimer>0), panicTimer--, grazeTimer=0: 12218~12219
+- inBrake = (brakeTimer>0), brakeTimer--, panicTimer=0: 12223~12224
+
+(2-2) grazeTimer 분기(제거 후보)
+- grazeTimer>0이면 state='GRAZE', vel*=0.85, grazeTimer--: 12225~12228
+- 아니면 WALK로:
+  - distToTarget<30이면 targetPos를 pathEnd/pathStart로 토글 + grazeTimer 랜덤 세팅: 12232~12238
+  - dir = targetPos - pos, limit(profile.speed): 12240~12242
+  - inPanic이면 panicDir 가산: 12243~12246
+  - 랜덤 drift 추가: 12247
+  - vel.add(dir*0.1): 12248
+
+(2-3) catch-up speedCap(정책: 제거)
+- 주석: [New] Pack Catch-up Logic: 12249
+- pack.cx/cy와 거리 d2가 HERB_COHESION_R2 초과이고, ahead(dot) > 0 이면 speedCap 보너스: 12250~12266
+- panic이면 speedCap 상향: 12267
+- brake면 speedCap=0: 12268
+- vel.limit(speedCap): 12269
+
+(2-4) 이동 적용(유지(최소) 후보)
+- nextPos = pos + vel
+- !isLand(nextPos)면 vel *= -1 else pos.add(vel): 12272~12277
+
+(2-5) food 섭취/삭제(write) (정책: 제거)
+- eatTimer--, eatTimer<=0이면 주변 food cell 순회해서 f.active=false: 12279~12296
+  - _forFoodCellsInRadius + foodGrid.get(key) + foods[arr[k]] 접근
+  - dx^2+dy^2 < 20^2이면 f.active=false
+
+============================================================
+3) TS_preBarrier에서 herb update 호출(중요 의존점)
+- TS_preBarrier: line 16168~
+- foodGridPre 생성: 16183 (_ensureFoodGridCurrent)
+- agentGridPre 생성: 16185~
+- Ecology.Pre에서 herb update 호출:
+  - for hi in herbivores: h.update(foodGridPre): 16205~16209 (mp on)
+  - 동일 호출: 16217~16221 (mp off)
+
+=> Patch 1에서 Herbivore.update 시그니처 변경(또는 foodGrid 의존 제거) 시, 이 호출부를 반드시 수정해야 함.
+
+============================================================
+4) HerbGrid / Query API / E2I(boids-lite separation에 필수)
+(4-1) Grid Query API
+- EvoSim.query.forEachHerbCell(herbGrid, x, y, cbArr): line 9056~9072
+  - 내부는 _forNeighborHerbCells 사용
+
+(4-2) HerbGrid core(1D, double buffer)
+- _buildHerbivoreGrid(list): line 9247~
+  - HerbGrid1D.cells는 Array[nCells], cell value는 "hid(EID)"를 저장하도록 placeListIntoGridCells가 구성됨(라인 9286~9300)
+
+(4-3) E2I resolve
+- _rebuildHerbE2I: 16979~16983
+- _resolveHerbCellValToIdx(v): 17000~17005
+  - grid cell의 v(hid)를 idx로 바꾸려면 이 함수를 사용해야 함.
+
+============================================================
+5) updateHerbivorePacks(팩 중심/번식/리스폰 의존점)
+- 함수 시작: line 13383
+- 현행 centroid 계산:
+  - pack._sumX/_sumY 누적 후 pack.cx/cy 설정: 13413~13418
+- endpoint 판정:
+  - loop에서 "아무 개체라도 p1/p2에 120 이내"면 pack._endpoint=1/2: 13404~13409
+- 번식/스폰:
+  - count < maxSize && spawnCooldown<=0 && endpoint==1/2 이면 해당 p1/p2 근처에 새 Herbivore push: 13456~13476
+- 무리 전멸 시 재생성:
+  - respawnTimer 15 seasons, 만료 시 p1/p2 중 랜덤에서 maxSize만큼 재스폰: 13422~13446
+
+=> Patch 1에서 “팩 중심 목표 도달” 기준으로 바꾸려면, endpoint 판정/번식 트리거가 이 함수에 집중되어 있음(주요 수정 지점).
+
+============================================================
+6) Hit/Panic/Retaliate/Brake 현재 처리(전투/상태 연계)
+- H.applyHuntResult(인간이 초식을 타격한 결과 처리) 내부:
+  - hitFlashTimer, panicTimer, panicDir(공격자 반대방향) 세팅: 14261~14267
+  - retaliate 확률 성공 시:
+    - 공격자에게 H.applyDamage(a,dmg)로 피해
+    - retaliateCooldownUntilTick 세팅
+    - brakeTimer 부여 + panicTimer를 짧게 + panicDir=0 리셋: 14279~14282
+
+=> Patch 1에서 “PANIC=hit”을 그대로 쓰려면, 이 panicTimer 경로를 건드릴 필요가 없음.
+=> BRAKE(일시정지/강감속)도 기존 brakeTimer를 그대로 사용 가능.
+
+============================================================
+7) Clamor(소동장) 인프라(팩 단기목표용)
+- clamor core 상수:
+  - CLAMOR_CELL=80
+  - CLAMOR_DECAY_PERIOD_TICKS=4
+  - CLAMOR_DECAY_FAST=0.6, CLAMOR_DECAY_SLOW=0.95  (line 7702~7705)
+- cell peek API:
+  - _clamorPeekAtWorldXY(wx,wy) => [comFast, comSlow, vocFast, vocSlow] (line 7986~7995)
+- agent hearing sample 5x5:
+  - _clamorSample5x5LR_into(...) 존재 (line 7905~)
+
+=> 팩 3x3 샘플링은 (a) cell size(80) 기반 좌표 오프셋 + _clamorPeekAtWorldXY 호출로 구현 가능.
+
+============================================================
+8) GAIA 30px 환경 lookup API(장기목표용)
+- gaiaTileAtXY(x,y): 5598~
+- altitude01At(x,y): 5604~5609
+- oceanicity01At(x,y): 5643~5646
+- coastDistAt(x,y): 5636~5641
+- tempSeasoned01At(x,y,tick): 5624~5632 (seasonAmp30 기반)
+
+=> 장기 목표(env score)에서 “담수도/고도/해안/해양성/계절” 결합에 바로 사용 가능.
+
+============================================================
+9) 패치 1에서 ‘제거’ 대상 블록(키워드)
+- grazeTimer / state='GRAZE' / targetPos 왕복:
+  - Ctrl+F: "grazeTimer", "GRAZE", "distToTarget"
+- catch-up:
+  - Ctrl+F: "Pack Catch-up Logic", "HERB_CATCHUP"
+- food 삭제:
+  - Ctrl+F: "eatTimer--", "f.active = false", "_forFoodCellsInRadius"
+
+============================================================
+10) 패치 1에서 ‘유지(최소)’ 대상 블록(키워드)
+- panic/brake 타이머 적용:
+  - Ctrl+F: "panicTimer", "brakeTimer"
+- isLand 반사/튕김:
+  - Ctrl+F: "!isLand(nextPos"
+- calf follow(시각만):
+  - Ctrl+F: "hasCalf", "calfPos"
