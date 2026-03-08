@@ -1,0 +1,100 @@
+EvoSim v27.28 — Herbivore “pack” → “herd” 전면 리네임 대상 목록 (코드 식별자 포함)
+작성일: 2026-03-09 (KST)
+대상 파일: /mnt/data/EvoSim_27.28_builder-block_GAP-finalize_FINAL.html
+
+0) 전제 / 스코프
+- 목표: “초식 pack(무리)” 개념을 코드 식별자까지 “herd”로 전면 치환.
+- 범위: 초식(herbivore) 관련 Map/SEQ/함수/필드/지역변수/로그/문자열.
+- 비범위: 포식자(Direwolf) pack 시스템은 그대로 “pack” 유지 (구별 목적).
+
+1) ‘packs’ 공용 개념 점검 결과
+- 공용(전역) PACKS Map이 존재하며, 이는 포식자(DIREWOLF) pack 전용으로 사용됨.
+  - PACKS / PACK_SEQ: line 7451~7452
+  - Predator 생성 시 opts.packId 사용: line 7473 등
+  - Predator UI에도 “Pack {packId}” 표기 존재: line 15883
+=> 결론: “PACKS/packId/packSize”는 포식자 전용으로 남겨야 하므로, 초식 리네임은 ‘HERB_ 네임스페이스 및 Herbivore 클래스/함수’로 범위를 제한해야 함.
+
+2) 리네임 매핑(권장)
+(2-1) 초식 전용 컨테이너/시퀀스/주기
+- HERB_PACKS  -> HERB_HERDS
+- HERB_PACK_SEQ -> HERB_HERD_SEQ
+- HERB_PACK_UPDATE_PERIOD_TICKS -> HERB_HERD_UPDATE_PERIOD_TICKS
+- lastHerbPackUpdateTick -> lastHerbHerdUpdateTick
+- updateHerbivorePacks(dtTicks) -> updateHerbivoreHerds(dtTicks)
+- HERB_SYSTEM_DISABLED_REASON value "pack_update_error" -> "herd_update_error" (문자열이므로 선택이지만 권장)
+
+(2-2) Herbivore(초식 개체) 필드/시그니처
+- Herbivore ctor 파라미터 packId -> herdId
+- this.packId -> this.herdId
+- (Herbivore 내부) const pack = HERB_PACKS.get(...) -> const herd = HERB_HERDS.get(...)
+
+(2-3) HERB_PROFILE 필드
+- HERB_PROFILE.*.packSize -> HERB_PROFILE.*.herdSize
+  * PRED_PROFILE.DIREWOLF.packSize는 포식자 pack이므로 그대로 유지.
+
+(2-4) 지역변수/데이터 객체(초식 무리)
+- packId(초식 생성 구간) -> herdId
+- packData -> herdData
+- pack(초식 무리 객체 지역변수) -> herd
+
+(2-5) 코멘트/로그 문구(초식 관련만)
+- “herb pack update” -> “herb herd update”
+- “Herbivore pack update crashed …” -> “Herbivore herd update crashed …”
+- “pack update error” -> “herd update error” 등
+
+3) 리네임 대상 ‘정확한’ 출현 위치(라인 기준)
+(3-1) 전역 선언/상수
+- line 7454: const HERB_PACKS = new Map();
+- line 7455: let HERB_PACK_SEQ = 0;
+- line 7457: const HERB_PACK_UPDATE_PERIOD_TICKS = 10;
+- line 7464: let lastHerbPackUpdateTick = -HERB_PACK_UPDATE_PERIOD_TICKS;
+- line 7459: comment “Herbivore Pack Cohesion” (문구 치환)
+
+(3-2) 초기 스폰/월드젠(초식 무리 생성)
+- line 10842: const packId = ++HERB_PACK_SEQ;
+- line 10843: const packData = { id: packId, ... maxSize: herbProfile.packSize, ... }
+- line 10859: HERB_PACKS.set(packId, packData);
+- line 10861: for (j < herbProfile.packSize)
+- line 10867~10870: new Herbivore(..., packData.id)
+
+(3-3) Herbivore 클래스 내부(초식 개체가 ‘무리 중심’ 참조)
+- line 12400: constructor(..., packId)
+- line 12432: this.packId = packId;
+- line 12534: const pack = HERB_PACKS.get(this.packId);
+- line 12535~12537: pack.cx/cy 사용
+
+(3-4) updateHerbivorePacks(초식 무리 업데이트/번식/리스폰)
+- line 13687: function updateHerbivorePacks(dtTicks = 1)
+- line 13688~13724: HERB_PACKS.forEach(pack=>...) / const pack = HERB_PACKS.get(h.packId)
+- line 13709~13712: endpoint 판정에 pack.p1/pack.p2
+- line 13727~13753: respawnTimer / respawn logic
+- line 13735~13746: 재스폰 시 new Herbivore(..., pack.id)
+- line 13760~13776: spawnCooldown / 번식(스폰) 로직
+
+(3-5) 메인루프/저주기 호출부
+- line 2436: “herb pack update — updateHerbivorePacks”
+- line 16747~16767:
+  - dtPack 계산: simulatedTicks - lastHerbPackUpdateTick
+  - if (dtPack >= HERB_PACK_UPDATE_PERIOD_TICKS) updateHerbivorePacks(dtPack)
+  - 오류 로그: “Herbivore pack update crashed …”, reason = "pack_update_error"
+
+(3-6) 리셋/클리어 경로
+- line 10612: HERB_PACKS.clear()
+- line 10615: HERB_PACK_SEQ = 0
+- line 10629: lastHerbPackUpdateTick reset
+- line 10877: HERB_PACKS.clear() in spawn failure
+
+4) ‘리네임 금지’(포식자 pack 시스템 — 그대로 유지해야 할 것)
+- PACKS/ PACK_SEQ (포식자): line 7451~7452
+- PRED_PROFILE.DIREWOLF.packSize: line 7319
+- CFG.direwolfPackSize 및 pack damage 계산: line 5721~5722
+- Predator 객체 opts.packId / this.packId: (Predator 클래스 일대; 119xx~121xx)
+- Predator UI pack 표기:
+  - line 15883: “Pack ${selectedPredator.packId} (Leader) …”
+
+5) 실행(리네임 수행) 시 권장 안전 절차(참고)
+- 1) “초식 전용 토큰”부터 점진 치환: HERB_PACKS/SEQ/UPDATE_PERIOD → updateHerbivorePacks → Herbivore(packId) → HERB_PROFILE(packSize)
+- 2) 마지막에 ‘문구/로그’ 치환.
+- 3) 단일 커밋(rename-only)로 분리하는 편이 기능 패치와 충돌을 줄임.
+
+(본 문서는 ‘대상 목록’만 제공하며, 실제 리네임 실행은 하지 않음.)
