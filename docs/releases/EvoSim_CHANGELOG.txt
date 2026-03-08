@@ -11,6 +11,12 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.10 fix1 — initAgro scope fix (critical)
+- Change: CORE_MATH_ENERGY_UTILS / AGENT_PRESTIGE_SYSTEM / BREATH_SYSTEM 블록이 initAgro() 내부에 갇혀 _clamp01·_tempFromLat가 module scope에서 비가시 상태였던 버그 수정. initAgro() 닫는 `}` 위치를 AGRO_FARM_SUIT_END 직후로 이동, 중복 `}` 제거.
+- Why: `<script type="module">` strict mode에서 함수 선언은 블록 스코프로 제한 — gaiaBuildAltitudeGrid/HumidGrid/TempGrid 호출 시 ReferenceError.
+- Impact: Initialize Simulation 클릭 시 GAIA 빌드 실패 → 시뮬레이션 로드 불가 버그 해소.
+- Verify: Initialize Simulation 정상 진행, 콘솔 _clamp01/_tempFromLat ReferenceError 없음.
+
 ### 27.27 — cfg-defaults consolidate (mid)
 - Change: pillageEnergy(100) / farmWorkTicks(8) / farmCooldownTicks(2) → CFG_DEFAULTS 직접 정의로 이관.
 - Change: tilthWearPerWorkTick 0.00010 → 0.000085 (v18.84 *0.85 마이그레이션 값 고정 반영).
