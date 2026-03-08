@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.27 cfg-defaults consolidate</title>
+    <title>EvoSim 27.28 builder-block GAP finalize</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -8262,8 +8262,11 @@ function TS_solSkipReset(){
 }
 /* === BUILDER_BLOCK: SOL_SKIP_INFRA_END === */
 
-
-
+/* === BUILDER_BLOCK: AGENT_GRID_CORE_START ===
+   [PATCH RECORD]
+   - 26.24 (CM): addblock agent grid core (clamor/query excluded)
+   - 27.28 (builder-block GAP finalize): 상단 경계를 _agentCellId 포함하도록 확장 (ISS-13 흡수)
+   === */
         function _agentCellId(x, y) {
             _ensureAgentGridDims();
             let cx = Math.floor(x / AGENT_CELL);
@@ -8272,10 +8275,6 @@ function TS_solSkipReset(){
             if (cy < 0) cy = 0; else if (cy >= AGENT_GRID_ROWS) cy = AGENT_GRID_ROWS - 1;
             return cy * AGENT_GRID_COLS + cx;
         }
-/* === BUILDER_BLOCK: AGENT_GRID_CORE_START ===
-   [PATCH RECORD]
-   - 26.24 (CM): addblock agent grid core (clamor/query excluded)
-   === */
         /* === BUILDER_BLOCK: AGENT_GRID_GLOBALS_START
    [PATCH RECORD]
    - 27.21 (builder block refactor): renamed from HS_18_7_GLOBALS

@@ -203,24 +203,28 @@ Verify: <optional 1 line — how to confirm>
 
 ---
 
-## 12) Current state (v27.10)
+## 12) Current state (v27.28)
 
 | Field | Value |
 |-------|-------|
-| Version | 27.10 |
-| Title | terrain footing-load precise-alt |
+| Version | 27.28 |
+| Title | builder-block GAP finalize |
 | index.html | Synced ✓ |
 | EvoSim_latest.html | Synced ✓ |
-| Archive | `EvoSim_27.10_terrain_footing-load_precise-alt.html` ✓ |
+| Archive | `EvoSim_27.28_builder-block_GAP-finalize_FINAL.html` ✓ |
 | CHANGELOG | Updated ✓ |
-| Key change | `altitude01AtPrecise(wx,wy)` API; PROPRIO slot 15 → `FOOTING_LOAD`; roughness removed |
+| Key change | GAP-D/E/F/G/I 블록화 완료; ISS-13 흡수; 27.2x 계열 builder-block 리팩터 완결. START=END=132 |
 
 **Recent version lineage (newest first):**
+- 27.28 — builder-block GAP finalize
+- 27.27 — cfg-defaults consolidate
+- 27.26 — builder block refactor 3D (HS_ 완전 소멸)
+- 27.25 — builder block refactor 3C
+- 27.24 — builder block refactor 3B-3
+- 27.21 — builder block refactor Phase 3-A
+- 27.20 — Hard module base FINAL
+- 27.11 — boot-init strip-yield finalize-reorder
+- 27.10 fix1 — initAgro scope fix (critical)
 - 27.10 — terrain footing-load precise-alt
 - 27.09 — agent TEMP seasoned input FINAL
 - 27.08 — farm temp dT mul + AGRO hydrology (+ fix1, fix2)
-- 27.07 — hydrology GAIA SOT + riverDist/freshwater
-- 27.06 — terrain 4tri slope+rough infra (+ fix3)
-- 27.05 — season lag + dr SOT + repIdx normalize
-- 27.04 — season spatial amp
-- 27.03 — maritime sot + locale geography

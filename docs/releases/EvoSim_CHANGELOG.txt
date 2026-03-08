@@ -11,6 +11,15 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.28 — builder-block GAP finalize (mid)
+- Change: GAP-D/E/I 블록 신설 — FOOD_GRID_CORE, BRAIN_CANVAS_DRAW, UI_CHIP_TABS_PNREV_INIT 3개.
+- Change: floating 행동 함수 3개 블록화 — SHOUT_EMIT_CORE, SOL_SKIP_INFRA, LEADER_ANCHOR_CORE.
+- Change: GAP-F 2분할 — GEMINI_MODAL_BINDINGS + UI_SYSTEM_PANELS_UPDATE. GAP-G 2블록 — SIM_RAF_LOOP_INIT + SIM_DEV_PERF_API 경계 확장.
+- Change: ISS-13 흡수 — AGENT_GRID_CORE_START 상단 경계를 _agentCellId 포함하도록 이동. HS_ 완전 소멸 이후 마지막 잔존 GAP 제거.
+- Why: 27.2x 계열 builder-block 리팩터 GAP 커버리지 완결. 계획서 ISS-09~14 전량 해소.
+- Impact: 코드 동작 변경 없음. 마커 삽입/이동만. START=END=132, mismatch=0.
+- Verify: grep -c "BUILDER_BLOCK:.*_START" index.html → 132
+
 ### 27.10 fix1 — initAgro scope fix (critical)
 - Change: CORE_MATH_ENERGY_UTILS / AGENT_PRESTIGE_SYSTEM / BREATH_SYSTEM 블록이 initAgro() 내부에 갇혀 _clamp01·_tempFromLat가 module scope에서 비가시 상태였던 버그 수정. initAgro() 닫는 `}` 위치를 AGRO_FARM_SUIT_END 직후로 이동, 중복 `}` 제거.
 - Why: `<script type="module">` strict mode에서 함수 선언은 블록 스코프로 제한 — gaiaBuildAltitudeGrid/HumidGrid/TempGrid 호출 시 ReferenceError.
