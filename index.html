@@ -2462,9 +2462,7 @@ BUILDER_BLOCK: CSS_END === */
                      TS_preBarrier의 refreshClanLeadership/refreshAnchors
 
 [FLOATING / UNBLOCKED 행동 함수]
-- TS_evalShoutEveryTick : SOCIAL_CLAMOR_CORE_END 직후 (블록화 미완)
-- refreshClanLeadership : AGENT_GRID_BUILD_END 직후 (블록화 미완)
-- refreshAnchors        : refreshClanLeadership 직후 (블록화 미완)
+- (없음: 27.10 기준 SHOUT_EMIT_CORE / SOL_SKIP_INFRA / LEADER_ANCHOR_CORE 블록화 완료)
 
 [VERSION HISTORY]
 | 버전 | 패치명 | 요약 |
@@ -8208,6 +8206,11 @@ function _fillHearingSensors(agent, sensors) {
 // [TS_PATCH 26.41] _clamorShoutLegacyRemoved removed (was clamor immediate write).
 /* === BUILDER_BLOCK: SOCIAL_CLAMOR_CORE_END === */
 
+/* === BUILDER_BLOCK: SHOUT_EMIT_CORE_START
+   Signal Sweep 샤웃 emit 인프라: voice event 큐 + 에이전트 순회 emit.
+   SIM_LOOP_CORE Signal Sweep에서 TS_evalShoutEveryTick 호출,
+   voice commit 단계에서 TS_CL_VOICE_EVENTS → _clamorAddVoiceXY 적용.
+   === */
 // [TS_PATCH 26.45] Shout enqueue is unified: SWEEP emits events; COMMIT writes clamor.
 const TS_CL_VOICE_EVENTS = []; // {x,y,amp}
 
@@ -8223,8 +8226,14 @@ function TS_evalShoutEveryTick(tick) {
     a._nextShoutTick = tick + 12;
   }
 }
+/* === BUILDER_BLOCK: SHOUT_EMIT_CORE_END === */
 
-
+/* === BUILDER_BLOCK: SOL_SKIP_INFRA_START
+   SolitaryAction 스킵 scratch: 인터랙션 참여 에이전트를 같은 틱 내
+   solitary(농사/휴식)에서 제외하기 위한 typed-array 기반 플래그.
+   SIM_LOOP_CORE 틱 시작 시 TS_solSkipEnsureCap+TS_solSkipReset 호출,
+   SOLITARY_ACTION_HELPERS의 _ss_applySolitaryActions에서 소비.
+   === */
 // [TS_PATCH 26.43] Solitary skip scratch (typed arrays, touched-reset)
 // - Marked in _ss_stamp via E2I idx; cleared each tick via touched list.
 let TS_solitarySkip = new Uint8Array(1024);
@@ -8251,8 +8260,7 @@ function TS_solSkipReset(){
   }
   TS_solitarySkipTouchedN = 0;
 }
-
-
+/* === BUILDER_BLOCK: SOL_SKIP_INFRA_END === */
 
 
 
@@ -8374,6 +8382,12 @@ function TS_solSkipReset(){
             return grid;
         }
         /* === BUILDER_BLOCK: AGENT_GRID_BUILD_END === */
+/* === BUILDER_BLOCK: LEADER_ANCHOR_CORE_START
+   리더십/앵커 갱신 코어: agent grid를 소비해 clan 리더 선출 및
+   팔로워 앵커(extraTurn 조향 기반)를 계산한다.
+   TS_preBarrier에서 매 틱(refreshClanLeadership: LEADER_REFRESH_TICKS 주기,
+   refreshAnchors: ANCHOR_REFRESH_TICKS 주기) 호출.
+   === */
 function _forNeighborAgentCells(ax, ay, fn) {
   _ensureAgentGridDims();
   const cols = AGENT_GRID_COLS, rows = AGENT_GRID_ROWS;
@@ -8790,6 +8804,8 @@ function _forNeighborAgentCells(ax, ay, fn) {
         }
 
 
+
+/* === BUILDER_BLOCK: LEADER_ANCHOR_CORE_END === */
 
         /* === BUILDER_SUBBLOCK: LDR_UX_VIZ_START ===
            Phase1: Leader UX markers (cheap, always-on)
