@@ -14191,7 +14191,11 @@ function _influxPeriodicGroupV2(agentGrid) {
 }
 /* === BUILDER_BLOCK: POP_INFLUX_SYSTEM_END === */
 
-
+/* === BUILDER_BLOCK: FOOD_GRID_CORE_START
+   Food 공간 그리드 인프라: FoodGrid1D 클래스 + 셀 매핑/빌드/조회 유틸.
+   _compactFoodsIfNeeded(음식 TTL 압축)과 _inFront180 공간 헬퍼 포함.
+   COLLISION_SYSTEM의 eat/harvest 경로 및 _ensureFoodGridCurrent가 소비.
+   === */
 const FOOD_CELL = 60; 
         const EAT_RADIUS = 10;
         const EAT_R2 = EAT_RADIUS * EAT_RADIUS;
@@ -14304,6 +14308,8 @@ const FOOD_CELL = 60;
         const dx = tx - ax, dy = ty - ay;
         return (vx*dx + vy*dy) > 0;
         }
+
+/* === BUILDER_BLOCK: FOOD_GRID_CORE_END === */
 
         //#region ========== COLLISION_SYSTEM ==========
         /* === BUILDER_BLOCK: COLLISION_SYSTEM_START === */
@@ -14904,6 +14910,10 @@ if (d2 < COLLIDE_R2) {
         /* === BUILDER_BLOCK: COLLISION_SYSTEM_END === */
 //#endregion
 
+/* === BUILDER_BLOCK: BRAIN_CANVAS_DRAW_START
+   brainCanvas 신경망 시각화 렌더러: GRU 가중치(Wh/Who) + 히든 상태(h) +
+   입출력 노드를 Canvas 2D로 그린다. SIM_BRAIN_THROTTLE에서 throttle 후 호출.
+   === */
         // ... (drawBrain, mouse events, and animate loop remain unchanged) ...
 
 // [최적화] drawBrain 함수 (1D Array 대응)
@@ -15003,7 +15013,8 @@ if (d2 < COLLIDE_R2) {
             }
         }
 
-        
+/* === BUILDER_BLOCK: BRAIN_CANVAS_DRAW_END === */
+
         /* === BUILDER_BLOCK: UI_INPUT_BINDINGS_START
    [PATCH RECORD]
    - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_INPUT_BINDINGS
@@ -18644,6 +18655,11 @@ function saveLegacyApprox(){
 
     /* === BUILDER_BLOCK: UI_DRAWER_TOGGLES_CORE_END === */
 
+/* === BUILDER_BLOCK: UI_CHIP_TABS_PNREV_INIT_START
+   PNREV Rev31 칩 탭 초기화: Dashboard(pnrev-dash-chipbar)와
+   Chronicle(pnrev-chron-chipbar) 칩 탭 바인딩 및 localStorage 상태 복원.
+   UI_DRAWERS_TREND_TAB sub-block을 내부에 포함.
+   === */
 /* === PNREV_P2: chip tabs init (Rev31 only) === */
     try{
       if(parseInt(localStorage.getItem('hs_ui_layoutRev')||'31',10)!==31) { /* noop */ }
@@ -18726,6 +18742,7 @@ function saveLegacyApprox(){
     }catch(e){ console.warn('PNREV_P2 chip init failed', e); }
 
 })();
+/* === BUILDER_BLOCK: UI_CHIP_TABS_PNREV_INIT_END === */
 /* --- PNREV P1a end --- */
 
 
