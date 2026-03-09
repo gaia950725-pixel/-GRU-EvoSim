@@ -147,12 +147,12 @@ Verify: <optional 1 line — how to confirm>
 
 ## 7) Execution report format (4 sections)
 
-`docs/spec/SPEC_OUTPUTS.md`의 실행보고 4섹션을 준수:
+`docs/spec/SPEC_OUTPUTS.md`의 실행보고 고정 규격(적용대상 파일 + 보고 항목)을 준수:
 
 1. **변경내용** (≤10 sentences): What changed
-2. **프롬프트와 다르게 변경한 사항** (≤4 sentences): Deviations from prompt
-3. **주석변경사항** (≤2 sentences): Documentation/comment updates
-4. **권고사항** (≤1 sentence): Recommended next step
+2. **프롬프트와 다르게 변경한 사항** (≤4 sentences): Deviations from prompt (없으면 `없음출력`)
+3. **주석변경사항** (≤2 sentences): Documentation/comment updates (없으면 `없음출력`)
+4. **권고사항** (≤1 sentence): Recommended next step (없으면 `없음출력`)
 
 ---
 
@@ -173,7 +173,7 @@ Verify: <optional 1 line — how to confirm>
 - [ ] 코드 동작 변경이면 `index.html` ↔ `docs/releases/EvoSim_latest.html` 동기화를 완료했는가?
 - [ ] archive 스냅샷을 올바른 명명 규칙으로 생성했는가?
 - [ ] CHANGELOG 형식(단문 템플릿)과 정렬(newest first)을 지켰는가?
-- [ ] 실행보고 4섹션을 작성했는가?
+- [ ] 실행보고에 적용대상 파일을 포함한 고정 규격을 작성했는가?
 - [ ] `target_version`과 타이틀/CHANGELOG/archive 버전이 **3-way 일치**하는가?
 - [ ] NN I/O 계약 변경 시 `ARCHITECTURE_OVERVIEW` 블록을 갱신했는가?
 

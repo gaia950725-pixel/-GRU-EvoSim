@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.38 config standard readonly card normalization fix1</title>
+    <title>EvoSim 27.38 config standard/read-only card normalization</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1274,7 +1274,6 @@ font-size: 12px;
             flex-direction: column;
             gap: 12px;
             height: 100%;
-            min-height: 176px;
             min-width: 0;
         }
         .cfg-card-title{
@@ -1354,8 +1353,7 @@ font-size: 12px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 0;
-    height: 100%;
+    min-height: 150px;
     gap: 10px;
     text-align: center;
 }
@@ -1385,7 +1383,6 @@ font-size: 12px;
   background: transparent;
   border-radius: 0;
   min-width:0;
-  width:100%;
 }
 .cfg-row > *{ min-width:0; }
 
@@ -1403,14 +1400,12 @@ font-size: 12px;
             gap: 6px;
             margin: 0;
             min-width: 0;
-            width: 100%;
         }
         .cfg-card-body{
             display: flex;
             flex-direction: column;
             gap: 10px;
             min-width: 0;
-            width: 100%;
         }
         .cfg-card--toggle .cfg-card-body{
             gap: 12px;
@@ -1457,14 +1452,9 @@ font-size: 12px;
             display: flex;
             gap: 10px;
             align-items: center;
-            width: 100%;
-            min-width: 0;
         }
         .cfg-seed-input{
-            width: auto;
-            flex: 1 1 140px;
-            min-width: 120px;
-            max-width: 180px;
+            width: 160px;
             padding: 6px 10px;
             border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.18);
@@ -1900,7 +1890,6 @@ BUILDER_BLOCK: CSS_END === */
 <div class="cfg-grid">
   <div class="cfg-card">
     <div class="cfg-card-title">01. Map</div>
-    <div class="cfg-card-body">
 
     <div class="cfg-row">
       <div class="cfg-field">
@@ -1924,7 +1913,6 @@ BUILDER_BLOCK: CSS_END === */
       </div>
     </div>
 
-    </div>
   </div>
 
   <div class="cfg-card cfg-card--toggle">
@@ -2121,7 +2109,6 @@ BUILDER_BLOCK: CSS_END === */
   <div class="cfg-grid">
     <div class="cfg-card" id="cfg-card-forage">
   <div class="cfg-card-title">01. Forage</div>
-  <div class="cfg-card-body">
   <div class="cfg-row">
     <div class="cfg-field">
       <label class="cfg-label">초기 식량 수 <span class="val" id="lbl-foodcount">2000</span></label>
@@ -2134,7 +2121,6 @@ BUILDER_BLOCK: CSS_END === */
           <input id="cfg-food" min="100" max="1200" type="range" value="750" />
         </div>
       </div>
-  </div>
 </div>
     <div class="cfg-card" id="cfg-card-predators">
   <div class="cfg-card-title">02. Predators</div>

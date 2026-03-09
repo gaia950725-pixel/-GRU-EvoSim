@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.38 config standard readonly card normalization fix1</title>
+    <title>EvoSim 27.37 config toggle-card contract + patch-v4 absorption</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1274,7 +1274,6 @@ font-size: 12px;
             flex-direction: column;
             gap: 12px;
             height: 100%;
-            min-height: 176px;
             min-width: 0;
         }
         .cfg-card-title{
@@ -1354,8 +1353,7 @@ font-size: 12px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 0;
-    height: 100%;
+    min-height: 150px;
     gap: 10px;
     text-align: center;
 }
@@ -1385,7 +1383,6 @@ font-size: 12px;
   background: transparent;
   border-radius: 0;
   min-width:0;
-  width:100%;
 }
 .cfg-row > *{ min-width:0; }
 
@@ -1403,14 +1400,12 @@ font-size: 12px;
             gap: 6px;
             margin: 0;
             min-width: 0;
-            width: 100%;
         }
         .cfg-card-body{
             display: flex;
             flex-direction: column;
             gap: 10px;
             min-width: 0;
-            width: 100%;
         }
         .cfg-card--toggle .cfg-card-body{
             gap: 12px;
@@ -1436,40 +1431,6 @@ font-size: 12px;
         .val--accent{
             color: var(--accent);
             font-weight: 800;
-        }
-        .cfg-card--readonly{
-            background: rgba(255,255,255,0.035);
-        }
-        .cfg-inline-list{
-            display: grid;
-            gap: 8px;
-            margin-top: 6px;
-        }
-        .cfg-inline-list label{
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .cfg-seed-row{
-            margin-top: 0;
-        }
-        .cfg-seed-inline{
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            width: 100%;
-            min-width: 0;
-        }
-        .cfg-seed-input{
-            width: auto;
-            flex: 1 1 140px;
-            min-width: 120px;
-            max-width: 180px;
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.18);
-            background: rgba(0,0,0,0.25);
-            color: #fff;
         }
         #config-overlay #lbl-pred,
         #config-overlay #lbl-herb-count{
@@ -1900,7 +1861,6 @@ BUILDER_BLOCK: CSS_END === */
 <div class="cfg-grid">
   <div class="cfg-card">
     <div class="cfg-card-title">01. Map</div>
-    <div class="cfg-card-body">
 
     <div class="cfg-row">
       <div class="cfg-field">
@@ -1913,18 +1873,17 @@ BUILDER_BLOCK: CSS_END === */
 </select>
       </div>
     </div>
-<div class="cfg-row cfg-seed-row">
-      <div class="cfg-field">
+<div class="cfg-row" style="margin-top:14px;">
+      <div class="cfg-field" style="width:100%;">
         <label class="cfg-label">고정 토폴로지</label>
-        <div class="cfg-seed-inline">
+        <div style="display:flex; gap:10px; align-items:center;">
           <input id="cfg-seed-lock" type="checkbox" style="accent-color: var(--accent); transform: scale(1.05);" />
-          <input id="cfg-seed" class="cfg-seed-input" type="number" min="0" step="1" value="12345" />
+          <input id="cfg-seed" type="number" min="0" step="1" value="12345" style="width:160px; padding:6px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.25); color:#fff;" />
 
         </div>
       </div>
     </div>
 
-    </div>
   </div>
 
   <div class="cfg-card cfg-card--toggle">
@@ -2015,8 +1974,6 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-card">
       <div class="cfg-card-title">02. Society</div>
 
-      <div class="cfg-card-body">
-
       <div class="cfg-row">
         <div class="cfg-field">
           <label class="cfg-label">소속 산정 방식 (Affiliation)</label>
@@ -2028,7 +1985,7 @@ BUILDER_BLOCK: CSS_END === */
         </div>
       </div>
 
-      <div class="cfg-row">
+      <div class="cfg-row" style="margin-top:10px;">
         <div class="cfg-field">
           <label class="cfg-label">리더 시스템</label>
           <select id="cfg-leader-mode">
@@ -2038,13 +1995,10 @@ BUILDER_BLOCK: CSS_END === */
           </select>
         </div>
       </div>
-      </div>
     </div>
 
     <div class="cfg-card">
       <div class="cfg-card-title">03. Demography</div>
-
-      <div class="cfg-card-body">
 
       <div class="cfg-row">
         <div class="cfg-field">
@@ -2053,7 +2007,7 @@ BUILDER_BLOCK: CSS_END === */
         </div>
       </div>
 
-      <div class="cfg-row">
+      <div class="cfg-row" style="margin-top:10px;">
         <div class="cfg-field">
           <label class="cfg-label">인구위기 복원속도</label>
           <div class="cfg-seg" role="group" aria-label="Crisis Recovery Speed">
@@ -2069,7 +2023,6 @@ BUILDER_BLOCK: CSS_END === */
           </div>
         </div>
       </div>
-      </div>
     </div>
 
     
@@ -2078,38 +2031,34 @@ BUILDER_BLOCK: CSS_END === */
 
     <div class="cfg-card">
       <div class="cfg-card-title">04. Reproduction</div>
-<div class="cfg-card-body">
 <div class="cfg-row">
         <div class="cfg-field">
           <label class="cfg-label">번식 가능 나이(년) <span class="val" id="lbl-repro-age">12</span></label>
           <input id="cfg-repro-age" min="8" max="16" step="1" type="range" value="12" />
 </div>
-</div>
-</div>
+      </div>
 </div>
 
-<div class="cfg-card cfg-card--readonly">
+<div class="cfg-card">
       <div class="cfg-card-title">05. Neural Net</div>
-      <div class="cfg-card-body">
       <div class="cfg-row">
         <div class="cfg-field">
           <label class="cfg-label">아키텍처 선택</label>
-          <div class="cfg-inline-list">
-            <label>
+          <div style="display:grid; gap:8px; margin-top:6px;">
+            <label style="display:flex; align-items:center; gap:8px;">
               <input id="nn-gru" type="checkbox" checked disabled />
               <span>GRU (현재 적용됨)</span>
             </label>
-            <label class="cfg-muted">
+            <label style="display:flex; align-items:center; gap:8px;" class="cfg-muted">
               <input id="nn-moe" type="checkbox" disabled />
               <span>MoE-lite (미구현)</span>
             </label>
-            <label class="cfg-muted">
+            <label style="display:flex; align-items:center; gap:8px;" class="cfg-muted">
               <input id="nn-mlp" type="checkbox" disabled />
               <span>MLP / FFN (미구현)</span>
             </label>
           </div>
         </div>
-      </div>
       </div>
     </div>
 
@@ -2121,7 +2070,6 @@ BUILDER_BLOCK: CSS_END === */
   <div class="cfg-grid">
     <div class="cfg-card" id="cfg-card-forage">
   <div class="cfg-card-title">01. Forage</div>
-  <div class="cfg-card-body">
   <div class="cfg-row">
     <div class="cfg-field">
       <label class="cfg-label">초기 식량 수 <span class="val" id="lbl-foodcount">2000</span></label>
@@ -2134,30 +2082,21 @@ BUILDER_BLOCK: CSS_END === */
           <input id="cfg-food" min="100" max="1200" type="range" value="750" />
         </div>
       </div>
-  </div>
 </div>
     <div class="cfg-card" id="cfg-card-predators">
   <div class="cfg-card-title">02. Predators</div>
 
-  <div class="cfg-card-body">
+  <div class="cfg-field">
+    <label class="cfg-label">맹수 종류 (Predator Type)</label>
+    <select id="cfg-pred-species">
+      <option value="SABERTOOTH">검치호 (단독/영역형)</option>
+      <option value="DIREWOLF">다이어울프 (팩/리더센싱)</option>
+    </select>
+</div>
 
-  <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">맹수 종류 (Predator Type)</label>
-      <select id="cfg-pred-species">
-        <option value="SABERTOOTH">검치호 (단독/영역형)</option>
-        <option value="DIREWOLF">다이어울프 (팩/리더센싱)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label"><span id="lbl-pred-title">맹수 수</span> <span class="val val--accent" id="lbl-pred">7</span></label>
-      <input id="cfg-pred" max="20" min="0" style="accent-color: var(--danger);" type="range" value="7"/>
-    </div>
-  </div>
-
+  <div class="cfg-field">
+    <label class="cfg-label"><span id="lbl-pred-title">맹수 수</span> <span class="val" id="lbl-pred" style="color:var(--danger)">7</span></label>
+    <input id="cfg-pred" max="20" min="0" style="accent-color: var(--danger);" type="range" value="7"/>
   </div>
 
 </div>
@@ -2165,25 +2104,17 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-card" id="cfg-card-herbA">
   <div class="cfg-card-title">03. Herbivores (A)</div>
 
-  <div class="cfg-card-body">
-
-  <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">초식동물 종류 (Herbivore Type)</label>
-      <select id="cfg-herb-species">
-        <option value="MEGATHERIUM">메가테리움 (온난/대형/무리3)</option>
-        <option selected="" value="REINDEER">순록 (한랭/중형/무리7)</option>
-      </select>
-    </div>
+  <div class="cfg-field">
+    <label class="cfg-label">초식동물 종류 (Herbivore Type)</label>
+    <select id="cfg-herb-species">
+      <option value="MEGATHERIUM">메가테리움 (온난/대형/무리3)</option>
+      <option selected="" value="REINDEER">순록 (한랭/중형/무리7)</option>
+    </select>
   </div>
 
-  <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">무리 수 <span class="val val--accent" id="lbl-herb-count">30</span></label>
-      <input id="cfg-herb-count" max="50" min="0" style="accent-color: var(--herb);" type="range" value="30"/>
-    </div>
-  </div>
-
+  <div class="cfg-field">
+    <label class="cfg-label">무리 수 <span class="val" id="lbl-herb-count">30</span></label>
+    <input id="cfg-herb-count" max="50" min="0" style="accent-color: var(--herb);" type="range" value="30"/>
   </div>
 
 </div>
