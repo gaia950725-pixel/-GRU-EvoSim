@@ -87,7 +87,7 @@
 1. latest 동기화 완료(`docs/releases/EvoSim_latest.html`)
 2. archive 스냅샷 생성 완료(버전+패치명 파일명)
 3. changelog 갱신 완료(`docs/releases/EvoSim_CHANGELOG.txt`, 중간/중요 패치인 경우)
-4. 실행보고가 `docs/spec/SPEC_OUTPUTS.md`의 고정 4섹션 규격을 충족함
+4. 실행보고가 `docs/spec/SPEC_OUTPUTS.md`의 고정 규격(적용대상 파일 포함)을 충족함
 5. 버전 증가 작업은 `release/*` 브랜치 규칙을 준수함
 6. `target_version` 기준 3종 교차검증(타이틀/CHANGELOG/archive 파일명) 일치 확인
 
