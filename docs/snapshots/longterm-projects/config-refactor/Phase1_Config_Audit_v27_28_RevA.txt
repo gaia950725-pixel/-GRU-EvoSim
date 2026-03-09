@@ -1,0 +1,212 @@
+# EvoSim v27.28 Phase 1 — Config Screen Code Audit (Revised)
+
+Base file: `EvoSim_27.28_builder-block_GAP-finalize_FINAL.html`
+Audience: planning team + development team
+Status: revised after policy confirmation
+
+---
+
+## 0. Scope of this revision
+
+This revised Phase 1 reflects three fixed policies.
+
+1. **Phase 1 / first implementation keeps current `id/name` based collection.**
+   - No `data-cfg-*` migration in the first patch.
+   - `data-cfg-*` may be introduced only in a later cleanup patch.
+
+2. **Former player-facing controls that were later deprecated must not remain in the config screen after the patch.**
+   - Targets:
+     - `cfg-pred-bonus`
+     - `predThreat`
+     - `cfg-herb-bonus`
+     - `cfg-herb-threat`
+
+3. **Removing those controls does not mean removing the values themselves.**
+   - Their values must survive as engine-owned fixed defaults, like other internal constants.
+   - They are removed from player config DOM and from config collection, but not deleted from engine behavior.
+
+This document therefore distinguishes between:
+- what exists **now** in v27.28,
+- what remains **player-facing** after the patch,
+- what must be re-owned as **engine/internal fixed defaults**.
+
+---
+
+## 1. Executive findings
+
+### 1-1. `guardedStart()` is still the main coupling point
+`guardedStart()` directly reads config DOM, normalizes values, writes some UI back, persists some preferences, and prepares worldgen inputs.
+
+That means config card edits still risk breaking start logic.
+
+### 1-2. Config preview logic is still fragmented
+The preview/UI dependency logic is currently split across:
+- `_syncClimateUI()`
+- `_syncAltUI()`
+- `_syncMarUI()`
+- `_syncMapDependentUI()`
+- `_uiTouchedRiver`
+- `_uiTouchedMtn`
+
+So config UI is not just display; it already contains decision logic.
+
+### 1-3. Some hidden controls are still live configuration inputs
+The following are hidden/disabled for the player but are still read by runtime logic:
+- `cfg-pred-bonus`
+- `predThreat`
+- `cfg-herb-bonus`
+- `cfg-herb-threat`
+
+This is now policy-incompatible. They must stop being config-screen inputs.
+
+### 1-4. First patch should not widen the migration surface
+Because the current start path is still tightly coupled to DOM ids/names, first implementation should keep `id/name` collection and only move collection behind a centralized pipeline.
+
+---
+
+## 2. Ownership model for the revised plan
+
+| Ownership | Meaning | Player-facing after patch? |
+|---|---|---|
+| `SimulationConfig` | Start-time settings chosen by the player and applied to `CFG` | Yes |
+| `DerivedPreviewState` | Preview/UI-only derived state inside the config screen | Yes, as output only |
+| `ConfigUIState` | Config screen interaction state such as active tab and touched flags | Yes, internal to config UI |
+| `EngineInternalFixedDefaults` | Engine/internal fixed values no longer exposed as player controls | No |
+| `NotAppliedYet` | Present in UI or markup but not actually part of the start pipeline | No, cleanup candidate |
+
+Important distinction:
+- `EngineInternalFixedDefaults` are **not** hidden player settings.
+- They remain part of engine behavior.
+- They must not remain under player config DOM after the patch.
+
+---
+
+## 3. Current live config inputs that remain player-facing
+
+> These are current inputs that should remain part of first-patch `id/name` collection.
+
+| DOM id / name | Current label | Runtime target | Type | Current UI default | Patch ownership | Notes |
+|---|---|---|---|---|---|---|
+| `cfg-map` | map type | `CFG.mapType` | enum | `TSL_LARGE` | `SimulationConfig` | also affects preview and worldgen prep |
+| `cfg-seed-lock` | preset topology | `CFG.presetSeedEnabled` | bool | `false` | `SimulationConfig` | start-time worldgen setting |
+| `cfg-seed` | preset seed | `CFG.presetSeed` | int | `12345` | `SimulationConfig` | only meaningful when seed lock is on |
+| `cfg-climate` | climate & farming | `CFG.climateEnabled` | bool | `true` | `SimulationConfig` | preview affects river/farm labels |
+| `cfg-river-count` | river count | `CFG.riverCount` | int | `3` | `SimulationConfig` | clamped by map type |
+| `cfg-altitude` | altitude & mountains | `CFG.altitudeEnabled` | bool | `true` | `SimulationConfig` | forces `mountainCount=0` when off |
+| `cfg-mtn-count` | mountain count | `CFG.mountainCount` | int | `5` | `SimulationConfig` | clamped by map type / altitude |
+| `cfg-maritime` | maritime | `CFG.maritimeEnabled` | bool | `true` | `SimulationConfig` | preview/status only side effects |
+| `cfg-mut` | mutation rate | `CFG.mutationRate` | float | `0.10` | `SimulationConfig` | live label only |
+| `cfg-clan-mode` | clan mode | `CFG.clanMode` | enum | `SURNAME_AUTO` | `SimulationConfig` | select first, radio fallback may still exist |
+| `cfg-leader-mode` / `name="leaderMode"` | leader mode | `CFG.leaderMode` | enum | `FOLLOW_BUFF` | `SimulationConfig` | keep select/radio fallback in first patch |
+| `cfg-pop` | initial population | `CFG.popSize` | int | `500` | `SimulationConfig` | direct start setting |
+| `name="crisisSpeed"` | crisis recovery speed | `CFG.crisisRecoverSpeed` | preset enum/float | `1.0` | `SimulationConfig` | radio group, no DOM id |
+| `cfg-repro-age` | minimum reproduction age | `CFG.reproMinAgeYr`, `CFG.reproMinAgeTicks` | int | `12` | `SimulationConfig` + derived | derived ticks computed in pipeline |
+| `cfg-foodcount` | initial food count | `CFG.foodCount` | int | `2000` | `SimulationConfig` | current UI default differs from CFG default |
+| `cfg-food` | food energy | `CFG.foodEnergy` | int | `750` | `SimulationConfig` | current UI default differs from CFG default |
+| `cfg-pred-species` | predator species | `CFG.predatorSpecies` | enum | `SABERTOOTH` | `SimulationConfig` | label title depends on species |
+| `cfg-pred` | predator count / pack count | `CFG.predatorCount` | int | `7` | `SimulationConfig` | semantic meaning depends on species |
+| `cfg-herb-species` | herbivore species | `CFG.herbivoreSpecies` | enum/string | `REINDEER` | `SimulationConfig` | normalize against `HERB_PROFILE` |
+| `cfg-herb-count` | herd count | `CFG.herbivoreCount` | int | `30` | `SimulationConfig` | direct start setting |
+
+---
+
+## 4. Controls that must be removed from player config UI
+
+> These controls exist now in v27.28, but must not remain in the config screen after the patch.
+
+| Current DOM id / name | Current runtime target | Current status in v27.28 | Required post-patch disposition |
+|---|---|---|---|
+| `cfg-pred-bonus` | `CFG.predatorKillBonus` | hidden/devonly, disabled, still read at start | remove from config DOM; do not collect from UI; source from engine fixed default |
+| `name="predThreat"` | `CFG.pred2_threatLevel` | hidden/devonly radio, disabled, restored from localStorage, still read at start | remove from config DOM; stop player restore/persist; source from engine fixed default |
+| `cfg-herb-bonus` | `CFG.herbivoreBonus` | hidden/devonly, disabled, still read at start | remove from config DOM; do not collect from UI; source from engine fixed default |
+| `cfg-herb-threat` | `CFG.herbivoreThreatLevel` | hidden/devonly, disabled, still read at start | remove from config DOM; do not collect from UI; source from engine fixed default |
+
+### Policy consequence
+These are **not** “temporarily hidden player settings.”
+They are **deprecated player controls** that now belong to engine-owned fixed defaults only.
+
+---
+
+## 5. UI-only and preview-only state that remains relevant
+
+| DOM / state | Current role | Revised ownership | Notes |
+|---|---|---|---|
+| `lbl-climate-status` | climate ON/OFF preview text | `DerivedPreviewState` | display only |
+| `lbl-altitude-status` | altitude ON/OFF preview text | `DerivedPreviewState` | display only |
+| `lbl-maritime-status` | maritime ON/OFF preview text | `DerivedPreviewState` | display only |
+| `lbl-river-count` | river slider label | `DerivedPreviewState` | display only |
+| `lbl-mtn-count` | mountain slider label | `DerivedPreviewState` | display only |
+| `lbl-farm-pct` | derived farming percentage | `DerivedPreviewState` | preview output only |
+| slider value labels | value mirrors | `DerivedPreviewState` | display only |
+| `_uiTouchedRiver` | preserve river edits across map changes | `ConfigUIState` | keep concept, replace global variable in later phases |
+| `_uiTouchedMtn` | preserve mountain edits across map changes | `ConfigUIState` | keep concept, replace global variable in later phases |
+| config tab selection | current active config tab | `ConfigUIState` | can still use localStorage for tab memory |
+| `cfg-side-desc` | per-tab side description | `DerivedPreviewState` | config-screen only |
+
+---
+
+## 6. Current runtime order that matters for refactor planning
+
+### A. Immediate preview path (before start)
+- climate checkbox updates preview state and disables/enables related controls
+- altitude checkbox updates preview state and mountain control state
+- maritime checkbox updates preview state text only
+- map type recomputes river/mountain max/default and farm % preview
+- sliders update labels immediately
+- active tab is remembered in localStorage
+
+### B. Start path (`guardedStart()`)
+Current start path still mixes these steps:
+1. read player config DOM
+2. read hidden deprecated internal controls from DOM
+3. normalize/fallback/clamp
+4. write some normalized values back into DOM
+5. write some preferences to localStorage
+6. compute worldgen inputs from config
+7. continue reset/worldgen/start
+
+This mixed sequence is the exact coupling point the next phases must remove.
+
+---
+
+## 7. First-patch constraints derived from this audit
+
+1. **Keep `id/name` based collection in first implementation.**
+   - centralize DOM reads, but do not migrate markup to `data-cfg-*` yet.
+
+2. **Remove deprecated internal controls from the config screen DOM.**
+   - no hidden placeholders left in player config markup.
+   - no start-time reads from those DOM nodes.
+
+3. **Replace deprecated control values with engine-owned fixed defaults.**
+   - `CFG.predatorKillBonus`
+   - `CFG.pred2_threatLevel`
+   - `CFG.herbivoreBonus`
+   - `CFG.herbivoreThreatLevel`
+   must continue to exist, but not as player-adjustable config.
+
+4. **Stop player-facing restore/persist for deprecated internal controls.**
+   - especially `pred2_threatLevel` localStorage restore/persist.
+
+5. **Keep existing player-visible semantics stable.**
+   - species fallback
+   - mapType-based river/mountain limits/defaults
+   - altitude off forcing mountain count to zero
+   - current leader/clan selection semantics
+
+6. **Do not touch in-game panel layout/state in this refactor.**
+   - `.panel`
+   - `info/history/inspector`
+   - `__HS_UI`
+
+---
+
+## 8. Recommended next step
+
+Use this revised audit as the source document for:
+- Phase 2 blueprint rewrite
+- Phase 3 task specification rewrite
+
+The main planning implication is now explicit:
+- **first patch = replace logic, not redesign UI**
+- **deprecated internal former controls = remove from player config screen, preserve as engine fixed defaults**

@@ -1,0 +1,432 @@
+# EvoSim v27.28 Phase 2 — Config Pipeline Blueprint (Revised)
+
+Base file: `EvoSim_27.28_builder-block_GAP-finalize_FINAL.html`
+Base references:
+- `Phase1_Config_Audit_v27_28_RevA.md`
+- existing v27.28 planning notes
+Audience: planning team + development team
+Status: revised after policy confirmation
+
+---
+
+## 0. Purpose of this revision
+
+This blueprint is rewritten around three fixed constraints.
+
+1. **First implementation keeps current `id/name` collection.**
+   - No `data-cfg-*` migration in the first patch.
+   - The first patch centralizes logic without expanding markup migration scope.
+
+2. **Deprecated internal controls are removed from player config UI.**
+   - `cfg-pred-bonus`
+   - `predThreat`
+   - `cfg-herb-bonus`
+   - `cfg-herb-threat`
+
+3. **Those values remain alive as engine-owned fixed defaults.**
+   - Removing the controls does not delete the runtime values.
+   - The engine continues to use fixed internal values for them.
+   - They simply stop being player-adjustable config.
+
+---
+
+## 1. What this patch is trying to achieve
+
+The goal is not to add another config layer on top of the current one.
+The goal is to **replace the current patchwork config logic with a centralized pipeline** so that config card/layout changes stop directly breaking start logic.
+
+In v27.28, config logic is spread across:
+- direct DOM reads in `guardedStart()`
+- inline normalize/clamp/fallback in `guardedStart()`
+- scattered preview sync functions
+- preference persist/restore that partly belongs to config and partly does not
+- worldgen preparation mixed into start logic
+
+The replacement design must separate those responsibilities.
+
+---
+
+## 2. Design principles
+
+### Principle A. `guardedStart()` becomes an orchestrator only
+After refactor, `guardedStart()` should call pipeline steps in order and stop owning config logic directly.
+
+### Principle B. DOM is an input surface, not the source of truth
+The first patch still reads by `id/name`, but the source of truth becomes normalized config objects, not DOM nodes.
+
+### Principle C. UI preview, CFG apply, preference persist, and worldgen prep are separate stages
+There is no single giant `apply` stage.
+
+### Principle D. Deprecated internal controls are not preserved as hidden placeholders
+They are removed from player config DOM and excluded from config collection.
+Their values come from engine-owned fixed defaults.
+
+### Principle E. In-game panel layout/state remains out of scope
+This refactor must not touch:
+- `.panel`
+- `#info-panel`
+- `#history-panel`
+- `#inspector-panel`
+- `window.__HS_UI`
+- drawer/collapse/drag behavior
+
+---
+
+## 3. Revised ownership model
+
+### 3-1. `SimulationConfig`
+Player-facing start configuration that is applied to `CFG`.
+
+Fields include:
+- `mapType`
+- `presetSeedEnabled`
+- `presetSeed`
+- `climateEnabled`
+- `riverCount`
+- `altitudeEnabled`
+- `mountainCount`
+- `maritimeEnabled`
+- `mutationRate`
+- `clanMode`
+- `leaderMode`
+- `popSize`
+- `crisisRecoverSpeed`
+- `reproMinAgeYr`
+- `foodCount`
+- `foodEnergy`
+- `predatorSpecies`
+- `predatorCount`
+- `herbivoreSpecies`
+- `herbivoreCount`
+
+### 3-2. `DerivedSimulationConfig`
+Derived runtime values that are not edited directly in the UI.
+
+Fields include:
+- `reproMinAgeTicks`
+- `farmLandPct`
+- `resolvedHerbivoreSpecies`
+- `riverMax`
+- `mountainMax`
+- `resolvedWorldWidth`
+- `resolvedWorldHeight`
+- `resolvedSeed`
+- `earthTopoEnabled`
+
+### 3-3. `ConfigUIState`
+Config-screen interaction state.
+
+Fields include:
+- `touchedRiver`
+- `touchedMountain`
+- `activeTab`
+- `lastMapType`
+- `isHydratingDefaults`
+- `isApplyingPreset`
+
+### 3-4. `ConfigPreviewState`
+Display-only preview state.
+
+Fields include:
+- climate/altitude/maritime status text
+- farming percentage label
+- slider value labels
+- predator title label
+- disabled/enabled preview flags
+
+### 3-5. `EngineInternalFixedDefaults`
+Engine-owned fixed values that still affect runtime but are no longer part of player config.
+
+Fields include:
+- `predatorKillBonus`
+- `pred2_threatLevel`
+- `herbivoreBonus`
+- `herbivoreThreatLevel`
+
+Important rule:
+- These values continue to exist.
+- They are not collected from UI.
+- They are not restored from player config UI.
+- They are sourced from `CFG` defaults, an internal defaults table, or an equivalent engine-owned namespace.
+
+### 3-6. `PanelLayoutState`
+In-game panel state owned outside config refactor.
+
+Fields remain under `window.__HS_UI` and related panel systems.
+
+---
+
+## 4. Pipeline structure
+
+Externally, the concept remains:
+- collect
+- normalize
+- validate
+- apply
+
+Internally, the implementation is split into seven concrete stages.
+
+1. `collectRawConfigFromUI()`
+2. `normalizeConfig(raw, defaults)`
+3. `validateNormalizedConfig(normalized)`
+4. `deriveConfigPreviewState(normalized, uiState)`
+5. `reconcileConfigUI(normalized, previewState, uiState)`
+6. `applyNormalizedConfigToCFG(normalized, internalDefaults)`
+7. `prepareWorldgenFromNormalizedConfig(normalized)`
+
+Separate helper:
+- `persistPlayerConfigPreferences(normalized, uiState)`
+
+This split is intentional:
+- UI reconcile is not CFG apply
+- CFG apply is not worldgen prep
+- player preferences are not engine fixed defaults
+
+---
+
+## 5. Detailed stage blueprint
+
+### 5-1. `collectRawConfigFromUI()`
+
+**Input:** current DOM using existing `id/name`
+
+**Output:** raw player config snapshot only
+
+**Rules:**
+- First patch keeps current `id/name` collection.
+- DOM direct reads are allowed only here.
+- Only player-facing inputs are collected.
+- Deprecated internal controls are excluded.
+
+**Collect targets:**
+- `cfg-map`
+- `cfg-seed-lock`
+- `cfg-seed`
+- `cfg-climate`
+- `cfg-river-count`
+- `cfg-altitude`
+- `cfg-mtn-count`
+- `cfg-maritime`
+- `cfg-mut`
+- `cfg-clan-mode` or `name="clanMode"` fallback if needed
+- `cfg-leader-mode` or `name="leaderMode"` fallback
+- `cfg-pop`
+- `name="crisisSpeed"`
+- `cfg-repro-age`
+- `cfg-foodcount`
+- `cfg-food`
+- `cfg-pred-species`
+- `cfg-pred`
+- `cfg-herb-species`
+- `cfg-herb-count`
+
+**Must not collect:**
+- `cfg-pred-bonus`
+- `predThreat`
+- `cfg-herb-bonus`
+- `cfg-herb-threat`
+
+---
+
+### 5-2. `normalizeConfig(raw, defaults)`
+
+**Role:**
+- convert string/bool/radio values into normalized player config
+- apply enum cleanup and fallback
+- clamp values based on map constraints
+- compute derived runtime values
+
+**Must preserve existing semantics:**
+- mapType-based river/mountain max/default logic
+- altitude off forcing `mountainCount = 0`
+- herbivore species fallback against `HERB_PROFILE`
+- reproduction age tick derivation
+- current leader/clan selection semantics
+
+**Must not do:**
+- DOM writes
+- localStorage writes
+- GAIA/worldgen mutations
+
+---
+
+### 5-3. `validateNormalizedConfig(normalized)`
+
+**Role:**
+- fail-fast on structurally invalid state that normalize could not resolve
+- keep clamp/fallback issues in normalize, not validate
+
+**Fatal examples:**
+- impossible mapType after normalization
+- missing required player-facing input after collection
+- unresolved herbivore species after fallback
+
+**Non-fatal examples:**
+- slider out-of-range values already clamped in normalize
+
+---
+
+### 5-4. `deriveConfigPreviewState(normalized, uiState)`
+
+**Role:**
+- compute preview-only display state from normalized player config and UI interaction state
+
+**Outputs may include:**
+- climate/altitude/maritime ON-OFF preview text
+- disabled flags for dependent controls
+- river/mountain label text
+- farming percentage label
+- predator title text
+
+This stage replaces the conceptual role currently scattered across `_syncClimateUI`, `_syncAltUI`, `_syncMarUI`, and `_syncMapDependentUI`.
+
+---
+
+### 5-5. `reconcileConfigUI(normalized, previewState, uiState)`
+
+**Role:**
+- reflect normalized/derived state back into config DOM where necessary
+- keep preview and controls consistent
+
+**Allowed actions:**
+- update status text
+- update disabled state of dependent controls
+- update label text
+- write back normalized select/slider values when needed
+
+**Must not do:**
+- mutate `CFG`
+- persist player preferences
+- prepare worldgen
+
+---
+
+### 5-6. `applyNormalizedConfigToCFG(normalized, internalDefaults)`
+
+**Role:**
+- write final runtime config into `CFG`
+
+**Input split:**
+- player-facing config comes from `normalized`
+- engine-internal fixed values come from `internalDefaults`
+
+**Important rule:**
+The following are applied to `CFG`, but not from UI collection:
+- `CFG.predatorKillBonus`
+- `CFG.pred2_threatLevel`
+- `CFG.herbivoreBonus`
+- `CFG.herbivoreThreatLevel`
+
+They come from fixed internal defaults.
+
+---
+
+### 5-7. `persistPlayerConfigPreferences(normalized, uiState)`
+
+**Role:**
+- persist player-owned UI/config preferences only
+
+**Allowed examples:**
+- active config tab
+- player-owned leader mode preference if current UX still uses restore
+
+**Must not persist anymore:**
+- `pred2_threatLevel`
+
+Reason:
+- it is no longer player-owned config.
+
+---
+
+### 5-8. `prepareWorldgenFromNormalizedConfig(normalized)`
+
+**Role:**
+- derive world size / seed / topo conditions from normalized player config
+- perform the runtime prep that used to be mixed into `guardedStart()`
+
+**Must preserve existing semantics:**
+- preset seed handling
+- earthTopo special-case conditions
+- world size resolution from mapType
+- existing seed bridge logic
+
+**Must not re-read DOM.**
+
+---
+
+## 6. Revised boot/hydration flow
+
+### Boot phase
+1. ensure config namespace exists
+2. build engine/player defaults
+3. hydrate config UI from defaults and stored player prefs
+4. initialize preview once
+
+### Start phase
+1. collect raw player config from UI
+2. normalize against defaults
+3. validate normalized config
+4. derive preview state
+5. reconcile config UI
+6. apply normalized config + internal fixed defaults to `CFG`
+7. persist player-owned preferences
+8. prepare worldgen from normalized config
+9. continue reset/worldgen/start
+
+---
+
+## 7. Explicit replacement targets
+
+### Replace and remove as player-config logic
+- direct config DOM reads inside `guardedStart()`
+- inline normalize/clamp/fallback inside `guardedStart()`
+- UI write-back inside `guardedStart()`
+- player restore/persist for `pred2_threatLevel`
+- hidden player-config DOM for the four deprecated internal controls
+
+### Replace conceptually with centralized stages
+- `_syncClimateUI`
+- `_syncAltUI`
+- `_syncMarUI`
+- `_syncMapDependentUI`
+- `_uiTouchedRiver`
+- `_uiTouchedMtn`
+
+Important nuance:
+- the *behavior* those helpers implement is not deleted,
+- but the scattered ownership model is replaced.
+
+---
+
+## 8. What is intentionally not touched in this phase
+
+- visual redesign of config cards
+- tab redesign
+- in-game panels and their layout/state
+- `.panel` CSS system
+- deeper worldgen algorithm changes
+- `data-cfg-*` migration
+
+This is a logic replacement patch, not a UI redesign patch.
+
+---
+
+## 9. Expected maintenance benefit
+
+After this phase:
+- config card layout changes stop directly rewriting start logic
+- preview logic becomes traceable through one pipeline
+- deprecated internal settings stop lingering as hidden pseudo-config
+- later `data-cfg-*` migration becomes a smaller second-step cleanup instead of a mixed structural rewrite
+
+---
+
+## 10. Recommended next step
+
+Use this revised blueprint as the direct basis for the rewritten Phase 3 task specification.
+
+The implementation headline should now be:
+- **keep `id/name` in patch 1**
+- **remove deprecated controls from player config DOM**
+- **preserve their values as engine-owned fixed defaults**
+- **split `guardedStart()` into centralized pipeline stages**

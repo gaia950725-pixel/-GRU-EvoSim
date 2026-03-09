@@ -1,0 +1,338 @@
+# EvoSim v27.28 Phase 3 — Config Pipeline Task Specification (Revised)
+
+Base file: `EvoSim_27.28_builder-block_GAP-finalize_FINAL.html`
+Base references:
+- `Phase1_Config_Audit_v27_28_RevA.md`
+- `Phase2_Config_Pipeline_Blueprint_v27_28_RevA.md`
+Importance: **중요**
+Audience: development team
+
+---
+
+## 0. Objective
+
+This patch replaces the current patchwork config-screen/start coupling with a centralized config pipeline.
+
+It is **not** a config UI redesign patch.
+It is a logic replacement patch with three fixed policies:
+
+1. first implementation keeps current `id/name` collection
+2. deprecated internal controls are removed from the player config screen DOM
+3. their runtime values survive as engine-owned fixed defaults
+
+---
+
+## 1. Non-goals
+
+Do not do the following in this patch:
+- redesign config card visuals
+- redesign config tabs
+- modify in-game panel layout/state
+- modify `.panel` system
+- change worldgen algorithms
+- rebalance gameplay numbers
+- migrate to `data-cfg-*`
+
+This patch is about ownership separation and start-path simplification.
+
+---
+
+## 2. Target file
+
+- `EvoSim_27.28_builder-block_GAP-finalize_FINAL.html`
+
+---
+
+## 3. Mandatory policy constraints
+
+### 3-1. Keep current `id/name` collection in patch 1
+All DOM collection in this patch must still use the existing ids/names.
+Do not introduce `data-cfg-*` in this patch.
+
+### 3-2. Remove deprecated internal controls from the config screen DOM
+The following must not remain in the player config markup after the patch:
+- `cfg-pred-bonus`
+- radio group `predThreat`
+- `cfg-herb-bonus`
+- `cfg-herb-threat`
+
+This means:
+- remove the visible/hidden config DOM for those controls
+- remove associated labels/value mirrors in the player config screen if they exist only for those controls
+- remove them from config collection
+- remove player-facing restore/persist tied to them
+
+### 3-3. Preserve those values as engine-owned fixed defaults
+Removing those controls must **not** erase the runtime values.
+
+The engine must still have fixed values for:
+- `CFG.predatorKillBonus`
+- `CFG.pred2_threatLevel`
+- `CFG.herbivoreBonus`
+- `CFG.herbivoreThreatLevel`
+
+Source them from:
+- existing `CFG` defaults, or
+- an internal defaults table under the config namespace, or
+- an equivalent engine-owned fixed-default source
+
+They are no longer player-adjustable.
+
+---
+
+## 4. Required structural outcome
+
+After the patch, `guardedStart()` must stop directly owning these responsibilities:
+- config DOM collection
+- inline normalize/clamp/fallback
+- UI write-back for normalized config
+- player-facing persist for deprecated internal controls
+- mixed config/worldgen preparation
+
+Instead, `guardedStart()` must become an orchestrator that calls dedicated functions.
+
+---
+
+## 5. Required new function set
+
+Implement equivalent functions with these responsibilities. Exact names may vary, but separation must remain.
+
+1. `ensureConfigNamespace()`
+2. `buildConfigDefaults()`
+3. `buildInternalFixedDefaults()`
+4. `hydrateConfigUIFromDefaultsAndPrefs()`
+5. `collectRawConfigFromUI()`
+6. `normalizeConfig(raw, defaults)`
+7. `validateNormalizedConfig(normalized)`
+8. `deriveConfigPreviewState(normalized, uiState)`
+9. `reconcileConfigUI(normalized, previewState, uiState)`
+10. `applyNormalizedConfigToCFG(normalized, internalDefaults)`
+11. `persistPlayerConfigPreferences(normalized, uiState)`
+12. `prepareWorldgenFromNormalizedConfig(normalized)`
+
+Minimum hard rule:
+- DOM direct reads only in `collectRawConfigFromUI()`
+- `CFG` writes only in `applyNormalizedConfigToCFG()`
+- worldgen seed/topology prep only in `prepareWorldgenFromNormalizedConfig()`
+- config DOM write-back only in `reconcileConfigUI()`
+
+---
+
+## 6. Required config ownership split
+
+### 6-1. Player-facing config that must still be collected from UI
+Collect by current `id/name` only:
+- `cfg-map`
+- `cfg-seed-lock`
+- `cfg-seed`
+- `cfg-climate`
+- `cfg-river-count`
+- `cfg-altitude`
+- `cfg-mtn-count`
+- `cfg-maritime`
+- `cfg-mut`
+- `cfg-clan-mode` or equivalent current fallback path
+- `cfg-leader-mode` or `name="leaderMode"` fallback
+- `cfg-pop`
+- `name="crisisSpeed"`
+- `cfg-repro-age`
+- `cfg-foodcount`
+- `cfg-food`
+- `cfg-pred-species`
+- `cfg-pred`
+- `cfg-herb-species`
+- `cfg-herb-count`
+
+### 6-2. Internal fixed defaults that must not be collected from UI
+- `predatorKillBonus`
+- `pred2_threatLevel`
+- `herbivoreBonus`
+- `herbivoreThreatLevel`
+
+These must still be applied to `CFG`, but from internal fixed defaults rather than player DOM.
+
+---
+
+## 7. Concrete edit requirements
+
+### 7-1. Remove deprecated internal controls from config markup
+Delete or fully remove from player config DOM:
+- `cfg-pred-bonus`
+- `predThreat` radios
+- `cfg-herb-bonus`
+- `cfg-herb-threat`
+- associated `.cfg-devonly` wrappers if now empty
+- associated labels/value mirrors that only existed for these controls
+
+No hidden placeholders should remain for them in the player config screen.
+
+### 7-2. Remove deprecated internal control restore/persist from player config flow
+Remove player-facing restore/persist for:
+- `pred2_threatLevel`
+
+Specifically:
+- remove localStorage restore path that hydrates `predThreat` radios
+- remove localStorage persist path that writes `pred2_threatLevel` from config start logic
+
+Do **not** remove leader mode persistence if it remains a player-facing config choice.
+
+### 7-3. Preserve fixed values internally
+Provide a stable internal source for:
+- `predatorKillBonus`
+- `pred2_threatLevel`
+- `herbivoreBonus`
+- `herbivoreThreatLevel`
+
+Recommended source order:
+1. explicit internal defaults table built from existing intended values
+2. fallback to existing `CFG` defaults if needed
+
+Use the current effective values unless a separate policy later changes them.
+
+### 7-4. Centralize config collection
+Move all player-facing config DOM reads out of `guardedStart()` and into `collectRawConfigFromUI()`.
+
+Preserve current fallback semantics where applicable, especially:
+- leader mode select first, radio fallback if current markup path still exists
+- herbivore species normalization against `HERB_PROFILE`
+
+### 7-5. Centralize normalize logic
+Move these responsibilities into `normalizeConfig()`:
+- type conversion
+- enum cleanup
+- map-based river/mountain limit resolution
+- `mountainCount = 0` when altitude is off
+- herbivore species fallback
+- reproduction ticks derivation
+- farming percentage derivation
+
+### 7-6. Centralize preview logic
+Replace scattered ownership of:
+- `_syncClimateUI()`
+- `_syncAltUI()`
+- `_syncMarUI()`
+- `_syncMapDependentUI()`
+
+with a pipeline where preview state is derived centrally and applied centrally.
+
+Behavior may be internally re-used during transition, but final ownership must be centralized.
+
+### 7-7. Preserve touched semantics but move ownership out of ad-hoc globals
+The concept behind `_uiTouchedRiver` and `_uiTouchedMtn` must survive, but ownership should move toward config UI state.
+
+If full removal of those globals is risky in this patch, a transitional wrapper is acceptable, but the new pipeline must become the owning path.
+
+### 7-8. Split CFG apply from worldgen prep
+`applyNormalizedConfigToCFG()` must only apply runtime config.
+`prepareWorldgenFromNormalizedConfig()` must handle:
+- map-size resolution
+- preset seed bridge
+- `GAIA.rand`
+- `GAIA.earthTopo`
+- related seed/topology prep
+
+Do not mix DOM reads into worldgen prep.
+
+---
+
+## 8. Expected `guardedStart()` sequence after patch
+
+`guardedStart()` should be reduced to a sequence equivalent to:
+
+1. collect raw player config from UI
+2. normalize against defaults
+3. validate normalized config
+4. derive preview state
+5. reconcile config UI
+6. apply normalized player config + internal fixed defaults to `CFG`
+7. persist player-facing preferences only
+8. prepare worldgen from normalized config
+9. continue existing reset/worldgen/start flow
+
+No direct config DOM reads should remain there.
+
+---
+
+## 9. BUILDER_BLOCK guidance
+
+Prefer adding dedicated config-pipeline blocks near current config/start infrastructure.
+Suggested new blocks:
+- `CONFIG_PIPELINE_CORE`
+- `CONFIG_PIPELINE_COLLECT`
+- `CONFIG_PIPELINE_NORMALIZE`
+- `CONFIG_PIPELINE_VALIDATE`
+- `CONFIG_PIPELINE_PREVIEW`
+- `CONFIG_PIPELINE_RECONCILE`
+- `CONFIG_PIPELINE_APPLY`
+- `CONFIG_PIPELINE_WORLDGEN`
+
+If exact names differ, maintain the separation.
+
+Do not widen edits into unrelated panel blocks.
+
+---
+
+## 10. Do-not-break list
+
+The patch must preserve these runtime semantics:
+- current player-facing config options remain functional
+- herbivore species fallback still works
+- map type still controls river/mountain range/default behavior
+- altitude off still forces mountain count to zero
+- leader/clan behavior semantics remain unchanged
+- worldgen preset seed behavior remains unchanged
+- in-game panel layout/behavior remains unchanged
+
+Additionally:
+- the four deprecated internal values must still exist at runtime as fixed engine values
+- they just stop being player-config inputs
+
+---
+
+## 11. Verification checklist
+
+### Config screen
+- config screen loads without the four deprecated internal controls
+- no empty/ghost `.cfg-devonly` sections remain for removed controls
+- active tabs still work
+- preview labels still update
+- climate/altitude/maritime/map interactions still preview correctly
+
+### Start path
+- new game starts successfully
+- no direct read of removed controls remains in `guardedStart()`
+- no `predThreat` restore/persist remains in player config flow
+- internal fixed defaults are still applied to runtime `CFG`
+
+### Runtime semantics
+- herbivore species invalid input still resolves safely
+- altitude off yields mountain count zero at runtime
+- map type still resolves world size and river/mountain constraints correctly
+- preset seed path still works
+
+### Non-regression
+- `info/history/inspector` panels unchanged
+- `.panel` behavior unchanged
+- no new console errors
+
+---
+
+## 12. Execution report requirements
+
+The development report must explicitly state:
+1. which DOM controls were removed from player config markup
+2. where the four fixed internal values are now sourced from
+3. which direct reads were removed from `guardedStart()`
+4. whether any legacy preview helper was temporarily retained internally
+5. whether any config-related localStorage key was removed or retained
+
+---
+
+## 13. Summary implementation headline
+
+Implement this as:
+- **keep `id/name` in patch 1**
+- **remove deprecated hidden controls from player config DOM**
+- **preserve their runtime values as engine-owned fixed defaults**
+- **centralize collection/normalize/preview/apply/worldgen responsibilities**
+- **leave in-game panel systems untouched**
