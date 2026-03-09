@@ -11,6 +11,14 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.32 fix1 — config UI cleanup follow-up (minor)
+- Change: `reconcileConfigUI()`의 farm label dead reference(`lbl-farmland`)와 중복 farm pct write를 제거.
+- Change: farm pct 렌더 경로를 `derivePreviewState(...) -> renderConfigPreview(...)` 단일 진입점으로 고정.
+- Change: release 산출물 동기화 — `index.html`, `docs/releases/EvoSim_latest.html`를 `docs/releases/archive/EvoSim_27.32_config-ui-cleanup-regression-audit_fix1.html` 기준으로 갱신.
+- Why: 프롬프트3 후속 청소로 id mismatch/중복 write를 제거하고 latest/archive 정합성을 맞추기 위함.
+- Impact: 설정 preview 유지보수성 향상, sim/worldgen 의미 변경 없음.
+- Verify: `sha256sum index.html docs/releases/EvoSim_latest.html docs/releases/archive/EvoSim_27.32_config-ui-cleanup-regression-audit_fix1.html` 3자 해시 일치.
+
 ### 27.29 — herbivore pack-to-herd rename (mid)
 - Change: 초식동물 시스템의 "pack" 용어를 "herd"로 전면 치환. 전역 상수(HERB_HERDS/HERB_HERD_SEQ/HERB_HERD_UPDATE_PERIOD_TICKS), 함수명(updateHerbivoreHerds), 클래스 필드(herdId), 프로필 필드(herdSize), 지역변수(herdData/dtHerd), 주석/로그 문구 포함. 포식자(Direwolf) pack 시스템은 전체 보존.
 - Why: 초식동물 무리 개념은 생태학적으로 "herd"가 정확하며, 포식자 "pack"과의 의미 구분을 위해 용어 분리.
