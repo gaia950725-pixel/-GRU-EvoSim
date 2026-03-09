@@ -11,6 +11,13 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.36 — config tab legacy alias purge (minor)
+- Change: `CONFIG_TABS.normalizeKey()`에서 legacy alias(`cfg-sec-meta`, `cfg-sec-eco`) 분기를 제거해 3탭 정본 키만 허용.
+- Change: saved-tab restore의 legacy threat migration 코드(`LEGACY_THREAT_TAB_KEY`)를 삭제하고 restore를 정본 키 가정으로 단순화.
+- Change: `cfg-main` 상단의 구 section 주석(legacy 4-section 흔적) 제거.
+- Why: 설정 탭 구조를 현재 3섹션 정본 모델로 완전 고정해 유지보수 복잡도를 줄이기 위함.
+- Impact: legacy 키 복원 경로는 제거되며, 탭 전환/카드 구조 동작은 기존과 동일.
+
 ### 27.35 — config tab compat retirement (minor)
 - Change: `CONFIG_TABS.normalizeKey()`에서 legacy `cfg-sec-threat` alias 분기를 제거하고 `cfg-sec-eco`만 ecosystem으로 매핑.
 - Change: `EVOSIM_CFG_TAB` restore 직후 1회 마이그레이션 추가 — legacy threat key 감지 시 `cfg-sec-ecosystem`으로 치환 후 즉시 재저장.
