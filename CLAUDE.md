@@ -150,9 +150,9 @@ Verify: <optional 1 line — how to confirm>
 `docs/spec/SPEC_OUTPUTS.md`의 실행보고 고정 규격(적용대상 파일 + 보고 항목)을 준수:
 
 1. **변경내용** (≤10 sentences): What changed
-2. **프롬프트와 다르게 변경한 사항** (≤4 sentences): Deviations from prompt
-3. **주석변경사항** (≤2 sentences): Documentation/comment updates
-4. **권고사항** (≤1 sentence): Recommended next step
+2. **프롬프트와 다르게 변경한 사항** (≤4 sentences): Deviations from prompt (없으면 `없음출력`)
+3. **주석변경사항** (≤2 sentences): Documentation/comment updates (없으면 `없음출력`)
+4. **권고사항** (≤1 sentence): Recommended next step (없으면 `없음출력`)
 
 ---
 
