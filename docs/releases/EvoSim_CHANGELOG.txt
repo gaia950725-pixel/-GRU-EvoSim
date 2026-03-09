@@ -11,13 +11,26 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
-### 27.32 fix1 — config UI cleanup follow-up (minor)
-- Change: `reconcileConfigUI()`의 farm label dead reference(`lbl-farmland`)와 중복 farm pct write를 제거.
-- Change: farm pct 렌더 경로를 `derivePreviewState(...) -> renderConfigPreview(...)` 단일 진입점으로 고정.
-- Change: release 산출물 동기화 — `index.html`, `docs/releases/EvoSim_latest.html`를 `docs/releases/archive/EvoSim_27.32_config-ui-cleanup-regression-audit_fix1.html` 기준으로 갱신.
-- Why: 프롬프트3 후속 청소로 id mismatch/중복 write를 제거하고 latest/archive 정합성을 맞추기 위함.
-- Impact: 설정 preview 유지보수성 향상, sim/worldgen 의미 변경 없음.
-- Verify: `sha256sum index.html docs/releases/EvoSim_latest.html docs/releases/archive/EvoSim_27.32_config-ui-cleanup-regression-audit_fix1.html` 3자 해시 일치.
+### 27.32 — config UI cleanup and regression audit (mid)
+- Change: config preview 경로에서 `_syncClimateUI/_syncAltUI/_syncMarUI/_syncMapDependentUI` 및 `_uiTouchedRiver/_uiTouchedMtn` 전역 의존을 제거.
+- Change: preview 단일 진입점을 `derivePreviewState(...) -> renderConfigPreview(...)`로 정리하고, touched 상태를 `EvoSim.config.uiState`로 이관.
+- Why: 프롬프트3 목표대로 preview/reconcile 소유권을 중앙화해 잔여 누더기 접근을 제거하기 위함.
+- Impact: 설정 UI 유지보수성 향상, 인게임 패널/월드젠 의미 변경 없음.
+- Verify: 설정 진입 시 `_sync*`/`_uiTouched*` 검색 0건, pipeline 진입점(collect/normalize/validate/reconcile/apply/prepareWorldgen) 유지 확인.
+
+### 27.31 — config pipeline replacement (mid)
+- Change: `guardedStart()` 직독 구조를 config pipeline으로 치환 (`ensureConfigNamespace`, `collectRawConfigFromUI`, `normalizeConfigSnapshot`, `validateNormalizedConfig`, `reconcileConfigUI`, `applyNormalizedConfigToCFG`, `persistConfigPreferences`, `prepareWorldgenFromNormalizedConfig`).
+- Change: internal fixed defaults 4개(`predatorKillBonus`, `pred2_threatLevel`, `herbivoreBonus`, `herbivoreThreatLevel`)는 `EvoSim.config.defaults.internal`에서만 CFG에 주입하도록 고정.
+- Why: 프롬프트2 목표대로 설정 수집/정규화/검증/UI동기화/CFG적용/worldgen 준비 책임을 분리하기 위함.
+- Impact: 시작 경로 추적성 향상, fatal 검증 시 fail-fast 중단 가능.
+- Verify: `guardedStart()`에서 player config DOM 직독/seed prep/persist 분리 여부 및 invalid herb species fallback 유지 확인.
+
+### 27.30 — config internal controls removal (mid)
+- Change: 설정 화면의 dev-only internal controls(`cfg-pred-bonus`, `predThreat`, `cfg-herb-bonus`, `cfg-herb-threat`)를 플레이어 DOM 경로에서 제거.
+- Change: `LOCALSTORAGE_RESTORE_START`에서 `pred2_threatLevel` restore 제거, `leaderMode` player preference restore는 유지.
+- Why: 프롬프트1 목표대로 플레이어 조작 경로를 제거하고 internal fixed defaults 정본화를 적용하기 위함.
+- Impact: UI 노출 경로 제거, 시뮬레이션 의미/밸런스는 내부 고정값 유지로 보존.
+- Verify: 제거 대상 4개 DOM/레거시 참조 0건 및 시작 가능/콘솔 에러 없음 확인.
 
 ### 27.29 — herbivore pack-to-herd rename (mid)
 - Change: 초식동물 시스템의 "pack" 용어를 "herd"로 전면 치환. 전역 상수(HERB_HERDS/HERB_HERD_SEQ/HERB_HERD_UPDATE_PERIOD_TICKS), 함수명(updateHerbivoreHerds), 클래스 필드(herdId), 프로필 필드(herdSize), 지역변수(herdData/dtHerd), 주석/로그 문구 포함. 포식자(Direwolf) pack 시스템은 전체 보존.
