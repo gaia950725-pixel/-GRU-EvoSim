@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.36 config tab legacy alias purge</title>
+    <title>EvoSim 27.36 config tab legacy alias purge fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3530,7 +3530,6 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             function normalizeKey(key){
                 if (!key) return 'cfg-sec-world';
                 if (groups[key]) return key;
-                // backward-compat: old 4-tab ids
                 return 'cfg-sec-world';
             }
             function triggerReveal(el){
