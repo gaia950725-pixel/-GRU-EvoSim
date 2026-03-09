@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.32 config ui cleanup and regression audit</title>
+    <title>EvoSim 27.34 config ecosystem predator-card identity cleanup</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -2087,7 +2087,7 @@ BUILDER_BLOCK: CSS_END === */
         </div>
       </div>
 </div>
-    <div class="cfg-card" id="cfg-sec-threat">
+    <div class="cfg-card" id="cfg-card-predators">
   <div class="cfg-card-title">02. Predators</div>
 
   <div class="cfg-field">
@@ -3493,8 +3493,7 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             const groups = {
     'cfg-sec-world': ['cfg-sec-world'],
     'cfg-sec-humanity': ['cfg-sec-humanity'],
-    // Ecosystem is split into wrapper + threats section in DOM, so show/hide both together.
-    'cfg-sec-ecosystem': ['cfg-sec-ecosystem', 'cfg-sec-threat'],
+    'cfg-sec-ecosystem': ['cfg-sec-ecosystem'],
   };
 
             // All section ids to hide/show
@@ -3526,8 +3525,7 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
                         <li><b>Forage</b> : 자연/드롭 식량의 초기량과 1회 섭취 에너지를 설정합니다.</li>
                         <li><b>Predators</b> : 맹수 종류와 수(또는 팩 수)를 설정합니다.<br><span class="hint">다이어울프 선택 시 ‘맹수 수’는 ‘팩 수’로 적용(최대 25팩)</span></li>
                         <li><b>Herbivores (A)</b> : 초식동물 종류와 무리 수를 설정합니다.</li>
-                        <li><b>Threat / Hunt Bonus</b> : 위협도·사냥 보너스는 사용자 UI에서 직접 조작하지 않습니다.<br><span class="hint">개발 값/산식으로 관리(필요 시 Dev 패널에서 확인)</span></li>
-                        <li><b>Add Herbivores</b> : 추가 슬롯 UI는 준비중(미구현).</li>
+                                                <li><b>Add Herbivores</b> : 추가 슬롯 UI는 준비중(미구현).</li>
                     </ul>
                 `
             };
@@ -4014,20 +4012,6 @@ document.querySelectorAll('.panel-toggle').forEach(toggle => {
             _ldr_subUid.fill(-1);
             _ldr_clanAlive.fill(0);
         }
-
-/* === BUILDER_BLOCK: CONFIG_INTERNAL_DEFAULTS_START === */
-EvoSim.config = EvoSim.config || {};
-EvoSim.config.defaults = EvoSim.config.defaults || {};
-EvoSim.config.defaults.internal = {
-  predatorKillBonus: 816,
-  pred2_threatLevel: 2,
-  herbivoreBonus: 500,
-  herbivoreThreatLevel: 1.0
-};
-/* === BUILDER_BLOCK: CONFIG_INTERNAL_DEFAULTS_END === */
-
-// Apply engine-owned internal fixed defaults from single canonical source.
-Object.assign(CFG, EvoSim.config.defaults.internal);
 
 // --- SoftMod: register CFG (no freezing; CFG is mutated by UI/settings)
 EvoSim.modules.CFG = CFG;
@@ -10470,13 +10454,6 @@ const card = modal.querySelector('.exit-card');
 /* === BUILDER_BLOCK: CONFIG_PIPELINE_CORE_START === */
 function ensureConfigNamespace(){
   EvoSim.config = EvoSim.config || {};
-  EvoSim.config.defaults = EvoSim.config.defaults || {};
-  EvoSim.config.defaults.internal = EvoSim.config.defaults.internal || {
-    predatorKillBonus: CFG.predatorKillBonus|0,
-    pred2_threatLevel: CFG.pred2_threatLevel|0,
-    herbivoreBonus: CFG.herbivoreBonus|0,
-    herbivoreThreatLevel: +CFG.herbivoreThreatLevel || 1.0
-  };
   EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver:false, touchedMountain:false };
   return EvoSim.config;
 }
@@ -10586,12 +10563,6 @@ function reconcileConfigUI(norm){
 }
 
 function applyNormalizedConfigToCFG(norm){
-  const internal = (((EvoSim||{}).config||{}).defaults||{}).internal || {};
-  CFG.predatorKillBonus = Number.isFinite(+internal.predatorKillBonus) ? (+internal.predatorKillBonus|0) : (CFG.predatorKillBonus|0);
-  CFG.pred2_threatLevel = Number.isFinite(+internal.pred2_threatLevel) ? (+internal.pred2_threatLevel|0) : (CFG.pred2_threatLevel|0);
-  CFG.herbivoreBonus = Number.isFinite(+internal.herbivoreBonus) ? (+internal.herbivoreBonus|0) : (CFG.herbivoreBonus|0);
-  CFG.herbivoreThreatLevel = Number.isFinite(+internal.herbivoreThreatLevel) ? (+internal.herbivoreThreatLevel) : (+CFG.herbivoreThreatLevel||1.0);
-
   CFG.popSize = norm.popSize;
   CFG.foodCount = norm.foodCount;
   CFG.foodEnergy = norm.foodEnergy;
