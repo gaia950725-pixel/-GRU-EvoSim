@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.32 config ui cleanup and regression audit</title>
+    <title>EvoSim 27.36 config tab legacy alias purge</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1863,9 +1863,6 @@ BUILDER_BLOCK: CSS_END === */
 </div>
 <div class="cfg-main">
 <!-- SECTION 1: World -->
-<!-- SECTION 2: Ecosystem (Herbivores) -->
-<!-- SECTION 3: Metabolism -->
-<!-- SECTION 4: Threats -->
 <div class="config-section" id="cfg-sec-world"><div class="section-title">🌍 World</div>
 
 <div class="cfg-grid">
@@ -3534,8 +3531,6 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
                 if (!key) return 'cfg-sec-world';
                 if (groups[key]) return key;
                 // backward-compat: old 4-tab ids
-                if (key === 'cfg-sec-meta') return 'cfg-sec-humanity';
-                if (key === 'cfg-sec-eco' || key === 'cfg-sec-threat') return 'cfg-sec-ecosystem';
                 return 'cfg-sec-world';
             }
             function triggerReveal(el){

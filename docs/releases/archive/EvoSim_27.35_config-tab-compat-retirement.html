@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.32 config ui cleanup and regression audit</title>
+    <title>EvoSim 27.35 config tab compat retirement</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3535,7 +3535,7 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
                 if (groups[key]) return key;
                 // backward-compat: old 4-tab ids
                 if (key === 'cfg-sec-meta') return 'cfg-sec-humanity';
-                if (key === 'cfg-sec-eco' || key === 'cfg-sec-threat') return 'cfg-sec-ecosystem';
+                if (key === 'cfg-sec-eco') return 'cfg-sec-ecosystem';
                 return 'cfg-sec-world';
             }
             function triggerReveal(el){
@@ -3589,6 +3589,11 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             // restore last
             let saved = null;
             try { saved = localStorage.getItem(LS_CFG_TAB); } catch(e) {}
+            const LEGACY_THREAT_TAB_KEY = ['cfg', 'sec', 'threat'].join('-');
+            if (saved === LEGACY_THREAT_TAB_KEY) {
+                saved = 'cfg-sec-ecosystem';
+                try { localStorage.setItem(LS_CFG_TAB, saved); } catch(e) {}
+            }
             setActiveSection(saved || 'cfg-sec-world', false);
 
             // expose for other UI routing (optional)

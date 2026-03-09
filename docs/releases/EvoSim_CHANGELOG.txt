@@ -11,6 +11,28 @@
 - Patch Log 중간에 운영 설명문/체크리스트를 삽입하지 않는다.
 
 ## Patch Log
+### 27.36 — config tab legacy alias purge (minor)
+- Change: `CONFIG_TABS.normalizeKey()`에서 legacy alias(`cfg-sec-meta`, `cfg-sec-eco`) 분기를 제거해 3탭 정본 키만 허용.
+- Change: saved-tab restore의 legacy threat migration 코드(`LEGACY_THREAT_TAB_KEY`)를 삭제하고 restore를 정본 키 가정으로 단순화.
+- Change: `cfg-main` 상단의 구 section 주석(legacy 4-section 흔적) 제거.
+- Why: 설정 탭 구조를 현재 3섹션 정본 모델로 완전 고정해 유지보수 복잡도를 줄이기 위함.
+- Impact: legacy 키 복원 경로는 제거되며, 탭 전환/카드 구조 동작은 기존과 동일.
+
+### 27.35 — config tab compat retirement (minor)
+- Change: `CONFIG_TABS.normalizeKey()`에서 legacy `cfg-sec-threat` alias 분기를 제거하고 `cfg-sec-eco`만 ecosystem으로 매핑.
+- Change: `EVOSIM_CFG_TAB` restore 직후 1회 마이그레이션 추가 — legacy threat key 감지 시 `cfg-sec-ecosystem`으로 치환 후 즉시 재저장.
+- Why: predator-card identity 정리 이후 불필요한 threat tab alias를 퇴역시켜 탭 키 정본을 단순화하기 위함.
+- Impact: 3탭 동작은 동일하며, 구 저장값은 최초 복원 시 ecosystem 키로 자동 정규화됨.
+- Verify: 코드 기준 `cfg-sec-threat` 리터럴 0건(27.35 snapshot/index/latest), ecosystem 탭 복원/전환 정상.
+
+### 27.34 — config ecosystem predator-card identity cleanup (mid)
+- Change: ecosystem 내부 predator 카드 id를 `cfg-sec-threat` → `cfg-card-predators`로 교체하고 section/card identity를 분리.
+- Change: `CONFIG_TABS.groups`에서 ecosystem을 `['cfg-sec-ecosystem']` 단일 section으로 정리(legacy threat section 동시 show/hide 제거).
+- Change: ecosystem side-guide에서 `Threat / Hunt Bonus` 항목 제거, player-facing 카드 안내만 유지.
+- Why: config DOM 구조(섹션 vs 카드)와 탭 라우팅 의미를 일치시켜 회귀 가능성을 낮추기 위함.
+- Impact: UI 가독성/추적성 향상, 탭 수/배치/밸런스 로직 변화 없음.
+- Verify: predator 카드 id/탭 그룹/guide 항목이 의도대로 정리되고 localStorage 구키 복원 경로가 유지됨.
+
 ### 27.32 — config UI cleanup and regression audit (mid)
 - Change: config preview 경로에서 `_syncClimateUI/_syncAltUI/_syncMarUI/_syncMapDependentUI` 및 `_uiTouchedRiver/_uiTouchedMtn` 전역 의존을 제거.
 - Change: preview 단일 진입점을 `derivePreviewState(...) -> renderConfigPreview(...)`로 정리하고, touched 상태를 `EvoSim.config.uiState`로 이관.
