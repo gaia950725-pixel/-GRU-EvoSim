@@ -1,14 +1,9 @@
-### 27.38 fix2 — config visual contract completion
+### 27.38 fix1 — config visual contract completion
 - Change: Map/Forage 카드를 `.cfg-card-body > .cfg-row > .cfg-field` 표준 계약으로 완료했다.
 - Change: `.cfg-card` 공통 `min-height: 176px`를 도입하고 placeholder 내부 `.cfg-add-slot`은 `height:100%`, `min-height:0`으로 카드 외곽 높이 계약을 따르게 조정했다.
 - Change: `.cfg-card-body/.cfg-row/.cfg-field` 폭 정렬(100%)을 보강하고 seed row를 `width:100%` 기반으로 확장했다.
 - Change: `.cfg-seed-input` 고정폭(160px)을 제거하고 `flex: 1 1 140px; min-width:120px; max-width:180px;`로 보정했다.
 - Change: 문서 title을 `EvoSim 27.38 config standard readonly card normalization fix1`로 정정하고 latest/index까지 동기화했다.
-
-### 27.38 fix1 — release document title correction
-- Change: `EvoSim_latest.html`, `27.37` archive, `27.38` archive의 `<title>` 문자열을 각 문서 버전에 맞게 정정했다.
-- Why: 브라우저 탭/문서 식별 시 잘못된 버전(27.36) 표기가 남아 혼동을 유발했기 때문.
-- Impact: UI/로직 변경 없이 문서 메타 표기만 정합화.
 
 ### 27.38 — config standard/read-only card normalization
 - Change: Predators/Herbivores(A) 카드를 `.cfg-card-body > .cfg-row > .cfg-field` 표준 계약으로 정규화하고 `lbl-pred/lbl-herb-count` cyan 강조를 `.val--accent` 및 정식 selector로 유지했다.
