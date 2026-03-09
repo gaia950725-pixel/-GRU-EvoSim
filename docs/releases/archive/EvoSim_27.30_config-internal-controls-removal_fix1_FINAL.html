@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.32 config ui cleanup and regression audit</title>
+    <title>EvoSim 27.29 herbivore pack-to-herd rename</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3367,6 +3367,21 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             return v < a ? a : (v > b ? b : v);
         }
 
+        let _uiTouchedRiver = false;
+        let _uiTouchedMtn = false;
+
+        function _syncClimateUI(){
+            const on = !!(climateCheckbox && climateCheckbox.checked);
+            if (climateStatus) {
+                climateStatus.textContent = on ? "ON" : "OFF";
+                climateStatus.style.color = on ? "#00ffcc" : "#aaa";
+                climateStatus.style.fontWeight = on ? "bold" : "normal";
+            }
+            if (riverSlider) riverSlider.disabled = !on;
+            if (riverLabel) riverLabel.style.color = on ? 'var(--herb)' : '#777';
+            if (farmLabel) farmLabel.style.color = on ? 'var(--herb)' : '#777';
+        }
+
         // 1.5 Altitude & Mountains (session-start only)
         const altCheckbox = document.getElementById('cfg-altitude');
         const altStatus = document.getElementById('lbl-altitude-status');
@@ -3376,98 +3391,68 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
         const marCheckbox = document.getElementById('cfg-maritime');
         const marStatus = document.getElementById('lbl-maritime-status');
 
-        function _configUiState(){
-            EvoSim.config = EvoSim.config || {};
-            EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver:false, touchedMountain:false };
-            return EvoSim.config.uiState;
-        }
-
-        function derivePreviewState(norm, uiState){
-            const mt = (norm && norm.mapType) || (mapSel ? mapSel.value : 'TSL_LARGE');
-            const def = _mapDefaults(mt);
-            const climateOn = norm ? !!norm.climateEnabled : !!(climateCheckbox && climateCheckbox.checked);
-            const altitudeOn = norm ? !!norm.altitudeEnabled : !!(altCheckbox && altCheckbox.checked);
-            const maritimeOn = norm ? !!norm.maritimeEnabled : !!(marCheckbox && marCheckbox.checked);
-
-            let river = norm ? (norm.riverCount|0) : (parseInt(riverSlider?.value,10)||0);
-            let mtn = norm ? (norm.mountainCount|0) : (parseInt(mtnSlider?.value,10)||0);
-
-            if (!norm) {
-                if (!(uiState && uiState.touchedRiver)) river = def.river;
-                river = _clampInt(river, 0, def.max);
-
-                if (!(uiState && uiState.touchedMountain)) mtn = def.mtn;
-                if (!altitudeOn) mtn = 0;
-                else mtn = _clampInt(mtn, 1, def.max);
-            }
-
-            const farmPct = 0.36 * (river / def.max);
-            return {
-                mapType: mt,
-                max: def.max,
-                climateOn,
-                altitudeOn,
-                maritimeOn,
-                riverCount: river,
-                mountainCount: mtn,
-                farmPct
-            };
-        }
-
-        function renderConfigPreview(preview){
-            if (!preview) return;
-            if (mtnSlider) {
-                mtnSlider.max = String(preview.max);
-                mtnSlider.value = String(preview.mountainCount);
-                mtnSlider.disabled = !preview.altitudeOn;
-            }
-            if (riverSlider) {
-                riverSlider.max = String(preview.max);
-                riverSlider.value = String(preview.riverCount);
-                riverSlider.disabled = !preview.climateOn;
-            }
-            if (mtnLabel) {
-                mtnLabel.textContent = String(preview.mountainCount);
-                mtnLabel.style.color = preview.altitudeOn ? 'var(--accent)' : '#777';
-            }
-            if (riverLabel) {
-                riverLabel.textContent = String(preview.riverCount);
-                riverLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
-            }
-            if (farmLabel) {
-                farmLabel.textContent = Math.round(preview.farmPct * 100) + '%';
-                farmLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
-            }
-            if (climateStatus) {
-                climateStatus.textContent = preview.climateOn ? 'ON' : 'OFF';
-                climateStatus.style.color = preview.climateOn ? '#00ffcc' : '#aaa';
-                climateStatus.style.fontWeight = preview.climateOn ? 'bold' : 'normal';
-            }
-            if (altStatus) {
-                altStatus.textContent = preview.altitudeOn ? 'ON' : 'OFF';
-                altStatus.style.color = preview.altitudeOn ? '#00ffcc' : '#aaa';
-                altStatus.style.fontWeight = preview.altitudeOn ? 'bold' : 'normal';
-            }
+        function _syncMarUI(){
+            const on = !!(marCheckbox && marCheckbox.checked);
             if (marStatus) {
-                marStatus.textContent = preview.maritimeOn ? 'ON' : 'OFF';
-                marStatus.style.color = preview.maritimeOn ? '#00ffcc' : '#aaa';
-                marStatus.style.fontWeight = preview.maritimeOn ? 'bold' : 'normal';
+                marStatus.textContent = on ? "ON" : "OFF";
+                marStatus.style.color = on ? "#00ffcc" : "#aaa";
+                marStatus.style.fontWeight = on ? "bold" : "normal";
             }
         }
 
-        function refreshConfigPreviewFromUI(){
-            const preview = derivePreviewState(null, _configUiState());
-            renderConfigPreview(preview);
+        function _syncAltUI(){
+            const on = !!(altCheckbox && altCheckbox.checked);
+            if (altStatus) {
+                altStatus.textContent = on ? "ON" : "OFF";
+                altStatus.style.color = on ? "#00ffcc" : "#aaa";
+                altStatus.style.fontWeight = on ? "bold" : "normal";
+            }
+            if (mtnSlider) mtnSlider.disabled = !on;
+            if (mtnLabel && mtnSlider) {
+                mtnLabel.textContent = String(mtnSlider.value);
+                mtnLabel.style.color = on ? 'var(--accent)' : '#777';
+            }
         }
 
-        if (climateCheckbox) climateCheckbox.addEventListener('change', refreshConfigPreviewFromUI);
-        if (altCheckbox) altCheckbox.addEventListener('change', refreshConfigPreviewFromUI);
-        if (marCheckbox) marCheckbox.addEventListener('change', refreshConfigPreviewFromUI);
-        if (riverSlider) riverSlider.addEventListener('input', () => { const st = _configUiState(); st.touchedRiver = true; refreshConfigPreviewFromUI(); });
-        if (mtnSlider) mtnSlider.addEventListener('input', () => { const st = _configUiState(); st.touchedMountain = true; refreshConfigPreviewFromUI(); });
-        if (mapSel) mapSel.addEventListener('change', refreshConfigPreviewFromUI);
+        function _syncMapDependentUI(){
+            const mt = mapSel ? mapSel.value : 'TSL_LARGE';
+            const def = _mapDefaults(mt);
 
-        refreshConfigPreviewFromUI();
+            // Mountain slider max/default
+            if (mtnSlider) {
+                mtnSlider.max = String(def.max);
+                if (!_uiTouchedMtn) mtnSlider.value = String(def.mtn);
+                else mtnSlider.value = String(_clampInt(parseInt(mtnSlider.value,10)||0, 1, def.max));
+            }
+
+            // River slider max/default
+            if (riverSlider) {
+                riverSlider.max = String(def.max);
+                if (!_uiTouchedRiver) riverSlider.value = String(def.river);
+                else riverSlider.value = String(_clampInt(parseInt(riverSlider.value,10)||0, 0, def.max));
+                if (riverLabel) riverLabel.textContent = String(riverSlider.value);
+            }
+
+            // Farm pct display
+            if (farmLabel && riverSlider) {
+                const rc = parseInt(riverSlider.value,10)||0;
+                const pct = 0.36 * (rc / def.max);
+                farmLabel.textContent = Math.round(pct * 100) + "%";
+            }
+
+            _syncAltUI();
+            _syncClimateUI();
+            _syncMarUI();
+        }
+
+        if (climateCheckbox) climateCheckbox.addEventListener('change', _syncClimateUI);
+        if (altCheckbox) altCheckbox.addEventListener('change', _syncAltUI);
+        if (marCheckbox) marCheckbox.addEventListener('change', _syncMarUI);
+        if (riverSlider) riverSlider.addEventListener('input', () => { _uiTouchedRiver = true; _syncMapDependentUI(); });
+        if (mtnSlider) mtnSlider.addEventListener('input', () => { _uiTouchedMtn = true; _syncMapDependentUI(); });
+        if (mapSel) mapSel.addEventListener('change', _syncMapDependentUI);
+
+        _syncMapDependentUI();
 
         // 2. Accordions
         document.querySelectorAll('.accordion-btn').forEach(btn => {
@@ -10467,178 +10452,119 @@ const card = modal.querySelector('.exit-card');
             }, true);
         })();
 
-/* === BUILDER_BLOCK: CONFIG_PIPELINE_CORE_START === */
-function ensureConfigNamespace(){
-  EvoSim.config = EvoSim.config || {};
-  EvoSim.config.defaults = EvoSim.config.defaults || {};
-  EvoSim.config.defaults.internal = EvoSim.config.defaults.internal || {
-    predatorKillBonus: CFG.predatorKillBonus|0,
-    pred2_threatLevel: CFG.pred2_threatLevel|0,
-    herbivoreBonus: CFG.herbivoreBonus|0,
-    herbivoreThreatLevel: +CFG.herbivoreThreatLevel || 1.0
-  };
-  EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver:false, touchedMountain:false };
-  return EvoSim.config;
-}
+async function guardedStart() {
+            if (WORLDGEN.state === 'generating') return;
 
-function collectRawConfigFromUI(){
-  const leaderSel = document.getElementById('cfg-leader-mode');
-  const clanSel = document.getElementById('cfg-clan-mode');
-  return {
-    popSize: document.getElementById('cfg-pop')?.value,
-    foodCount: document.getElementById('cfg-foodcount')?.value,
-    foodEnergy: document.getElementById('cfg-food')?.value,
-    reproMinAgeYr: document.getElementById('cfg-repro-age')?.value,
-    crisisRecoverSpeed: getCrisisRecoverSpeedFromUI(),
-    predatorCount: document.getElementById('cfg-pred')?.value,
-    mutationRate: document.getElementById('cfg-mut')?.value,
-    mapType: document.getElementById('cfg-map')?.value,
-    clanMode: clanSel ? clanSel.value : (document.querySelector('input[name="clanMode"]:checked')?.value || 'SURNAME_AUTO'),
-    leaderMode: leaderSel ? leaderSel.value : (document.querySelector('input[name="leaderMode"]:checked')?.value || 'FOLLOW_BUFF'),
-    predatorSpecies: document.getElementById('cfg-pred-species')?.value,
-    herbivoreSpecies: document.getElementById('cfg-herb-species')?.value,
-    herbivoreCount: document.getElementById('cfg-herb-count')?.value,
-    climateEnabled: document.getElementById('cfg-climate')?.checked === true,
-    riverCount: document.getElementById('cfg-river-count')?.value,
-    altitudeEnabled: document.getElementById('cfg-altitude')?.checked === true,
-    maritimeEnabled: document.getElementById('cfg-maritime')?.checked === true,
-    mountainCount: document.getElementById('cfg-mtn-count')?.value,
-    presetSeedEnabled: document.getElementById('cfg-seed-lock')?.checked === true,
-    presetSeed: document.getElementById('cfg-seed')?.value
-  };
-}
+            try {
+                setWorldGenState('generating', 'prepare', 'Reading configuration...', 0.05);
+                await nextFrame();
 
-function normalizeConfigSnapshot(raw){
-  const mapType = (raw.mapType || 'TSL_LARGE');
-  const isXL = (mapType === 'TSL_XL_7200x4800');
-  const max = isXL ? 8 : 6;
-  const mapDef = _mapDefaults(mapType);
+                const _internalCfgDefaults = (((EvoSim || {}).config || {}).defaults || {}).internal || {};
+                CFG.predatorKillBonus = Number.isFinite(+_internalCfgDefaults.predatorKillBonus) ? (+_internalCfgDefaults.predatorKillBonus | 0) : (CFG.predatorKillBonus | 0);
+                CFG.pred2_threatLevel = Number.isFinite(+_internalCfgDefaults.pred2_threatLevel) ? (+_internalCfgDefaults.pred2_threatLevel | 0) : (CFG.pred2_threatLevel | 0);
+                CFG.herbivoreBonus = Number.isFinite(+_internalCfgDefaults.herbivoreBonus) ? (+_internalCfgDefaults.herbivoreBonus | 0) : (CFG.herbivoreBonus | 0);
+                CFG.herbivoreThreatLevel = Number.isFinite(+_internalCfgDefaults.herbivoreThreatLevel) ? (+_internalCfgDefaults.herbivoreThreatLevel) : (+CFG.herbivoreThreatLevel || 1.0);
 
-  let clanMode = (raw.clanMode || 'SURNAME_AUTO');
-  if (clanMode === 'TERRITORY') clanMode = 'SURNAME';
+                CFG.popSize = parseInt(document.getElementById('cfg-pop').value);
+                CFG.foodCount = parseInt(document.getElementById('cfg-foodcount').value);
+                CFG.foodEnergy = parseInt(document.getElementById('cfg-food').value);
+                CFG.reproCost = 700;
+                CFG.reproMinAgeYr = parseInt(document.getElementById('cfg-repro-age').value);
+                CFG.reproMinAgeTicks = CAL_TICKS_PER_YR * CFG.reproMinAgeYr;
+CFG.crisisRecoverSpeed = getCrisisRecoverSpeedFromUI();
+                CFG.predatorCount = parseInt(document.getElementById('cfg-pred').value);
+                CFG.mutationRate = parseFloat(document.getElementById('cfg-mut').value);
+                CFG.mapType = document.getElementById('cfg-map').value;
+                const _clanSel = document.getElementById('cfg-clan-mode');
+                CFG.clanMode = _clanSel ? _clanSel.value : (document.querySelector('input[name="clanMode"]:checked')?.value || 'SURNAME_AUTO');
+                // Deprecation: TERRITORY mode removed from UI; normalize any stale value.
+                if (CFG.clanMode === 'TERRITORY') CFG.clanMode = 'SURNAME';
+                const _leaderSel = document.getElementById('cfg-leader-mode');
+                CFG.leaderMode = _leaderSel ? _leaderSel.value : (document.querySelector('input[name="leaderMode"]:checked')?.value || 'FOLLOW_BUFF');
+                CFG.predatorSpecies = document.getElementById('cfg-pred-species').value;
+                
+                CFG.herbivoreSpecies = document.getElementById('cfg-herb-species').value;
 
-  let herbivoreSpecies = String(raw.herbivoreSpecies || '').trim().toUpperCase();
-  if (!HERB_PROFILE[herbivoreSpecies]) {
-    const fallback = HERB_PROFILE.REINDEER ? 'REINDEER' : Object.keys(HERB_PROFILE)[0];
-    herbivoreSpecies = fallback || 'REINDEER';
-  }
+                // Patch 1: Normalize & Validate Species
+                CFG.herbivoreSpecies = (CFG.herbivoreSpecies || "").trim().toUpperCase();
+                if (!HERB_PROFILE[CFG.herbivoreSpecies]) {
+                    const fallback = HERB_PROFILE.REINDEER ? "REINDEER" : Object.keys(HERB_PROFILE)[0];
+                    console.warn(`Invalid species ${CFG.herbivoreSpecies}, falling back to ${fallback}`);
+                    if(typeof logEvent === 'function') logEvent("Herbivore species invalid -> fallback", "warn");
+                    CFG.herbivoreSpecies = fallback || "REINDEER";
+                    const sel = document.getElementById('cfg-herb-species');
+                    if(sel && sel.value !== CFG.herbivoreSpecies) sel.value = CFG.herbivoreSpecies;
+                }
 
-  const climateEnabled = !!raw.climateEnabled;
-  const altitudeEnabled = !!raw.altitudeEnabled;
+                CFG.herbivoreCount = parseInt(document.getElementById('cfg-herb-count').value);
+                
+                CFG.climateEnabled = document.getElementById('cfg-climate')?.checked === true;
+                const rs = document.getElementById('cfg-river-count');
+                const _mt = CFG.mapType;
+                const _riverMax = (_mt === 'TSL_XL_7200x4800') ? 8 : 6;
+                CFG.riverCount = rs ? (parseInt(rs.value, 10) || 0) : 3;
+                if (CFG.riverCount < 0) CFG.riverCount = 0;
+                if (CFG.riverCount > _riverMax) CFG.riverCount = _riverMax;
+                CFG.farmLandPct = 0.36 * (CFG.riverCount / _riverMax);
+                
+                
+                CFG.altitudeEnabled = document.getElementById('cfg-altitude')?.checked === true;
+                CFG.maritimeEnabled = document.getElementById('cfg-maritime')?.checked === true;
+                const ms = document.getElementById('cfg-mtn-count');
+                const _mt2 = CFG.mapType;
+                const _mtnMax = (_mt2 === 'TSL_XL_7200x4800') ? 8 : 6;
+                let _mc = ms ? (parseInt(ms.value, 10) || 0) : 0;
+                if (!CFG.altitudeEnabled) _mc = 0;
+                else {
+                    if (_mc < 1) _mc = 1;
+                    if (_mc > _mtnMax) _mc = _mtnMax;
+                }
+                CFG.mountainCount = _mc;
+                if (ms) ms.value = String(_mc);
+                
+                refreshVisionCache();
 
-  let riverCount = parseInt(raw.riverCount, 10); if (!Number.isFinite(riverCount)) riverCount = mapDef.river;
-  riverCount = Math.max(0, Math.min(max, riverCount|0));
+                localStorage.setItem('leaderMode', CFG.leaderMode);
+                const _cmEl = document.getElementById('disp-clan-mode'); if (_cmEl) _cmEl.textContent = (CFG.clanMode === 'SURNAME') ? '혈통 기반' : (CFG.clanMode === 'SURNAME_AUTO' ? '혈통 기반(자동)' : '지역 기반');
+                
+                if (CFG.mapType === 'TSL_LARGE') CFG.worldWidth = 3600 * 1.4; 
+                else CFG.worldWidth = 3600;
 
-  let mountainCount = parseInt(raw.mountainCount, 10); if (!Number.isFinite(mountainCount)) mountainCount = mapDef.mtn;
-  if (!altitudeEnabled) mountainCount = 0;
-  else mountainCount = Math.max(1, Math.min(max, mountainCount|0));
 
-  const norm = {
-    popSize: parseInt(raw.popSize, 10) || 500,
-    foodCount: parseInt(raw.foodCount, 10) || 1000,
-    foodEnergy: parseInt(raw.foodEnergy, 10) || 736,
-    reproMinAgeYr: parseInt(raw.reproMinAgeYr, 10) || 12,
-    crisisRecoverSpeed: Number(raw.crisisRecoverSpeed) || 1.0,
-    predatorCount: parseInt(raw.predatorCount, 10) || 7,
-    mutationRate: parseFloat(raw.mutationRate) || 0.10,
-    mapType,
-    clanMode,
-    leaderMode: raw.leaderMode || 'FOLLOW_BUFF',
-    predatorSpecies: raw.predatorSpecies || 'SABERTOOTH',
-    herbivoreSpecies,
-    herbivoreCount: parseInt(raw.herbivoreCount, 10) || 30,
-    climateEnabled,
-    riverCount,
-    altitudeEnabled,
-    maritimeEnabled: !!raw.maritimeEnabled,
-    mountainCount,
-    presetSeedEnabled: !!raw.presetSeedEnabled,
-    presetSeed: parseInt(raw.presetSeed, 10) || 0,
-    derived: {
-      riverMax: max,
-      mountainMax: max,
-      farmLandPct: 0.36 * (riverCount / max),
-      reproMinAgeTicks: CAL_TICKS_PER_YR * ((parseInt(raw.reproMinAgeYr, 10) || 12))
-    }
-  };
-  return norm;
-}
+                // Reset legacy map height (prevents XL height leaking into old maps)
+                CFG.worldHeight = 3600;
+                // Preset size override (TSL_XL 등)
+                const _preset = (typeof MAP_PRESETS !== 'undefined') ? MAP_PRESETS[CFG.mapType] : null;
+                if (_preset && _preset.w && _preset.h) {
+                    CFG.worldWidth = _preset.w | 0;
+                    CFG.worldHeight = _preset.h | 0;
+                }
 
-function validateNormalizedConfig(norm){
-  const fatal = [];
-  const warning = [];
-  if (!norm || !norm.mapType) fatal.push('missing_mapType');
-  if (!HERB_PROFILE[norm.herbivoreSpecies]) fatal.push('invalid_herbivore_species');
-  if (norm.riverCount < 0 || norm.riverCount > norm.derived.riverMax) warning.push('river_out_of_range_normalized');
-  if (norm.mountainCount < 0 || norm.mountainCount > norm.derived.mountainMax) warning.push('mountain_out_of_range_normalized');
-  return { fatal, warning };
-}
 
-function reconcileConfigUI(norm){
-  const rs = document.getElementById('cfg-river-count');
-  const ms = document.getElementById('cfg-mtn-count');
-  const herbSel = document.getElementById('cfg-herb-species');
-  if (rs){ rs.max = String(norm.derived.riverMax); rs.value = String(norm.riverCount); }
-  if (ms){ ms.max = String(norm.derived.mountainMax); ms.value = String(norm.mountainCount); }
-  if (herbSel && herbSel.value !== norm.herbivoreSpecies) herbSel.value = norm.herbivoreSpecies;
-  const preview = derivePreviewState(norm, _configUiState());
-  renderConfigPreview(preview);
-}
 
-function applyNormalizedConfigToCFG(norm){
-  const internal = (((EvoSim||{}).config||{}).defaults||{}).internal || {};
-  CFG.predatorKillBonus = Number.isFinite(+internal.predatorKillBonus) ? (+internal.predatorKillBonus|0) : (CFG.predatorKillBonus|0);
-  CFG.pred2_threatLevel = Number.isFinite(+internal.pred2_threatLevel) ? (+internal.pred2_threatLevel|0) : (CFG.pred2_threatLevel|0);
-  CFG.herbivoreBonus = Number.isFinite(+internal.herbivoreBonus) ? (+internal.herbivoreBonus|0) : (CFG.herbivoreBonus|0);
-  CFG.herbivoreThreatLevel = Number.isFinite(+internal.herbivoreThreatLevel) ? (+internal.herbivoreThreatLevel) : (+CFG.herbivoreThreatLevel||1.0);
+  // Phase3-4: preset seed lock (session-start only; no global Math.random pollution)
+  CFG.presetSeedEnabled = (document.getElementById('cfg-seed-lock')?.checked === true);
+  const _seedEl = document.getElementById('cfg-seed');
+  CFG.presetSeed = _seedEl ? (parseInt(_seedEl.value, 10) || 0) : 0;
 
-  CFG.popSize = norm.popSize;
-  CFG.foodCount = norm.foodCount;
-  CFG.foodEnergy = norm.foodEnergy;
-  CFG.reproCost = 700;
-  CFG.reproMinAgeYr = norm.reproMinAgeYr;
-  CFG.reproMinAgeTicks = norm.derived.reproMinAgeTicks;
-  CFG.crisisRecoverSpeed = norm.crisisRecoverSpeed;
-  CFG.predatorCount = norm.predatorCount;
-  CFG.mutationRate = norm.mutationRate;
-  CFG.mapType = norm.mapType;
-  CFG.clanMode = norm.clanMode;
-  CFG.leaderMode = norm.leaderMode;
-  CFG.predatorSpecies = norm.predatorSpecies;
-  CFG.herbivoreSpecies = norm.herbivoreSpecies;
-  CFG.herbivoreCount = norm.herbivoreCount;
-  CFG.climateEnabled = norm.climateEnabled;
-  CFG.riverCount = norm.riverCount;
-  CFG.farmLandPct = norm.derived.farmLandPct;
-  CFG.altitudeEnabled = norm.altitudeEnabled;
-  CFG.maritimeEnabled = norm.maritimeEnabled;
-  CFG.mountainCount = norm.mountainCount;
-  CFG.presetSeedEnabled = norm.presetSeedEnabled;
-  CFG.presetSeed = norm.presetSeed;
-}
+  // Phase 3 (earthTopo): enabled only when preset seed is ON and seed==12345 and a template exists for this mapType.
+  // (Policy) Do NOT special-case 12345 unless presetSeedEnabled is ON.
+  GAIA.earthTopo = (CFG.presetSeedEnabled && ((CFG.presetSeed|0) === 12345) && (typeof TOPO_TEMPLATES !== 'undefined') && !!TOPO_TEMPLATES[CFG.mapType]);
 
-function persistConfigPreferences(norm){
-  try { localStorage.setItem('leaderMode', norm.leaderMode); } catch(_) {}
-}
-
-function prepareWorldgenFromNormalizedConfig(norm){
-  if (norm.mapType === 'TSL_LARGE') CFG.worldWidth = 3600 * 1.4;
-  else CFG.worldWidth = 3600;
-  CFG.worldHeight = 3600;
-  const preset = (typeof MAP_PRESETS !== 'undefined') ? MAP_PRESETS[norm.mapType] : null;
-  if (preset && preset.w && preset.h){ CFG.worldWidth = preset.w|0; CFG.worldHeight = preset.h|0; }
-
-  GAIA.earthTopo = (norm.presetSeedEnabled && ((norm.presetSeed|0) === 12345) && (typeof TOPO_TEMPLATES !== 'undefined') && !!TOPO_TEMPLATES[norm.mapType]);
   GAIA.rand = Math.random;
-  let seed = null;
-  if (norm.presetSeedEnabled && (norm.presetSeed|0) > 0) seed = (norm.presetSeed|0);
-  else if (preset && typeof preset.seed === 'number' && isFinite(preset.seed)) seed = (preset.seed|0);
+  let _seed = null;
+  if (CFG.presetSeedEnabled && (CFG.presetSeed|0) > 0) _seed = (CFG.presetSeed|0);
+  else if (_preset && typeof _preset.seed === 'number' && isFinite(_preset.seed)) _seed = (_preset.seed|0);
 
-  if (seed !== null) {
-    GAIA._seedBase = seed >>> 0;
+  if (_seed !== null) {
+    GAIA._seedBase = _seed >>> 0;
     GAIA._seedMtn = (hash32(GAIA._seedBase, SALT_MTN) >>> 0);
     GAIA._seedRiver = (hash32(GAIA._seedBase, SALT_RIV) >>> 0);
+
+    // Keep legacy semantics for non-mountain/non-river randomness:
     GAIA.rand = _mulberry32(GAIA._seedBase);
+
+    // Mountain epochs reseed from the mountain sub-seed (keeps mountains isolated from rivers).
     GAIA._reseedForMountains = function(epoch){
       const e = (epoch|0) + 1;
       const base = (GAIA._seedMtn >>> 0);
@@ -10650,36 +10576,6 @@ function prepareWorldgenFromNormalizedConfig(norm){
     GAIA._seedRiver = null;
     GAIA._reseedForMountains = null;
   }
-}
-/* === BUILDER_BLOCK: CONFIG_PIPELINE_CORE_END === */
-
-async function guardedStart() {
-            if (WORLDGEN.state === 'generating') return;
-
-            try {
-                setWorldGenState('generating', 'prepare', 'Reading configuration...', 0.05);
-                await nextFrame();
-
-                ensureConfigNamespace();
-                const raw = collectRawConfigFromUI();
-                EvoSim.config.raw = raw;
-                const norm = normalizeConfigSnapshot(raw);
-                EvoSim.config.normalized = norm;
-                const verdict = validateNormalizedConfig(norm);
-                if (verdict.warning && verdict.warning.length) {
-                    try { console.warn('[config] warnings', verdict.warning); } catch(_) {}
-                }
-                if (verdict.fatal && verdict.fatal.length) {
-                    try { console.error('[config] fatal', verdict.fatal); } catch(_) {}
-                    setWorldGenState('idle', null, 'Configuration invalid. Please review settings.', 0);
-                    return;
-                }
-                reconcileConfigUI(norm);
-                applyNormalizedConfigToCFG(norm);
-                persistConfigPreferences(norm);
-                prepareWorldgenFromNormalizedConfig(norm);
-                refreshVisionCache();
-                const _cmEl = document.getElementById('disp-clan-mode'); if (_cmEl) _cmEl.textContent = (CFG.clanMode === 'SURNAME') ? '혈통 기반' : (CFG.clanMode === 'SURNAME_AUTO' ? '혈통 기반(자동)' : '지역 기반');
                 setWorldGenState('generating', 'base-map', 'Resetting world & climate...', 0.15);
                 await nextFrame();
 

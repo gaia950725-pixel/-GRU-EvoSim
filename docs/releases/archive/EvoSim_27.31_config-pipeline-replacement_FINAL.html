@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.32 config ui cleanup and regression audit</title>
+    <title>EvoSim 27.29 herbivore pack-to-herd rename</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3367,6 +3367,21 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             return v < a ? a : (v > b ? b : v);
         }
 
+        let _uiTouchedRiver = false;
+        let _uiTouchedMtn = false;
+
+        function _syncClimateUI(){
+            const on = !!(climateCheckbox && climateCheckbox.checked);
+            if (climateStatus) {
+                climateStatus.textContent = on ? "ON" : "OFF";
+                climateStatus.style.color = on ? "#00ffcc" : "#aaa";
+                climateStatus.style.fontWeight = on ? "bold" : "normal";
+            }
+            if (riverSlider) riverSlider.disabled = !on;
+            if (riverLabel) riverLabel.style.color = on ? 'var(--herb)' : '#777';
+            if (farmLabel) farmLabel.style.color = on ? 'var(--herb)' : '#777';
+        }
+
         // 1.5 Altitude & Mountains (session-start only)
         const altCheckbox = document.getElementById('cfg-altitude');
         const altStatus = document.getElementById('lbl-altitude-status');
@@ -3376,98 +3391,68 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
         const marCheckbox = document.getElementById('cfg-maritime');
         const marStatus = document.getElementById('lbl-maritime-status');
 
-        function _configUiState(){
-            EvoSim.config = EvoSim.config || {};
-            EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver:false, touchedMountain:false };
-            return EvoSim.config.uiState;
-        }
-
-        function derivePreviewState(norm, uiState){
-            const mt = (norm && norm.mapType) || (mapSel ? mapSel.value : 'TSL_LARGE');
-            const def = _mapDefaults(mt);
-            const climateOn = norm ? !!norm.climateEnabled : !!(climateCheckbox && climateCheckbox.checked);
-            const altitudeOn = norm ? !!norm.altitudeEnabled : !!(altCheckbox && altCheckbox.checked);
-            const maritimeOn = norm ? !!norm.maritimeEnabled : !!(marCheckbox && marCheckbox.checked);
-
-            let river = norm ? (norm.riverCount|0) : (parseInt(riverSlider?.value,10)||0);
-            let mtn = norm ? (norm.mountainCount|0) : (parseInt(mtnSlider?.value,10)||0);
-
-            if (!norm) {
-                if (!(uiState && uiState.touchedRiver)) river = def.river;
-                river = _clampInt(river, 0, def.max);
-
-                if (!(uiState && uiState.touchedMountain)) mtn = def.mtn;
-                if (!altitudeOn) mtn = 0;
-                else mtn = _clampInt(mtn, 1, def.max);
-            }
-
-            const farmPct = 0.36 * (river / def.max);
-            return {
-                mapType: mt,
-                max: def.max,
-                climateOn,
-                altitudeOn,
-                maritimeOn,
-                riverCount: river,
-                mountainCount: mtn,
-                farmPct
-            };
-        }
-
-        function renderConfigPreview(preview){
-            if (!preview) return;
-            if (mtnSlider) {
-                mtnSlider.max = String(preview.max);
-                mtnSlider.value = String(preview.mountainCount);
-                mtnSlider.disabled = !preview.altitudeOn;
-            }
-            if (riverSlider) {
-                riverSlider.max = String(preview.max);
-                riverSlider.value = String(preview.riverCount);
-                riverSlider.disabled = !preview.climateOn;
-            }
-            if (mtnLabel) {
-                mtnLabel.textContent = String(preview.mountainCount);
-                mtnLabel.style.color = preview.altitudeOn ? 'var(--accent)' : '#777';
-            }
-            if (riverLabel) {
-                riverLabel.textContent = String(preview.riverCount);
-                riverLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
-            }
-            if (farmLabel) {
-                farmLabel.textContent = Math.round(preview.farmPct * 100) + '%';
-                farmLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
-            }
-            if (climateStatus) {
-                climateStatus.textContent = preview.climateOn ? 'ON' : 'OFF';
-                climateStatus.style.color = preview.climateOn ? '#00ffcc' : '#aaa';
-                climateStatus.style.fontWeight = preview.climateOn ? 'bold' : 'normal';
-            }
-            if (altStatus) {
-                altStatus.textContent = preview.altitudeOn ? 'ON' : 'OFF';
-                altStatus.style.color = preview.altitudeOn ? '#00ffcc' : '#aaa';
-                altStatus.style.fontWeight = preview.altitudeOn ? 'bold' : 'normal';
-            }
+        function _syncMarUI(){
+            const on = !!(marCheckbox && marCheckbox.checked);
             if (marStatus) {
-                marStatus.textContent = preview.maritimeOn ? 'ON' : 'OFF';
-                marStatus.style.color = preview.maritimeOn ? '#00ffcc' : '#aaa';
-                marStatus.style.fontWeight = preview.maritimeOn ? 'bold' : 'normal';
+                marStatus.textContent = on ? "ON" : "OFF";
+                marStatus.style.color = on ? "#00ffcc" : "#aaa";
+                marStatus.style.fontWeight = on ? "bold" : "normal";
             }
         }
 
-        function refreshConfigPreviewFromUI(){
-            const preview = derivePreviewState(null, _configUiState());
-            renderConfigPreview(preview);
+        function _syncAltUI(){
+            const on = !!(altCheckbox && altCheckbox.checked);
+            if (altStatus) {
+                altStatus.textContent = on ? "ON" : "OFF";
+                altStatus.style.color = on ? "#00ffcc" : "#aaa";
+                altStatus.style.fontWeight = on ? "bold" : "normal";
+            }
+            if (mtnSlider) mtnSlider.disabled = !on;
+            if (mtnLabel && mtnSlider) {
+                mtnLabel.textContent = String(mtnSlider.value);
+                mtnLabel.style.color = on ? 'var(--accent)' : '#777';
+            }
         }
 
-        if (climateCheckbox) climateCheckbox.addEventListener('change', refreshConfigPreviewFromUI);
-        if (altCheckbox) altCheckbox.addEventListener('change', refreshConfigPreviewFromUI);
-        if (marCheckbox) marCheckbox.addEventListener('change', refreshConfigPreviewFromUI);
-        if (riverSlider) riverSlider.addEventListener('input', () => { const st = _configUiState(); st.touchedRiver = true; refreshConfigPreviewFromUI(); });
-        if (mtnSlider) mtnSlider.addEventListener('input', () => { const st = _configUiState(); st.touchedMountain = true; refreshConfigPreviewFromUI(); });
-        if (mapSel) mapSel.addEventListener('change', refreshConfigPreviewFromUI);
+        function _syncMapDependentUI(){
+            const mt = mapSel ? mapSel.value : 'TSL_LARGE';
+            const def = _mapDefaults(mt);
 
-        refreshConfigPreviewFromUI();
+            // Mountain slider max/default
+            if (mtnSlider) {
+                mtnSlider.max = String(def.max);
+                if (!_uiTouchedMtn) mtnSlider.value = String(def.mtn);
+                else mtnSlider.value = String(_clampInt(parseInt(mtnSlider.value,10)||0, 1, def.max));
+            }
+
+            // River slider max/default
+            if (riverSlider) {
+                riverSlider.max = String(def.max);
+                if (!_uiTouchedRiver) riverSlider.value = String(def.river);
+                else riverSlider.value = String(_clampInt(parseInt(riverSlider.value,10)||0, 0, def.max));
+                if (riverLabel) riverLabel.textContent = String(riverSlider.value);
+            }
+
+            // Farm pct display
+            if (farmLabel && riverSlider) {
+                const rc = parseInt(riverSlider.value,10)||0;
+                const pct = 0.36 * (rc / def.max);
+                farmLabel.textContent = Math.round(pct * 100) + "%";
+            }
+
+            _syncAltUI();
+            _syncClimateUI();
+            _syncMarUI();
+        }
+
+        if (climateCheckbox) climateCheckbox.addEventListener('change', _syncClimateUI);
+        if (altCheckbox) altCheckbox.addEventListener('change', _syncAltUI);
+        if (marCheckbox) marCheckbox.addEventListener('change', _syncMarUI);
+        if (riverSlider) riverSlider.addEventListener('input', () => { _uiTouchedRiver = true; _syncMapDependentUI(); });
+        if (mtnSlider) mtnSlider.addEventListener('input', () => { _uiTouchedMtn = true; _syncMapDependentUI(); });
+        if (mapSel) mapSel.addEventListener('change', _syncMapDependentUI);
+
+        _syncMapDependentUI();
 
         // 2. Accordions
         document.querySelectorAll('.accordion-btn').forEach(btn => {
@@ -10477,7 +10462,10 @@ function ensureConfigNamespace(){
     herbivoreBonus: CFG.herbivoreBonus|0,
     herbivoreThreatLevel: +CFG.herbivoreThreatLevel || 1.0
   };
-  EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver:false, touchedMountain:false };
+  EvoSim.config.uiState = EvoSim.config.uiState || {
+    touchedRiver: !!_uiTouchedRiver,
+    touchedMountain: !!_uiTouchedMtn
+  };
   return EvoSim.config;
 }
 
@@ -10578,11 +10566,12 @@ function reconcileConfigUI(norm){
   const rs = document.getElementById('cfg-river-count');
   const ms = document.getElementById('cfg-mtn-count');
   const herbSel = document.getElementById('cfg-herb-species');
+  const farmLabel = document.getElementById('lbl-farmland');
   if (rs){ rs.max = String(norm.derived.riverMax); rs.value = String(norm.riverCount); }
   if (ms){ ms.max = String(norm.derived.mountainMax); ms.value = String(norm.mountainCount); }
   if (herbSel && herbSel.value !== norm.herbivoreSpecies) herbSel.value = norm.herbivoreSpecies;
-  const preview = derivePreviewState(norm, _configUiState());
-  renderConfigPreview(preview);
+  if (farmLabel) farmLabel.textContent = Math.round(norm.derived.farmLandPct * 100) + '%';
+  try { _syncMapDependentUI(); } catch(_){ }
 }
 
 function applyNormalizedConfigToCFG(norm){

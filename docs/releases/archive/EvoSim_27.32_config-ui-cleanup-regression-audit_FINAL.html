@@ -10578,9 +10578,11 @@ function reconcileConfigUI(norm){
   const rs = document.getElementById('cfg-river-count');
   const ms = document.getElementById('cfg-mtn-count');
   const herbSel = document.getElementById('cfg-herb-species');
+  const farmLabel = document.getElementById('lbl-farmland');
   if (rs){ rs.max = String(norm.derived.riverMax); rs.value = String(norm.riverCount); }
   if (ms){ ms.max = String(norm.derived.mountainMax); ms.value = String(norm.mountainCount); }
   if (herbSel && herbSel.value !== norm.herbivoreSpecies) herbSel.value = norm.herbivoreSpecies;
+  if (farmLabel) farmLabel.textContent = Math.round(norm.derived.farmLandPct * 100) + '%';
   const preview = derivePreviewState(norm, _configUiState());
   renderConfigPreview(preview);
 }
