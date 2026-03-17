@@ -1,3 +1,12 @@
+### 27.44 — guide width lock + world guide migration (mid)
+- Change: 설정 오버레이의 좌측 가이드(`.cfg-side`)에 `flex:0 0 260px; width/min-width/max-width:260px;` 고정폭 계약을 적용해 탭 전환 시 체감 폭 변동을 억제했다.
+- Change: World 탭 `CONFIG_TABS` 가이드에 `Fixed Topology`/`Farmable Area` 항목을 상시 노출하도록 재구성했고, Fixed Topology 설명에 "강과 산(rivers and mountains) 구조 고정" 의미를 명시했다.
+- Change: Farmable Area 자동산식을 World 가이드 본문으로 이관해 `농지비율 = 36% × (강 수 / 맵별 최대 강 수)`를 직접 표시했다.
+- Change: "세계 규칙 가이드" 드롭다운에서는 위 2개 장문 설명을 제거하고, 월드 핵심은 좌측 World 가이드에서 확인하도록 축소 안내로 정리했다.
+- Why: 탭별 가이드 길이 차이로 좌측/우측 영역 폭이 흔들려 보이는 인상을 줄이고, 월드 핵심 규칙 정보를 World 탭 가이드 책임으로 일원화하기 위함.
+- Impact: CONFIG_TABS 구조/저장 파이프라인/카드 배치/옵션 의미는 유지되고, 가이드 폭 안정성과 월드 정보 접근성이 개선된다.
+- Verify: World/Humanity/Ecosystem 탭 전환에서 좌측 가이드 폭이 동일하게 유지되는지 확인했고, World 탭에만 Fixed Topology/Farmable Area 설명이 노출되며 드롭다운 중복 장문이 제거되었음을 점검했다.
+
 ### 27.43 fix1b — two-row field slot alignment (mid)
 - Change: 카드 body의 1행/2행을 공통 슬롯 규격으로 정렬하기 위해 `.cfg-card-body > .cfg-row:nth-of-type(1/2)` 기반 slot contract를 도입하고 `slot-1 min-height 58px`, `slot-2 min-height 62px`, row gap 8px를 공통화했다.
 - Change: field contract를 슬롯 기반으로 맞추기 위해 slot row 내부 `.cfg-field`를 `min-height:100%`로 정렬하고, split header row(`.cfg-row--split`)는 top-align으로 조정해 helper 포함 높이를 slot-1에서 흡수하도록 맞췄다.
