@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.38 config standard readonly card normalization fix1</title>
+    <title>EvoSim 27.72 config world grid nesting recovery fix2</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -756,7 +756,7 @@ font-size: 12px;
   display:flex;
   align-items:baseline;
   justify-content:space-between;
-  gap: 12px;
+  gap: 10px;
 }
 .cfg-label span{
   color: var(--accent);
@@ -1239,17 +1239,19 @@ font-size: 12px;
            - safe additive CSS (no JS changes)
         ============================== */
         :root{
-            --cfg-gap: 14px;
+            --cfg-gap-col: 14px;
+            --cfg-gap-row: 18px;
             --cfg-radius: 14px;
             --cfg-card-bg: rgba(255,255,255,0.045);
-            --cfg-card-border: rgba(255,255,255,0.08);
-            --cfg-shadow: 0 10px 24px rgba(0,0,0,0.28);
+            --cfg-card-border: rgba(255,255,255,0.11);
+            --cfg-shadow: 0 12px 26px rgba(0,0,0,0.30);
         }
 
         .cfg-grid{
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: var(--cfg-gap);
+            column-gap: var(--cfg-gap-col);
+            row-gap: var(--cfg-gap-row);
             align-content: start;
             align-items: stretch;
         }
@@ -1267,18 +1269,18 @@ font-size: 12px;
             background: var(--cfg-card-bg);
             border: 1px solid var(--cfg-card-border);
             border-radius: var(--cfg-radius);
-            padding: 14px 14px 12px;
-            box-shadow: var(--cfg-shadow);
+            padding: 14px 14px 13px;
+            box-shadow: var(--cfg-shadow), 0 0 0 1px rgba(255,255,255,0.02) inset;
             backdrop-filter: blur(2px);
             display: flex;
             flex-direction: column;
             gap: 12px;
             height: 100%;
-            min-height: 176px;
+            min-height: 180px;
             min-width: 0;
         }
         .cfg-card-title{
-            margin: 0 0 10px;
+            margin: 0 0 6px;
             font-weight: 750;
             font-size: 12px;
             letter-spacing: 0.04em;
@@ -1408,7 +1410,7 @@ font-size: 12px;
         .cfg-card-body{
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 9px;
             min-width: 0;
             width: 100%;
         }
@@ -1439,6 +1441,17 @@ font-size: 12px;
         }
         .cfg-card--readonly{
             background: rgba(255,255,255,0.035);
+        }
+
+        .cfg-card--metric-tight .cfg-card-body{
+            gap: 8px;
+        }
+        .cfg-field-control--center{
+            align-items: center;
+        }
+        .cfg-card--placeholder .cfg-add-slot{
+            min-height: 108px;
+            justify-content: center;
         }
         .cfg-inline-list{
             display: grid;
@@ -1475,6 +1488,29 @@ font-size: 12px;
         #config-overlay #lbl-herb-count{
             color: var(--accent);
             font-weight: 800;
+        }
+
+        .cfg-field-label{
+            min-height: 19px;
+            display: flex;
+            align-items: center;
+        }
+        .cfg-field-control{
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            min-width: 0;
+        }
+        .cfg-field--select .cfg-field-control select,
+        .cfg-field--range .cfg-field-control input[type="range"]{
+            width:100%;
+        }
+        .cfg-field--seg .cfg-field-control .cfg-seg{
+            width:100%;
+        }
+        .cfg-field--readonly .cfg-field-control{
+            align-items: flex-start;
         }
         .cfg-field label{
             color: var(--text-dim, #aaa);
@@ -1927,13 +1963,15 @@ BUILDER_BLOCK: CSS_END === */
     </div>
   </div>
 
-  <div class="cfg-card cfg-card--toggle">
+  <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
     <div class="cfg-card-title">02. Climate &amp; Agro</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
-        <div class="cfg-field cfg-field--grow">
-          <div class="cfg-label">기후 &amp; 농경 시스템 (Climate &amp; Agro)</div>
+        <div class="cfg-field cfg-field--grow cfg-field--readonly">
+          <div class="cfg-field-label">
+            <div class="cfg-label">기후 &amp; 농경 시스템 (Climate &amp; Agro)</div>
+          </div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-climate-status" class="val--accent">ON</span>
@@ -1942,21 +1980,25 @@ BUILDER_BLOCK: CSS_END === */
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">강 수 (하구) <span id="lbl-river-count" class="val" style="color:var(--herb); font-weight:800;">3</span></label>
+        <div class="cfg-field cfg-field--range">
+          <label class="cfg-label cfg-field-label">강 수 (하구) <span id="lbl-river-count" class="val" style="color:var(--herb); font-weight:800;">3</span></label>
+          <div class="cfg-field-control">
           <input id="cfg-river-count" type="range" min="0" max="6" value="3" step="1" style="accent-color: var(--herb);" />
+          </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="cfg-card cfg-card--toggle">
+  <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
     <div class="cfg-card-title">03. Altitude &amp; Mountains</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
-        <div class="cfg-field cfg-field--grow">
-          <div class="cfg-label">고도 &amp; 산맥 시스템 (Altitude &amp; Mountains)</div>
+        <div class="cfg-field cfg-field--grow cfg-field--readonly">
+          <div class="cfg-field-label">
+            <div class="cfg-label">고도 &amp; 산맥 시스템 (Altitude &amp; Mountains)</div>
+          </div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-altitude-status" class="val--accent">ON</span>
@@ -1965,21 +2007,25 @@ BUILDER_BLOCK: CSS_END === */
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">산맥 갯수 <span id="lbl-mtn-count" class="val" style="color:var(--accent); font-weight:800;">5</span></label>
+        <div class="cfg-field cfg-field--range">
+          <label class="cfg-label cfg-field-label">산맥 갯수 <span id="lbl-mtn-count" class="val" style="color:var(--accent); font-weight:800;">5</span></label>
+          <div class="cfg-field-control">
           <input id="cfg-mtn-count" type="range" min="1" max="6" value="5" step="1" style="accent-color: var(--accent);" />
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="cfg-card cfg-card--toggle">
+  <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
     <div class="cfg-card-title">04. Maritime</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
-        <div class="cfg-field cfg-field--grow">
-          <div class="cfg-label">Maritime (ocean moderation)</div>
+        <div class="cfg-field cfg-field--grow cfg-field--readonly">
+          <div class="cfg-field-label">
+            <div class="cfg-label">Maritime (ocean moderation)</div>
+          </div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-maritime-status" class="val--accent">ON</span>
@@ -1988,14 +2034,14 @@ BUILDER_BLOCK: CSS_END === */
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">Fishing: coming soon</label>
+        <div class="cfg-field cfg-field--readonly">
+          <label class="cfg-label cfg-field-label">Fishing: coming soon</label>
+          <div class="cfg-field-control cfg-field-control--center"></div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
 </div>
 
 <div class="config-section" id="cfg-sec-humanity" style="display:none;">
@@ -2018,24 +2064,28 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-card-body">
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">소속 산정 방식 (Affiliation)</label>
+        <div class="cfg-field cfg-field--select">
+          <label class="cfg-label cfg-field-label">소속 산정 방식 (Affiliation)</label>
+          <div class="cfg-field-control">
           <select id="cfg-clan-mode">
             <option value="LINEAGE">지역 기반</option>
             <option value="SURNAME">혈통 기반 (Lineage)</option>
             <option value="SURNAME_AUTO" selected>혈통모드(자동)</option>
           </select>
+          </div>
         </div>
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">리더 시스템</label>
+        <div class="cfg-field cfg-field--select">
+          <label class="cfg-label cfg-field-label">리더 시스템</label>
+          <div class="cfg-field-control">
           <select id="cfg-leader-mode">
             <option value="OFF">없음</option>
             <option value="FOLLOW">리더 추종</option>
             <option value="FOLLOW_BUFF" selected>리더추종+버프(보류)</option>
           </select>
+          </div>
         </div>
       </div>
       </div>
@@ -2047,15 +2097,18 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-card-body">
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">초기 인구 수 <span class="val" id="lbl-pop">500</span></label>
+        <div class="cfg-field cfg-field--range">
+          <label class="cfg-label cfg-field-label">초기 인구 수 <span class="val" id="lbl-pop">500</span></label>
+          <div class="cfg-field-control">
           <input id="cfg-pop" min="50" max="1000" step="20" style="accent-color: var(--herb);" type="range" value="500" />
+          </div>
         </div>
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">인구위기 복원속도</label>
+        <div class="cfg-field cfg-field--seg">
+          <label class="cfg-label cfg-field-label">인구위기 복원속도</label>
+          <div class="cfg-field-control">
           <div class="cfg-seg" role="group" aria-label="Crisis Recovery Speed">
             <label class="cfg-seg-item">
               <input name="crisisSpeed" type="radio" value="0.5"> Slow
@@ -2066,6 +2119,7 @@ BUILDER_BLOCK: CSS_END === */
             <label class="cfg-seg-item">
               <input name="crisisSpeed" type="radio" value="2"> Fast
             </label>
+          </div>
           </div>
         </div>
       </div>
@@ -2080,9 +2134,11 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-card-title">04. Reproduction</div>
 <div class="cfg-card-body">
 <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">번식 가능 나이(년) <span class="val" id="lbl-repro-age">12</span></label>
+        <div class="cfg-field cfg-field--range">
+          <label class="cfg-label cfg-field-label">번식 가능 나이(년) <span class="val" id="lbl-repro-age">12</span></label>
+          <div class="cfg-field-control">
           <input id="cfg-repro-age" min="8" max="16" step="1" type="range" value="12" />
+          </div>
 </div>
 </div>
 </div>
@@ -2092,8 +2148,9 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-card-title">05. Neural Net</div>
       <div class="cfg-card-body">
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">아키텍처 선택</label>
+        <div class="cfg-field cfg-field--readonly">
+          <label class="cfg-label cfg-field-label">아키텍처 선택</label>
+          <div class="cfg-field-control">
           <div class="cfg-inline-list">
             <label>
               <input id="nn-gru" type="checkbox" checked disabled />
@@ -2115,6 +2172,8 @@ BUILDER_BLOCK: CSS_END === */
 
   </div>
 </div>
+</div>
+
 <div class="config-section" id="cfg-sec-ecosystem" style="display:none;">
   <div class="section-title">🌱 Ecosystem</div>
 
@@ -2123,15 +2182,19 @@ BUILDER_BLOCK: CSS_END === */
   <div class="cfg-card-title">01. Forage</div>
   <div class="cfg-card-body">
   <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">초기 식량 수 <span class="val" id="lbl-foodcount">2000</span></label>
+    <div class="cfg-field cfg-field--range">
+      <label class="cfg-label cfg-field-label">초기 식량 수 <span class="val" id="lbl-foodcount">2000</span></label>
+      <div class="cfg-field-control">
       <input id="cfg-foodcount" max="4000" min="100" style="accent-color: var(--herb);" type="range" value="2000"/>
+      </div>
     </div>
   </div>
   <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">식량 획득 에너지 <span class="val" id="lbl-food">750</span></label>
+        <div class="cfg-field cfg-field--range">
+          <label class="cfg-label cfg-field-label">식량 획득 에너지 <span class="val" id="lbl-food">750</span></label>
+          <div class="cfg-field-control">
           <input id="cfg-food" min="100" max="1200" type="range" value="750" />
+          </div>
         </div>
       </div>
   </div>
@@ -2142,19 +2205,23 @@ BUILDER_BLOCK: CSS_END === */
   <div class="cfg-card-body">
 
   <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">맹수 종류 (Predator Type)</label>
+    <div class="cfg-field cfg-field--select">
+      <label class="cfg-label cfg-field-label">맹수 종류 (Predator Type)</label>
+      <div class="cfg-field-control">
       <select id="cfg-pred-species">
         <option value="SABERTOOTH">검치호 (단독/영역형)</option>
         <option value="DIREWOLF">다이어울프 (팩/리더센싱)</option>
       </select>
+      </div>
     </div>
   </div>
 
   <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label"><span id="lbl-pred-title">맹수 수</span> <span class="val val--accent" id="lbl-pred">7</span></label>
+    <div class="cfg-field cfg-field--range">
+      <label class="cfg-label cfg-field-label"><span id="lbl-pred-title">맹수 수</span> <span class="val val--accent" id="lbl-pred">7</span></label>
+      <div class="cfg-field-control">
       <input id="cfg-pred" max="20" min="0" style="accent-color: var(--danger);" type="range" value="7"/>
+      </div>
     </div>
   </div>
 
@@ -2168,19 +2235,23 @@ BUILDER_BLOCK: CSS_END === */
   <div class="cfg-card-body">
 
   <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">초식동물 종류 (Herbivore Type)</label>
+    <div class="cfg-field cfg-field--select">
+      <label class="cfg-label cfg-field-label">초식동물 종류 (Herbivore Type)</label>
+      <div class="cfg-field-control">
       <select id="cfg-herb-species">
         <option value="MEGATHERIUM">메가테리움 (온난/대형/무리3)</option>
         <option selected="" value="REINDEER">순록 (한랭/중형/무리7)</option>
       </select>
+      </div>
     </div>
   </div>
 
   <div class="cfg-row">
-    <div class="cfg-field">
-      <label class="cfg-label">무리 수 <span class="val val--accent" id="lbl-herb-count">30</span></label>
+    <div class="cfg-field cfg-field--range">
+      <label class="cfg-label cfg-field-label">무리 수 <span class="val val--accent" id="lbl-herb-count">30</span></label>
+      <div class="cfg-field-control">
       <input id="cfg-herb-count" max="50" min="0" style="accent-color: var(--herb);" type="range" value="30"/>
+      </div>
     </div>
   </div>
 
@@ -2188,7 +2259,7 @@ BUILDER_BLOCK: CSS_END === */
 
 </div>
 
-<div class="cfg-card placeholder is-disabled" id="cfg-card-herb-add-slot" aria-disabled="true">
+<div class="cfg-card placeholder cfg-card--placeholder is-disabled" id="cfg-card-herb-add-slot" aria-disabled="true">
   <div class="cfg-card-title">+ Add Herbivores</div>
   <div class="cfg-add-slot">
     <div class="cfg-add-plus">+</div>
@@ -2199,6 +2270,7 @@ BUILDER_BLOCK: CSS_END === */
 </div>
 
   </div>
+
 </div>
 </div>
 
