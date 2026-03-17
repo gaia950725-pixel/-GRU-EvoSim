@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.42 config world grid nesting recovery fix2</title>
+    <title>EvoSim 27.38 config standard readonly card normalization fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1442,17 +1442,6 @@ font-size: 12px;
         .cfg-card--readonly{
             background: rgba(255,255,255,0.035);
         }
-
-        .cfg-card--metric-tight .cfg-card-body{
-            gap: 8px;
-        }
-        .cfg-field-control--center{
-            align-items: center;
-        }
-        .cfg-card--placeholder .cfg-add-slot{
-            min-height: 108px;
-            justify-content: center;
-        }
         .cfg-inline-list{
             display: grid;
             gap: 8px;
@@ -1963,15 +1952,13 @@ BUILDER_BLOCK: CSS_END === */
     </div>
   </div>
 
-  <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
+  <div class="cfg-card cfg-card--toggle">
     <div class="cfg-card-title">02. Climate &amp; Agro</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
-        <div class="cfg-field cfg-field--grow cfg-field--readonly">
-          <div class="cfg-field-label">
-            <div class="cfg-label">기후 &amp; 농경 시스템 (Climate &amp; Agro)</div>
-          </div>
+        <div class="cfg-field cfg-field--grow">
+          <div class="cfg-label">기후 &amp; 농경 시스템 (Climate &amp; Agro)</div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-climate-status" class="val--accent">ON</span>
@@ -1980,25 +1967,21 @@ BUILDER_BLOCK: CSS_END === */
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field cfg-field--range">
-          <label class="cfg-label cfg-field-label">강 수 (하구) <span id="lbl-river-count" class="val" style="color:var(--herb); font-weight:800;">3</span></label>
-          <div class="cfg-field-control">
+        <div class="cfg-field">
+          <label class="cfg-label">강 수 (하구) <span id="lbl-river-count" class="val" style="color:var(--herb); font-weight:800;">3</span></label>
           <input id="cfg-river-count" type="range" min="0" max="6" value="3" step="1" style="accent-color: var(--herb);" />
-          </div>
-          </div>
         </div>
       </div>
     </div>
+  </div>
 
-  <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
+  <div class="cfg-card cfg-card--toggle">
     <div class="cfg-card-title">03. Altitude &amp; Mountains</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
-        <div class="cfg-field cfg-field--grow cfg-field--readonly">
-          <div class="cfg-field-label">
-            <div class="cfg-label">고도 &amp; 산맥 시스템 (Altitude &amp; Mountains)</div>
-          </div>
+        <div class="cfg-field cfg-field--grow">
+          <div class="cfg-label">고도 &amp; 산맥 시스템 (Altitude &amp; Mountains)</div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-altitude-status" class="val--accent">ON</span>
@@ -2007,25 +1990,21 @@ BUILDER_BLOCK: CSS_END === */
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field cfg-field--range">
-          <label class="cfg-label cfg-field-label">산맥 갯수 <span id="lbl-mtn-count" class="val" style="color:var(--accent); font-weight:800;">5</span></label>
-          <div class="cfg-field-control">
+        <div class="cfg-field">
+          <label class="cfg-label">산맥 갯수 <span id="lbl-mtn-count" class="val" style="color:var(--accent); font-weight:800;">5</span></label>
           <input id="cfg-mtn-count" type="range" min="1" max="6" value="5" step="1" style="accent-color: var(--accent);" />
-          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
+  <div class="cfg-card cfg-card--toggle">
     <div class="cfg-card-title">04. Maritime</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
-        <div class="cfg-field cfg-field--grow cfg-field--readonly">
-          <div class="cfg-field-label">
-            <div class="cfg-label">Maritime (ocean moderation)</div>
-          </div>
+        <div class="cfg-field cfg-field--grow">
+          <div class="cfg-label">Maritime (ocean moderation)</div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-maritime-status" class="val--accent">ON</span>
@@ -2034,14 +2013,14 @@ BUILDER_BLOCK: CSS_END === */
       </div>
 
       <div class="cfg-row">
-        <div class="cfg-field cfg-field--readonly">
-          <label class="cfg-label cfg-field-label">Fishing: coming soon</label>
-          <div class="cfg-field-control cfg-field-control--center"></div>
+        <div class="cfg-field">
+          <label class="cfg-label">Fishing: coming soon</label>
         </div>
       </div>
     </div>
   </div>
 </div>
+
 </div>
 
 <div class="config-section" id="cfg-sec-humanity" style="display:none;">
@@ -2148,9 +2127,8 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-card-title">05. Neural Net</div>
       <div class="cfg-card-body">
       <div class="cfg-row">
-        <div class="cfg-field cfg-field--readonly">
-          <label class="cfg-label cfg-field-label">아키텍처 선택</label>
-          <div class="cfg-field-control">
+        <div class="cfg-field">
+          <label class="cfg-label">아키텍처 선택</label>
           <div class="cfg-inline-list">
             <label>
               <input id="nn-gru" type="checkbox" checked disabled />
@@ -2172,8 +2150,6 @@ BUILDER_BLOCK: CSS_END === */
 
   </div>
 </div>
-</div>
-
 <div class="config-section" id="cfg-sec-ecosystem" style="display:none;">
   <div class="section-title">🌱 Ecosystem</div>
 
@@ -2259,7 +2235,7 @@ BUILDER_BLOCK: CSS_END === */
 
 </div>
 
-<div class="cfg-card placeholder cfg-card--placeholder is-disabled" id="cfg-card-herb-add-slot" aria-disabled="true">
+<div class="cfg-card placeholder is-disabled" id="cfg-card-herb-add-slot" aria-disabled="true">
   <div class="cfg-card-title">+ Add Herbivores</div>
   <div class="cfg-add-slot">
     <div class="cfg-add-plus">+</div>
@@ -2270,7 +2246,6 @@ BUILDER_BLOCK: CSS_END === */
 </div>
 
   </div>
-
 </div>
 </div>
 
