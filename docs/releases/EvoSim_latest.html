@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.45 config-color-unification-cleanup-closeout</title>
+    <title>EvoSim 27.45 fix3 config-dead-checkbox-css-purge</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1029,10 +1029,6 @@ font-size: 12px;
         .modal-text { white-space: pre-wrap; line-height: 1.6; color: #ddd; margin: 20px 0; overflow-y: auto; font-size: 14px; max-height: 300px; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0;}
         .close-modal-btn { align-self: flex-end; width: auto; background: transparent; border: 1px solid #444; color: #aaa; padding: 5px 15px; cursor: pointer; }
         
-        .pred-threat-options { display: flex; gap: 5px; justify-content: space-between; background:rgba(0,0,0,0.3); padding:5px; border-radius:4px; }
-        .pred-threat-label { cursor: pointer; font-size: 10px; color: #888; text-align: center; display:flex; flex-direction:column; align-items:center; flex:1; }
-        .pred-threat-label input { margin: 0 0 3px 0; accent-color: #ff5555; }
-        .pred-threat-label:hover { color: #fff; background:rgba(255,255,255,0.05); border-radius:4px;}
 
         /* Loading Overlay */
         #worldgenOverlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.85); z-index:99999; backdrop-filter: blur(5px); }
@@ -1371,32 +1367,8 @@ font-size: 12px;
     justify-content: space-between;
     gap: 10px;
 }
-#config-overlay .cfg-label,
-#config-overlay .cfg-field-label{
-    color: var(--text-main);
-}
-#config-overlay .cfg-muted,
-#config-overlay .cfg-field.is-disabled .cfg-label{
-    color: var(--text-dim);
-}
-#config-overlay .val,
-#config-overlay .val--accent{
-    color: var(--accent);
+#config-overlay .val{
     font-variant-numeric: tabular-nums;
-    font-weight: 800;
-}
-#config-overlay .val.is-off,
-#config-overlay .val--accent.is-off{
-    color: var(--text-dim);
-    font-weight: 700;
-}
-#config-overlay input[type="range"],
-#config-overlay input[type="checkbox"]{
-    accent-color: var(--accent);
-}
-#config-overlay input[type="range"]:disabled,
-#config-overlay input[type="checkbox"]:disabled{
-    accent-color: #777;
 }
 .cfg-devonly{ display:none; }
 
@@ -1504,6 +1476,10 @@ font-size: 12px;
             gap: 8px;
             white-space: nowrap;
             flex-shrink: 0;
+        }
+        #config-overlay .cfg-toggle-meta input[type="checkbox"],
+        #config-overlay .cfg-seed-inline input[type="checkbox"]{
+            accent-color: var(--accent);
         }
         .val--accent{
             color: var(--accent);
@@ -2122,11 +2098,15 @@ BUILDER_BLOCK: CSS_END === */
   <div class="cfg-grid">
     <div class="cfg-card">
       <div class="cfg-card-title">01. Genetics</div>
+      <div class="cfg-card-body">
       <div class="cfg-row">
-        <div class="cfg-field">
-          <label class="cfg-label">신경망 돌연변이 확률 <span class="val" id="lbl-mut">0.10</span></label>
+        <div class="cfg-field cfg-field--range">
+          <label class="cfg-label cfg-field-label">신경망 돌연변이 확률 <span class="val" id="lbl-mut">0.10</span></label>
+          <div class="cfg-field-control">
           <input id="cfg-mut" min="0.01" max="0.5" step="0.01" type="range" value="0.10" />
+          </div>
         </div>
+      </div>
       </div>
 </div>
 
