@@ -1,3 +1,13 @@
+### 27.46 — guide width tightening + shortcut rename + crisis segmented style + density spacing closeout (mid)
+- Change: 설정 오버레이 좌측 가이드(`.cfg-side`) 폭을 260px에서 224px로 축소하고, 축소 폭에 맞춰 side description/accordion 타이포·패딩·리스트 간격을 소폭 조정했다.
+- Change: 가이드 아코디언 버튼명을 `📖 단축키 가이드`로 정정하고 footer hint 문구도 동일한 명칭(`단축키 가이드`)으로 일치시켰다.
+- Change: Humanity > Demography의 `crisisSpeed`를 label+radio semantics 유지형 segmented pill UI로 정리하고, checked/hover/focus-visible 상태를 CSS로 재정의했다.
+- Change: 설정 UI density 마감으로 카드 내부 하단 패딩을 축소(`padding-bottom: 8px`), 카드 최소 높이를 168px로 소폭 조정하고 카드 간 column/row gap을 18px로 확장했다.
+- Change: final 산출물을 `docs/releases/archive/EvoSim_27.46_config-density-relief-and-spacing-closeout.html`로 보존하고 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Why: 가이드 폭 과점유와 잘못된 명칭을 정리하면서 crisis segmented 가독성과 카드 내부/외부 spacing 대비를 개선해 설정 화면의 번잡도를 완화하기 위함.
+- Impact: 탭 구조, ON/OFF inline relayout, `is-off` 시각화, `crisisSpeed` name/value semantics, collect/normalize/apply 파이프라인은 유지된다.
+- Verify: 27.46 title/archive/latest/index/changelog 정합성, crisis segmented semantics(name/value/checked) 유지, guide 명칭 일치 및 콘솔 오류 부재를 점검했다.
+
 ### 27.45 fix3 — config checkbox mint restore + dead predator threat css purge (minor)
 - Change: `#config-overlay .cfg-toggle-meta input[type="checkbox"]`, `#config-overlay .cfg-seed-inline input[type="checkbox"]` 범위에 `accent-color: var(--accent);`를 추가해 설정 UI의 실제 조작 checkbox 민트 톤을 복구했다.
 - Change: 현재 DOM에 없는 predator threat 레거시 CSS(`.pred-threat-options`, `.pred-threat-label`, `.pred-threat-label input`, `.pred-threat-label:hover`)를 제거했다.

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.45 fix4 config-toggle-inline-relayout</title>
+    <title>EvoSim 27.46 config-density-relief-and-spacing-closeout</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -176,7 +176,7 @@
             -webkit-backdrop-filter: blur(12px);
             border: var(--glass-border);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px;
             pointer-events: auto;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
             transition: border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.3s;
@@ -193,7 +193,7 @@
             align-items: center;
             cursor: move;
             padding-bottom: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .panel-header h2 {
@@ -231,14 +231,14 @@
         #info-panel {
             top: 80px; 
             left: 20px;
-            width: 260px;
+            width: 224px;
         }
 
         /* System Info Tile Layout */
         .info-tiles {
             display: flex;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
         .info-col {
             flex: 1;
@@ -538,7 +538,7 @@ font-size: 12px;
             user-select: none;
         }
         #config-overlay .cfg-header-main{
-            font-size: 14px;
+            font-size: 13px;
             letter-spacing: 3px;
             color: var(--accent);
             text-transform: uppercase;
@@ -553,10 +553,10 @@ font-size: 12px;
             overflow: hidden;
         }
         #config-overlay .cfg-side{
-            flex: 0 0 260px;
-            width: 260px;
-            min-width: 260px;
-            max-width: 260px;
+            flex: 0 0 224px;
+            width: 224px;
+            min-width: 224px;
+            max-width: 224px;
             padding: 18px 18px;
             background: rgba(0,0,0,0.18);
             border-right: 1px solid rgba(255,255,255,0.06);
@@ -572,7 +572,7 @@ font-size: 12px;
         #config-overlay .cfg-side-desc{
             font-size: 12px;
             color: rgba(255,255,255,0.7);
-            line-height: 1.35;
+            line-height: 1.4;
             margin: 0 0 12px 0;
         }
         #config-overlay .cfg-main{
@@ -721,7 +721,7 @@ font-size: 12px;
         #config-overlay .section-title{ display:none; }
 
         /* Guide block formatting */
-        #config-overlay .cfg-side-desc{ font-size: 12px; color: var(--text-dim); line-height: 1.45; }
+        #config-overlay .cfg-side-desc{ font-size: 12px; color: var(--text-dim); line-height: 1.5; }
         #config-overlay .cfg-guide-head{
             color: var(--accent);
             font-weight: 800;
@@ -766,7 +766,7 @@ font-size: 12px;
   color: var(--accent);
   font-weight: 800;
 }
-        #config-overlay .cfg-muted{ color: var(--text-dim); font-size: 11px; line-height: 1.35; }
+        #config-overlay .cfg-muted{ color: var(--text-dim); font-size: 11px; line-height: 1.4; }
 
         /* Unified input controls in config overlay */
         #config-overlay select{
@@ -961,32 +961,32 @@ font-size: 12px;
             border: 1px solid #333;
             border-radius: 6px;
             text-align: left;
-            padding: 12px 15px;
+            padding: 10px 12px;
             width: 100%;
             color: #ddd;
             font-size: 14px;
             cursor: pointer;
             display: flex; justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             margin-top: 0;
         }
         .accordion-btn:hover { background: rgba(255, 255, 255, 0.08); color: var(--accent); border-color: rgba(255,255,255,0.2); }
         .accordion-content {
             display: none;
-            padding: 15px;
+            padding: 12px;
             background: rgba(0, 0, 0, 0.2);
             font-size: 13px;
-            line-height: 1.6;
+            line-height: 1.52;
             color: #bbb;
             border: 1px solid #333;
             border-top: none;
-            margin-top: -10px;
-            margin-bottom: 15px;
+            margin-top: -8px;
+            margin-bottom: 12px;
             border-radius: 0 0 6px 6px;
         }
         .accordion-content h4 { color: var(--accent); margin: 10px 0 5px 0; font-size: 14px; }
-        .accordion-content ul { padding-left: 20px; margin: 5px 0; }
-        .accordion-content li { margin-bottom: 4px; }
+        .accordion-content ul { padding-left: 18px; margin: 4px 0; }
+        .accordion-content li { margin-bottom: 3px; }
         
         .control-group {
             margin-top: 15px;
@@ -1010,7 +1010,7 @@ font-size: 12px;
         #start-btn { 
             margin-top: 10px; 
             font-size: 16px; 
-            padding: 15px; 
+            padding: 12px; 
             background: rgba(0, 255, 204, 0.1); 
             width: 100%;
             letter-spacing: 2px;
@@ -1026,7 +1026,7 @@ font-size: 12px;
             box-shadow: 0 0 100px rgba(0, 0, 0, 0.9);
             border-radius: 12px;
         }
-        .modal-text { white-space: pre-wrap; line-height: 1.6; color: #ddd; margin: 20px 0; overflow-y: auto; font-size: 14px; max-height: 300px; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0;}
+        .modal-text { white-space: pre-wrap; line-height: 1.52; color: #ddd; margin: 20px 0; overflow-y: auto; font-size: 14px; max-height: 300px; border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0;}
         .close-modal-btn { align-self: flex-end; width: auto; background: transparent; border: 1px solid #444; color: #aaa; padding: 5px 15px; cursor: pointer; }
         
 
@@ -1137,7 +1137,7 @@ font-size: 12px;
             align-items: center;
             gap: 8px;
             padding-bottom: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.10);
         }
         .cp-tab {
@@ -1239,8 +1239,8 @@ font-size: 12px;
            - safe additive CSS (no JS changes)
         ============================== */
         :root{
-            --cfg-gap-col: 14px;
-            --cfg-gap-row: 14px;
+            --cfg-gap-col: 18px;
+            --cfg-gap-row: 18px;
             --cfg-radius: 14px;
             --cfg-card-bg: rgba(255,255,255,0.045);
             --cfg-card-border: rgba(255,255,255,0.11);
@@ -1272,14 +1272,14 @@ font-size: 12px;
             background: var(--cfg-card-bg);
             border: 1px solid var(--cfg-card-border);
             border-radius: var(--cfg-radius);
-            padding: 14px 14px 13px;
+            padding: 14px 14px 8px;
             box-shadow: var(--cfg-shadow), 0 0 0 1px rgba(255,255,255,0.02) inset;
             backdrop-filter: blur(2px);
             display: flex;
             flex-direction: column;
             gap: 10px;
             height: 100%;
-            min-height: 172px;
+            min-height: 168px;
             min-width: 0;
         }
         .cfg-card-title{
@@ -1605,22 +1605,39 @@ font-size: 12px;
             border: 1px solid rgba(255,255,255,0.10);
             background: rgba(0,0,0,0.18);
         }
-        .cfg-seg button{
+        .cfg-seg-item{
+            position: relative;
             flex: 1;
-            border: 0;
+            min-width: 0;
+            cursor: pointer;
+        }
+        .cfg-seg-item input[type="radio"]{
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+        }
+        .cfg-seg-item-label{
+            display: block;
             border-radius: 999px;
             padding: 6px 10px;
-            background: transparent;
+            text-align: center;
+            background: rgba(255,255,255,0.02);
             color: var(--text-dim, #aaa);
-            cursor: pointer;
             font-weight: 650;
             font-size: 12px;
             letter-spacing: 0.01em;
+            transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
         }
-        .cfg-seg button:hover{
+        .cfg-seg-item:hover .cfg-seg-item-label{
             color: var(--text-main, #eee);
         }
-        .cfg-seg button.active{
+        .cfg-seg-item input[type="radio"]:focus-visible + .cfg-seg-item-label{
+            outline: 2px solid rgba(0,255,204,0.35);
+            outline-offset: 1px;
+        }
+        .cfg-seg-item input[type="radio"]:checked + .cfg-seg-item-label{
             background: rgba(0,255,204,0.14);
             color: var(--accent, #00ffcc);
             box-shadow: 0 0 0 1px rgba(0,255,204,0.20) inset;
@@ -1630,7 +1647,7 @@ font-size: 12px;
             color: var(--text-dim, #aaa);
             opacity: 0.88;
             font-size: 12px;
-            line-height: 1.35;
+            line-height: 1.4;
         }
         .cfg-field-helper{
             min-height: 14px;
@@ -1795,7 +1812,7 @@ BUILDER_BLOCK: CSS_END === */
             margin-top: 8px;
             font-size: 12px;
             color: rgba(255,255,255,0.65);
-            line-height: 1.35;
+            line-height: 1.4;
         }
         #exit-modal .exit-actions{
             margin-top: 16px;
@@ -1873,7 +1890,7 @@ BUILDER_BLOCK: CSS_END === */
             margin-top: 8px;
             font-size: 12px;
             color: rgba(255,255,255,0.65);
-            line-height: 1.35;
+            line-height: 1.4;
         }
         #confirm-init-modal .exit-actions{
             margin-top: 16px;
@@ -1978,7 +1995,7 @@ BUILDER_BLOCK: CSS_END === */
 <div class="cfg-side-title">가이드</div>
 <div class="cfg-side-desc" id="cfg-side-desc">World / Humanity / Ecosystem 탭에서 규칙과 파라미터를 조정합니다.</div>
 <div id="cfg-guide-block">
-<button class="accordion-btn">📖 세계 규칙 가이드 <span>▼</span></button>
+<button class="accordion-btn">📖 단축키 가이드 <span>▼</span></button>
 <div class="accordion-content">
 <h4>단축키 가이드</h4>
 <ul>
@@ -2194,15 +2211,18 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--seg">
           <label class="cfg-label cfg-field-label">인구위기 복원속도</label>
           <div class="cfg-field-control">
-          <div class="cfg-seg" role="group" aria-label="Crisis Recovery Speed">
+          <div class="cfg-seg" role="radiogroup" aria-label="Crisis Recovery Speed">
             <label class="cfg-seg-item">
-              <input name="crisisSpeed" type="radio" value="0.5"> Slow
+              <input name="crisisSpeed" type="radio" value="0.5" />
+              <span class="cfg-seg-item-label">Slow</span>
             </label>
             <label class="cfg-seg-item">
-              <input name="crisisSpeed" type="radio" value="1" checked> Normal
+              <input name="crisisSpeed" type="radio" value="1" checked />
+              <span class="cfg-seg-item-label">Normal</span>
             </label>
             <label class="cfg-seg-item">
-              <input name="crisisSpeed" type="radio" value="2"> Fast
+              <input name="crisisSpeed" type="radio" value="2" />
+              <span class="cfg-seg-item-label">Fast</span>
             </label>
           </div>
           </div>
@@ -2360,7 +2380,7 @@ BUILDER_BLOCK: CSS_END === */
 </div>
 
   <div class="cfg-footer">
-  <div class="cfg-footer-hint">• 단축키는 <b>세계 규칙 가이드</b>에서 확인할 수 있습니다.  • 텍스트 입력창 포커스 시 단축키는 비활성입니다.<span id="cfg-apply-hint">현재 변경은 다음 Initialize에만 적용됩니다.</span></div>
+  <div class="cfg-footer-hint">• 단축키는 <b>단축키 가이드</b>에서 확인할 수 있습니다.  • 텍스트 입력창 포커스 시 단축키는 비활성입니다.<span id="cfg-apply-hint">현재 변경은 다음 Initialize에만 적용됩니다.</span></div>
   <div class="cfg-footer-actions">
     <button id="resume-btn" class="cfg-resume-btn is-disabled" type="button" aria-disabled="true" disabled>RESUME</button>
     <button id="start-btn">INITIALIZE SIMULATION</button>
@@ -2565,7 +2585,7 @@ BUILDER_BLOCK: CSS_END === */
   </div>
 
                 <div id="pnrev-chron-narr" class="pnrev-tab" data-tab="narr">
-<div id="log-container" style="flex-grow: 1; overflow-y: hidden; display: flex; flex-direction: column-reverse; height: 120px; margin-bottom: 10px;">
+<div id="log-container" style="flex-grow: 1; overflow-y: hidden; display: flex; flex-direction: column-reverse; height: 120px; margin-bottom: 8px;">
                 </div>
 </div>
                 <!-- POPULATION GRAPH -->
