@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.45 config-color-unification-cleanup-closeout</title>
+    <title>EvoSim 27.44 guide-width-lock-world-guide-migration</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1371,32 +1371,8 @@ font-size: 12px;
     justify-content: space-between;
     gap: 10px;
 }
-#config-overlay .cfg-label,
-#config-overlay .cfg-field-label{
-    color: var(--text-main);
-}
-#config-overlay .cfg-muted,
-#config-overlay .cfg-field.is-disabled .cfg-label{
-    color: var(--text-dim);
-}
-#config-overlay .val,
-#config-overlay .val--accent{
-    color: var(--accent);
+#config-overlay .val{
     font-variant-numeric: tabular-nums;
-    font-weight: 800;
-}
-#config-overlay .val.is-off,
-#config-overlay .val--accent.is-off{
-    color: var(--text-dim);
-    font-weight: 700;
-}
-#config-overlay input[type="range"],
-#config-overlay input[type="checkbox"]{
-    accent-color: var(--accent);
-}
-#config-overlay input[type="range"]:disabled,
-#config-overlay input[type="checkbox"]:disabled{
-    accent-color: #777;
 }
 .cfg-devonly{ display:none; }
 
@@ -1554,6 +1530,11 @@ font-size: 12px;
             border: 1px solid rgba(255,255,255,0.18);
             background: rgba(0,0,0,0.25);
             color: #fff;
+        }
+        #config-overlay #lbl-pred,
+        #config-overlay #lbl-herb-count{
+            color: var(--accent);
+            font-weight: 800;
         }
 
         .cfg-field-label{
@@ -3637,27 +3618,30 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             }
             if (mtnLabel) {
                 mtnLabel.textContent = String(preview.mountainCount);
-                mtnLabel.classList.toggle('is-off', !preview.altitudeOn);
+                mtnLabel.style.color = preview.altitudeOn ? 'var(--accent)' : '#777';
             }
             if (riverLabel) {
                 riverLabel.textContent = String(preview.riverCount);
-                riverLabel.classList.toggle('is-off', !preview.climateOn);
+                riverLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
             }
             if (farmLabel) {
                 farmLabel.textContent = Math.round(preview.farmPct * 100) + '%';
-                farmLabel.classList.toggle('is-off', !preview.climateOn);
+                farmLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
             }
             if (climateStatus) {
                 climateStatus.textContent = preview.climateOn ? 'ON' : 'OFF';
-                climateStatus.classList.toggle('is-off', !preview.climateOn);
+                climateStatus.style.color = preview.climateOn ? '#00ffcc' : '#aaa';
+                climateStatus.style.fontWeight = preview.climateOn ? 'bold' : 'normal';
             }
             if (altStatus) {
                 altStatus.textContent = preview.altitudeOn ? 'ON' : 'OFF';
-                altStatus.classList.toggle('is-off', !preview.altitudeOn);
+                altStatus.style.color = preview.altitudeOn ? '#00ffcc' : '#aaa';
+                altStatus.style.fontWeight = preview.altitudeOn ? 'bold' : 'normal';
             }
             if (marStatus) {
                 marStatus.textContent = preview.maritimeOn ? 'ON' : 'OFF';
-                marStatus.classList.toggle('is-off', !preview.maritimeOn);
+                marStatus.style.color = preview.maritimeOn ? '#00ffcc' : '#aaa';
+                marStatus.style.fontWeight = preview.maritimeOn ? 'bold' : 'normal';
             }
         }
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.43 fix1b two-row-field-slot-alignment</title>
+    <title>EvoSim 27.45 config-color-unification-cleanup-closeout</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -553,7 +553,10 @@ font-size: 12px;
             overflow: hidden;
         }
         #config-overlay .cfg-side{
+            flex: 0 0 260px;
             width: 260px;
+            min-width: 260px;
+            max-width: 260px;
             padding: 18px 18px;
             background: rgba(0,0,0,0.18);
             border-right: 1px solid rgba(255,255,255,0.06);
@@ -579,6 +582,7 @@ font-size: 12px;
   padding: 22px 24px 18px 24px;
   overflow:auto;
   flex: 1 1 auto;
+  min-width: 0;
   min-height:0;
 }
         #config-overlay .cfg-footer{
@@ -1367,8 +1371,32 @@ font-size: 12px;
     justify-content: space-between;
     gap: 10px;
 }
-#config-overlay .val{
+#config-overlay .cfg-label,
+#config-overlay .cfg-field-label{
+    color: var(--text-main);
+}
+#config-overlay .cfg-muted,
+#config-overlay .cfg-field.is-disabled .cfg-label{
+    color: var(--text-dim);
+}
+#config-overlay .val,
+#config-overlay .val--accent{
+    color: var(--accent);
     font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}
+#config-overlay .val.is-off,
+#config-overlay .val--accent.is-off{
+    color: var(--text-dim);
+    font-weight: 700;
+}
+#config-overlay input[type="range"],
+#config-overlay input[type="checkbox"]{
+    accent-color: var(--accent);
+}
+#config-overlay input[type="range"]:disabled,
+#config-overlay input[type="checkbox"]:disabled{
+    accent-color: #777;
 }
 .cfg-devonly{ display:none; }
 
@@ -1526,11 +1554,6 @@ font-size: 12px;
             border: 1px solid rgba(255,255,255,0.18);
             background: rgba(0,0,0,0.25);
             color: #fff;
-        }
-        #config-overlay #lbl-pred,
-        #config-overlay #lbl-herb-count{
-            color: var(--accent);
-            font-weight: 800;
         }
 
         .cfg-field-label{
@@ -1969,17 +1992,9 @@ BUILDER_BLOCK: CSS_END === */
 <div style="font-size:11px; color:#aaa; margin-top:8px; line-height:1.4;">
                     텍스트 입력창에 포커스가 있으면 단축키는 동작하지 않습니다.
                 </div>
-<h4 style="margin-top:14px;">농지비율(자동) 산식</h4>
-<div style="font-size:11px; color:#aaa; line-height:1.4;">
-  농지비율 = 36% × (강 수 / 맵별 최대 강 수)
+<div style="font-size:11px; color:#aaa; margin-top:10px; line-height:1.4;">
+  월드 규칙 핵심(고정 토폴로지/농지비율 산식)은 World 탭 왼쪽 가이드에서 상시 확인하세요.
 </div>
-
-<h4 style="margin-top:14px;">고정 토폴로지(Seed Lock) 안내</h4>
-<div style="font-size:11px; color:#aaa; line-height:1.4;">
-  <div>Seed + 고정 토폴로지 ON: 지구 토폴로지(템플릿) 고정 적용 (현재: TSL XL만)</div>
-  <div>세션 시작 시에만 반영됩니다(게임 중 변경해도 적용되지 않음).</div>
-</div>
-
 
 </div>
 </div>
@@ -2007,7 +2022,7 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-field">
         <label class="cfg-label">고정 토폴로지</label>
         <div class="cfg-seed-inline">
-          <input id="cfg-seed-lock" type="checkbox" style="accent-color: var(--accent); transform: scale(1.05);" />
+          <input id="cfg-seed-lock" type="checkbox" />
           <input id="cfg-seed" class="cfg-seed-input" type="number" min="0" step="1" value="12345" />
 
         </div>
@@ -2030,15 +2045,15 @@ BUILDER_BLOCK: CSS_END === */
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-climate-status" class="val--accent">ON</span>
-          <input id="cfg-climate" type="checkbox" checked style="accent-color: var(--accent); transform: scale(1.05);" />
+          <input id="cfg-climate" type="checkbox" checked />
         </div>
       </div>
 
       <div class="cfg-row">
         <div class="cfg-field cfg-field--range">
-          <label class="cfg-label cfg-field-label">강 수 (하구) <span id="lbl-river-count" class="val" style="color:var(--herb); font-weight:800;">3</span></label>
+          <label class="cfg-label cfg-field-label">강 수 (하구) <span id="lbl-river-count" class="val">3</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-river-count" type="range" min="0" max="6" value="3" step="1" style="accent-color: var(--herb);" />
+          <input id="cfg-river-count" type="range" min="0" max="6" value="3" step="1" />
           </div>
           </div>
         </div>
@@ -2058,15 +2073,15 @@ BUILDER_BLOCK: CSS_END === */
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-altitude-status" class="val--accent">ON</span>
-          <input id="cfg-altitude" type="checkbox" checked style="accent-color: var(--accent); transform: scale(1.05);" />
+          <input id="cfg-altitude" type="checkbox" checked />
         </div>
       </div>
 
       <div class="cfg-row">
         <div class="cfg-field cfg-field--range">
-          <label class="cfg-label cfg-field-label">산맥 갯수 <span id="lbl-mtn-count" class="val" style="color:var(--accent); font-weight:800;">5</span></label>
+          <label class="cfg-label cfg-field-label">산맥 갯수 <span id="lbl-mtn-count" class="val">5</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-mtn-count" type="range" min="1" max="6" value="5" step="1" style="accent-color: var(--accent);" />
+          <input id="cfg-mtn-count" type="range" min="1" max="6" value="5" step="1" />
           </div>
         </div>
       </div>
@@ -2086,7 +2101,7 @@ BUILDER_BLOCK: CSS_END === */
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-maritime-status" class="val--accent">ON</span>
-          <input id="cfg-maritime" type="checkbox" checked style="accent-color: var(--accent); transform: scale(1.05);" />
+          <input id="cfg-maritime" type="checkbox" checked />
         </div>
       </div>
 
@@ -2157,7 +2172,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">초기 인구 수 <span class="val" id="lbl-pop">500</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-pop" min="50" max="1000" step="20" style="accent-color: var(--herb);" type="range" value="500" />
+          <input id="cfg-pop" min="50" max="1000" step="20" type="range" value="500" />
           </div>
         </div>
       </div>
@@ -2242,7 +2257,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--range">
       <label class="cfg-label cfg-field-label">초기 식량 수 <span class="val" id="lbl-foodcount">2000</span></label>
       <div class="cfg-field-control">
-      <input id="cfg-foodcount" max="4000" min="100" style="accent-color: var(--herb);" type="range" value="2000"/>
+      <input id="cfg-foodcount" max="4000" min="100" type="range" value="2000"/>
       </div>
     </div>
   </div>
@@ -2277,7 +2292,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--range">
       <label class="cfg-label cfg-field-label"><span id="lbl-pred-title">맹수 수</span> <span class="val val--accent" id="lbl-pred">7</span></label>
       <div class="cfg-field-control">
-      <input id="cfg-pred" max="20" min="0" style="accent-color: var(--danger);" type="range" value="7"/>
+      <input id="cfg-pred" max="20" min="0" type="range" value="7"/>
       </div>
     </div>
   </div>
@@ -2307,7 +2322,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--range">
       <label class="cfg-label cfg-field-label">무리 수 <span class="val val--accent" id="lbl-herb-count">30</span></label>
       <div class="cfg-field-control">
-      <input id="cfg-herb-count" max="50" min="0" style="accent-color: var(--herb);" type="range" value="30"/>
+      <input id="cfg-herb-count" max="50" min="0" type="range" value="30"/>
       </div>
     </div>
   </div>
@@ -3622,30 +3637,27 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
             }
             if (mtnLabel) {
                 mtnLabel.textContent = String(preview.mountainCount);
-                mtnLabel.style.color = preview.altitudeOn ? 'var(--accent)' : '#777';
+                mtnLabel.classList.toggle('is-off', !preview.altitudeOn);
             }
             if (riverLabel) {
                 riverLabel.textContent = String(preview.riverCount);
-                riverLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
+                riverLabel.classList.toggle('is-off', !preview.climateOn);
             }
             if (farmLabel) {
                 farmLabel.textContent = Math.round(preview.farmPct * 100) + '%';
-                farmLabel.style.color = preview.climateOn ? 'var(--herb)' : '#777';
+                farmLabel.classList.toggle('is-off', !preview.climateOn);
             }
             if (climateStatus) {
                 climateStatus.textContent = preview.climateOn ? 'ON' : 'OFF';
-                climateStatus.style.color = preview.climateOn ? '#00ffcc' : '#aaa';
-                climateStatus.style.fontWeight = preview.climateOn ? 'bold' : 'normal';
+                climateStatus.classList.toggle('is-off', !preview.climateOn);
             }
             if (altStatus) {
                 altStatus.textContent = preview.altitudeOn ? 'ON' : 'OFF';
-                altStatus.style.color = preview.altitudeOn ? '#00ffcc' : '#aaa';
-                altStatus.style.fontWeight = preview.altitudeOn ? 'bold' : 'normal';
+                altStatus.classList.toggle('is-off', !preview.altitudeOn);
             }
             if (marStatus) {
                 marStatus.textContent = preview.maritimeOn ? 'ON' : 'OFF';
-                marStatus.style.color = preview.maritimeOn ? '#00ffcc' : '#aaa';
-                marStatus.style.fontWeight = preview.maritimeOn ? 'bold' : 'normal';
+                marStatus.classList.toggle('is-off', !preview.maritimeOn);
             }
         }
 
@@ -3702,6 +3714,8 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
                     <ul class="cfg-guide-list">
                         <li><b>Map</b> : 월드 프리셋(지형 규격)을 선택합니다.</li>
                         <li><b>Climate &amp; Agro</b> : 기후/농경 시스템을 ON/OFF 하고, 농경가능구역 비율을 조정합니다.<br><span class="hint">기후 OFF면 농경 관련 항목은 비활성화(Phase 3 예정)</span></li>
+                        <li><b>Fixed Topology</b> : Seed Lock을 켜면 실행 간 강과 산(rivers and mountains) 구조가 고정됩니다.<br><span class="hint">세션 시작 시에만 반영됩니다.</span></li>
+                        <li><b>Farmable Area</b> : 자동산식으로 계산됩니다.<br><span class="hint">농지비율 = 36% × (강 수 / 맵별 최대 강 수)</span></li>
                     </ul>
                 `,
                 'cfg-sec-humanity': `
