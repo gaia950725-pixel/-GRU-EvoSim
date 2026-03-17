@@ -1,3 +1,11 @@
+### 27.43 fix1b — two-row field slot alignment (mid)
+- Change: 카드 body의 1행/2행을 공통 슬롯 규격으로 정렬하기 위해 `.cfg-card-body > .cfg-row:nth-of-type(1/2)` 기반 slot contract를 도입하고 `slot-1 min-height 58px`, `slot-2 min-height 62px`, row gap 8px를 공통화했다.
+- Change: field contract를 슬롯 기반으로 맞추기 위해 slot row 내부 `.cfg-field`를 `min-height:100%`로 정렬하고, split header row(`.cfg-row--split`)는 top-align으로 조정해 helper 포함 높이를 slot-1에서 흡수하도록 맞췄다.
+- Change: Map 카드 seed-inline을 control variant로 취급해 `.cfg-seed-inline min-height:38px`를 부여하고, toggle meta도 `min-height:38px`로 정렬해 row baseline 불일치를 완화했다.
+- Why: select/range/seg/seed-inline/readonly가 섞인 카드들 사이에서 1행·2행 시작선과 종료선이 어긋나 보이던 문제를 공통 슬롯 규격으로 제어하기 위함.
+- Impact: 탭 구조/저장 로직/ON-OFF 로직/helper 문구는 유지되며, World 중심으로 카드 간 2행 rhythm과 수직 정렬감이 개선된다.
+- Verify: World 탭 Map+Climate/Altitude+Maritime 스크린샷으로 정렬 개선을 확인했고, `lbl-pred`/`lbl-herb-count` cyan 정책과 콘솔 런타임 오류 부재를 재점검했다.
+
 ### 27.43 fix1a — world on/off helper + english unification (mid)
 - Change: World 탭 토글 카드 3종(Climate & Agriculture / Altitude & Mountains / Maritime)의 split-row에 `.cfg-field-helper`를 추가해 label-control-helper 3층 리듬을 적용했다.
 - Change: helper contract를 `font-size:11px`, `line-height:1.2`, `min-height:14px`, muted color/opacity로 정의하고 1줄 고정(ellipsis)으로 카드 높이 변동을 제어했다.
