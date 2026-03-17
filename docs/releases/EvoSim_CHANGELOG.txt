@@ -1,3 +1,11 @@
+### 27.46 fix1 — card gap widening (minor)
+- Change: 27.46 closeout 기준 설정 UI의 카드 외부 spacing을 확장하기 위해 `--cfg-gap-col`, `--cfg-gap-row`를 `18px`에서 `22px`로 상향했다.
+- Change: 카드 내부 밀도 계약(`.cfg-card` 하단 padding 8px, min-height 168px), 가이드 폭/명칭, crisisSpeed segmented 스타일, World 토글 inline relayout은 유지했다.
+- Change: final 산출물을 `docs/releases/archive/EvoSim_27.46_fix1_card-gap-widening.html`로 보존하고 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Why: 카드 내부 metric을 건드리지 않고 카드 간 여백만 넓혀 화면 혼잡도를 완화하기 위함.
+- Impact: 탭 구조/카드 개수/설정 semantics 및 기존 27.46 개선사항은 유지되며 카드 간 외부 리듬만 완화된다.
+- Verify: 27.46 fix1 title/archive/latest/index 정합성, gap 토큰 상향(22/22), 금지사항 회귀 없음, 콘솔 오류 부재를 점검했다.
+
 ### 27.46 — guide width tightening + shortcut rename + crisis segmented style + density spacing closeout (mid)
 - Change: 설정 오버레이 좌측 가이드(`.cfg-side`) 폭을 260px에서 224px로 축소하고, 축소 폭에 맞춰 side description/accordion 타이포·패딩·리스트 간격을 소폭 조정했다.
 - Change: 가이드 아코디언 버튼명을 `📖 단축키 가이드`로 정정하고 footer hint 문구도 동일한 명칭(`단축키 가이드`)으로 일치시켰다.
