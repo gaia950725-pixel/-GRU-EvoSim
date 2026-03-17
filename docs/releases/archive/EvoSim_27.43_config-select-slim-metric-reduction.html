@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.43 fix1b two-row-field-slot-alignment</title>
+    <title>EvoSim 27.43 config select slim metric reduction</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1245,9 +1245,6 @@ font-size: 12px;
             --cfg-card-bg: rgba(255,255,255,0.045);
             --cfg-card-border: rgba(255,255,255,0.11);
             --cfg-shadow: 0 12px 26px rgba(0,0,0,0.30);
-            --cfg-slot-row-gap: 8px;
-            --cfg-slot1-min: 58px;
-            --cfg-slot2-min: 62px;
         }
 
         .cfg-grid{
@@ -1436,31 +1433,17 @@ font-size: 12px;
         .cfg-card-body{
             display: flex;
             flex-direction: column;
-            gap: var(--cfg-slot-row-gap);
+            gap: 8px;
             min-width: 0;
             width: 100%;
         }
         .cfg-card--toggle .cfg-card-body{
-            gap: var(--cfg-slot-row-gap);
-        }
-        .cfg-card-body > .cfg-row:nth-of-type(1):not(:only-child){
-            min-height: var(--cfg-slot1-min);
-        }
-        .cfg-card-body > .cfg-row:nth-of-type(2){
-            min-height: var(--cfg-slot2-min);
-        }
-        .cfg-card-body > .cfg-row:nth-of-type(1):not(:only-child),
-        .cfg-card-body > .cfg-row:nth-of-type(2){
-            align-items: stretch;
-        }
-        .cfg-card-body > .cfg-row:nth-of-type(1):not(:only-child) .cfg-field,
-        .cfg-card-body > .cfg-row:nth-of-type(2) .cfg-field{
-            min-height: 100%;
+            gap: 10px;
         }
         .cfg-row--split{
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
             gap: 10px;
             flex-direction: row;
         }
@@ -1471,8 +1454,6 @@ font-size: 12px;
         .cfg-toggle-meta{
             display: flex;
             align-items: center;
-            align-self: flex-start;
-            min-height: 38px;
             gap: 8px;
             white-space: nowrap;
             flex-shrink: 0;
@@ -1512,7 +1493,6 @@ font-size: 12px;
             display: flex;
             gap: 10px;
             align-items: center;
-            min-height: 38px;
             width: 100%;
             min-width: 0;
         }
@@ -1599,17 +1579,6 @@ font-size: 12px;
             opacity: 0.88;
             font-size: 12px;
             line-height: 1.35;
-        }
-        .cfg-field-helper{
-            min-height: 14px;
-            margin-top: 2px;
-            font-size: 11px;
-            line-height: 1.2;
-            color: var(--text-dim, #aaa);
-            opacity: 0.82;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .is-disabled{
@@ -2018,15 +1987,14 @@ BUILDER_BLOCK: CSS_END === */
   </div>
 
   <div class="cfg-card cfg-card--toggle cfg-card--metric-tight">
-    <div class="cfg-card-title">02. Climate &amp; Agriculture</div>
+    <div class="cfg-card-title">02. Climate &amp; Agro</div>
 
     <div class="cfg-card-body">
       <div class="cfg-row cfg-row--split">
         <div class="cfg-field cfg-field--grow cfg-field--readonly">
           <div class="cfg-field-label">
-            <div class="cfg-label">Climate &amp; Agriculture system</div>
+            <div class="cfg-label">기후 &amp; 농경 시스템 (Climate &amp; Agro)</div>
           </div>
-          <div class="cfg-field-helper">Seasonal climate, rivers, and farmable land.</div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-climate-status" class="val--accent">ON</span>
@@ -2052,9 +2020,8 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-row cfg-row--split">
         <div class="cfg-field cfg-field--grow cfg-field--readonly">
           <div class="cfg-field-label">
-            <div class="cfg-label">Altitude &amp; Mountains system</div>
+            <div class="cfg-label">고도 &amp; 산맥 시스템 (Altitude &amp; Mountains)</div>
           </div>
-          <div class="cfg-field-helper">Ridges and elevation redirect movement.</div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-altitude-status" class="val--accent">ON</span>
@@ -2080,9 +2047,8 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-row cfg-row--split">
         <div class="cfg-field cfg-field--grow cfg-field--readonly">
           <div class="cfg-field-label">
-            <div class="cfg-label">Maritime system</div>
+            <div class="cfg-label">Maritime (ocean moderation)</div>
           </div>
-          <div class="cfg-field-helper">Oceanic influence on coastal climate and fishable waters.</div>
         </div>
         <div class="cfg-toggle-meta">
           <span id="lbl-maritime-status" class="val--accent">ON</span>

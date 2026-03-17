@@ -1,3 +1,27 @@
+### 27.43 fix1b — two-row field slot alignment (mid)
+- Change: 카드 body의 1행/2행을 공통 슬롯 규격으로 정렬하기 위해 `.cfg-card-body > .cfg-row:nth-of-type(1/2)` 기반 slot contract를 도입하고 `slot-1 min-height 58px`, `slot-2 min-height 62px`, row gap 8px를 공통화했다.
+- Change: field contract를 슬롯 기반으로 맞추기 위해 slot row 내부 `.cfg-field`를 `min-height:100%`로 정렬하고, split header row(`.cfg-row--split`)는 top-align으로 조정해 helper 포함 높이를 slot-1에서 흡수하도록 맞췄다.
+- Change: Map 카드 seed-inline을 control variant로 취급해 `.cfg-seed-inline min-height:38px`를 부여하고, toggle meta도 `min-height:38px`로 정렬해 row baseline 불일치를 완화했다.
+- Why: select/range/seg/seed-inline/readonly가 섞인 카드들 사이에서 1행·2행 시작선과 종료선이 어긋나 보이던 문제를 공통 슬롯 규격으로 제어하기 위함.
+- Impact: 탭 구조/저장 로직/ON-OFF 로직/helper 문구는 유지되며, World 중심으로 카드 간 2행 rhythm과 수직 정렬감이 개선된다.
+- Verify: World 탭 Map+Climate/Altitude+Maritime 스크린샷으로 정렬 개선을 확인했고, `lbl-pred`/`lbl-herb-count` cyan 정책과 콘솔 런타임 오류 부재를 재점검했다.
+
+### 27.43 fix1a — world on/off helper + english unification (mid)
+- Change: World 탭 토글 카드 3종(Climate & Agriculture / Altitude & Mountains / Maritime)의 split-row에 `.cfg-field-helper`를 추가해 label-control-helper 3층 리듬을 적용했다.
+- Change: helper contract를 `font-size:11px`, `line-height:1.2`, `min-height:14px`, muted color/opacity로 정의하고 1줄 고정(ellipsis)으로 카드 높이 변동을 제어했다.
+- Change: 적용 범위 내 텍스트를 영어로 통일하고 카드 타이틀 `Climate & Agriculture` 명칭을 확정했다.
+- Why: ON/OFF 카드 상단이 slider/select 필드 대비 과도하게 납작해 보이던 인상을 helper 1줄로 완화하기 위함.
+- Impact: CONFIG_TABS/normalize/apply 및 slider/select/checkbox 의미·값은 유지되며, 대상 3카드의 시각 리듬만 소폭 증가한다.
+- Verify: helper는 World 3카드에만 존재, `lbl-pred`/`lbl-herb-count` cyan 유지, 3탭 스크린샷 비교와 콘솔 오류 점검 완료.
+
+### 27.43 — config select slim + metric reduction (mid)
+- Change: 설정 패널 select를 `appearance:none` 기반 Slim & Sharp Tech 스타일로 교체하고, accent chevron/SVG 화살표·focus glow·dark option 테마를 적용했다.
+- Change: 수직 metric을 `cfg-field-label 17px`, `cfg-field-control 38px`, `.cfg-card gap 10px`, `.cfg-card-body gap 8px`, `.cfg-card--toggle .cfg-card-body gap 10px`, `.cfg-card min-height 172px`로 축소했다.
+- Change: `range` margin을 `6px 0 4px`로 축소하고 `.cfg-seg`(gap 6px/padding 3px/button padding 6px 10px), `.cfg-grid row-gap 14px`, placeholder slot min-height 96px로 정렬했다.
+- Why: boxed-control 톤은 유지하면서 드롭다운 두께와 카드 세로 길이를 함께 줄여 탭 간 field height 인상을 균질화하기 위함.
+- Impact: world/humanity/ecosystem 3탭 구조와 config 파이프라인 의미는 그대로 유지되며 시각 밀도만 개선된다.
+- Verify: 27.43 archive/latest/title 동기화, cyan(`lbl-pred`/`lbl-herb-count`) 유지, 3탭 시각 비교 캡처로 회귀 여부 점검.
+
 ### 27.38 fix1 — config visual contract completion
 - Change: Map/Forage 카드를 `.cfg-card-body > .cfg-row > .cfg-field` 표준 계약으로 완료했다.
 - Change: `.cfg-card` 공통 `min-height: 176px`를 도입하고 placeholder 내부 `.cfg-add-slot`은 `height:100%`, `min-height:0`으로 카드 외곽 높이 계약을 따르게 조정했다.
