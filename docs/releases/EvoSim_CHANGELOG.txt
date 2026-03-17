@@ -1,3 +1,11 @@
+### 27.45 — config color override purge + base contract unification (mid)
+- Change: 설정 UI 카드 내부의 inline `color`/`accent-color` override(체크박스/슬라이더/숫자 라벨)를 제거해 색상 책임을 마크업에서 분리했다(`cfg-mut`은 정책에 따라 제외).
+- Change: `renderConfigPreview()`에서 설정 UI 대상 `style.color`/`style.fontWeight` 직접 지정 코드를 제거하고, 텍스트·값·disabled 갱신과 최소 상태 클래스 토글만 유지했다.
+- Change: 설정 UI ID 특례 색상 규칙(`lbl-pred`/`lbl-herb-count`)을 제거하고, `#config-overlay` 범위의 공통 CSS 계약(라벨 회백, 값/강조 민트, range/checkbox accent 민트, off/disabled 회색)으로 통일했다.
+- Why: 색상 의미를 JS·inline·ID 특례에 분산하지 않고, 설정 UI 기본 계약으로 일원화해 유지보수성과 탭 간 시각 일관성을 높이기 위함.
+- Impact: 설정값 의미/범위/옵션과 collect/normalize/apply 파이프라인은 유지되며, 설정 UI의 색상 책임 위치만 정리된다.
+- Verify: 지정된 설정 컨트롤들의 inline 색상 override 제거, preview 스타일 직접지정 제거, 27.45 final 산출물→latest/index 동기화 및 title/changelog 정합성을 점검했다.
+
 ### 27.44 — guide width lock + world guide migration (mid)
 - Change: 설정 오버레이의 좌측 가이드(`.cfg-side`)에 `flex:0 0 260px; width/min-width/max-width:260px;` 고정폭 계약을 적용해 탭 전환 시 체감 폭 변동을 억제했다.
 - Change: World 탭 `CONFIG_TABS` 가이드에 `Fixed Topology`/`Farmable Area` 항목을 상시 노출하도록 재구성했고, Fixed Topology 설명에 "강과 산(rivers and mountains) 구조 고정" 의미를 명시했다.
