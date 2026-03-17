@@ -1,3 +1,11 @@
+### 27.43 fix1a — world on/off helper + english unification (mid)
+- Change: World 탭 토글 카드 3종(Climate & Agriculture / Altitude & Mountains / Maritime)의 split-row에 `.cfg-field-helper`를 추가해 label-control-helper 3층 리듬을 적용했다.
+- Change: helper contract를 `font-size:11px`, `line-height:1.2`, `min-height:14px`, muted color/opacity로 정의하고 1줄 고정(ellipsis)으로 카드 높이 변동을 제어했다.
+- Change: 적용 범위 내 텍스트를 영어로 통일하고 카드 타이틀 `Climate & Agriculture` 명칭을 확정했다.
+- Why: ON/OFF 카드 상단이 slider/select 필드 대비 과도하게 납작해 보이던 인상을 helper 1줄로 완화하기 위함.
+- Impact: CONFIG_TABS/normalize/apply 및 slider/select/checkbox 의미·값은 유지되며, 대상 3카드의 시각 리듬만 소폭 증가한다.
+- Verify: helper는 World 3카드에만 존재, `lbl-pred`/`lbl-herb-count` cyan 유지, 3탭 스크린샷 비교와 콘솔 오류 점검 완료.
+
 ### 27.43 — config select slim + metric reduction (mid)
 - Change: 설정 패널 select를 `appearance:none` 기반 Slim & Sharp Tech 스타일로 교체하고, accent chevron/SVG 화살표·focus glow·dark option 테마를 적용했다.
 - Change: 수직 metric을 `cfg-field-label 17px`, `cfg-field-control 38px`, `.cfg-card gap 10px`, `.cfg-card-body gap 8px`, `.cfg-card--toggle .cfg-card-body gap 10px`, `.cfg-card min-height 172px`로 축소했다.
