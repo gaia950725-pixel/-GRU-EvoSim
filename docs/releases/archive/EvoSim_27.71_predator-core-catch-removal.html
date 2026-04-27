@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.73 clamor-damage-catch-removal</title>
+    <title>EvoSim 27.71 predator-core-catch-removal</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5488,11 +5488,9 @@ Object.assign(EvoSim.modules.Energy, {
   if (!target || !dmg) return false;
 
   // Phase 19: commotion write (hit)
-  if (dmg > 0 && target.pos) {
-    const amp = _clamorAmpFromDamage(dmg);
-    assertClamorDamageWrite(target, dmg, amp, { fn: "applyDamage", phase: "hit-clamor" });
-    _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
-  }
+  try {
+    if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
+  } catch (_) {}
 
   target.health -= dmg;
   if (target.health <= 0) {
@@ -5504,10 +5502,9 @@ Object.assign(EvoSim.modules.Energy, {
 
 
     // Phase 19: commotion write (death)
-    if (target.pos) {
-      assertClamorDamageWrite(target, CLAMOR_DEATH_AMP, CLAMOR_DEATH_AMP, { fn: "applyDamage", phase: "death-clamor" });
-      _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
-    }
+    try {
+      if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+    } catch (_) {}
 
     return true;
   }
@@ -5534,11 +5531,9 @@ function applyDamageResult(target, dmg) {
             if (!target || !dmg) return { hit:false, killed:false };
 
             // Phase 19: commotion write (hit)
-            if (dmg > 0 && target.pos) {
-                const amp = _clamorAmpFromDamage(dmg);
-                assertClamorDamageWrite(target, dmg, amp, { fn: "applyDamageResult", phase: "hit-clamor" });
-                _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
-            }
+            try {
+                if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
+            } catch (_) {}
 
             const prevHealth = target.health;
             target.health -= dmg;
@@ -5570,10 +5565,9 @@ function applyDamageResult(target, dmg) {
 
 
                 // Phase 19: commotion write (death)
-                if (target.pos) {
-                    assertClamorDamageWrite(target, CLAMOR_DEATH_AMP, CLAMOR_DEATH_AMP, { fn: "applyDamageResult", phase: "death-clamor" });
-                    _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
-                }
+                try {
+                    if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+                } catch (_) {}
 
                 return { hit:true, killed:true };
             }
@@ -7679,12 +7673,10 @@ const TERRAIN_START_D = 10;
         let PACK_SEQ = 0;
         const PACKS = new Map(); 
 
-        /* === BUILDER_BLOCK: FAIL_FAST_ASSERTS_START ===
+        /* === BUILDER_BLOCK: PREDATOR_FAIL_FAST_ASSERTS_START ===
         [PATCH RECORD]
         - 27.70 predator-failfast-assert-scaffold: add predator/pack/respawn contract asserts; no catch removal.
-        - 27.72 unified-failfast-asserts-clamor-contract: consolidate predator asserts and add minimal clamor/damage asserts.
-        - 27.73 clamor-damage-catch-removal: remove empty clamor write catch while keeping unified fail-fast asserts.
-        === */
+        */
         function predIsFiniteNum(v) {
             return (typeof v === "number") && Number.isFinite(v);
         }
@@ -7769,28 +7761,7 @@ const TERRAIN_START_D = 10;
                 predFailFastAssert(Number.isInteger(item.packSize) && item.packSize > 0, "PRED_RESPAWN_ITEM_PACK_SIZE_INVALID", context);
             }
         }
-        function cdIsFiniteNum(v) {
-            return (typeof v === "number") && Number.isFinite(v);
-        }
-        function cdIsVec2Like(v) {
-            return !!v && cdIsFiniteNum(v.x) && cdIsFiniteNum(v.y);
-        }
-        function cdFailFast(condition, code, context) {
-            if (condition) return;
-            const err = new Error("[EvoSim clamor-damage fail-fast] " + code);
-            err.code = code;
-            err.tick = (typeof simulatedTicks === "number" && Number.isFinite(simulatedTicks)) ? simulatedTicks : null;
-            err.context = context || null;
-            throw err;
-        }
-        function assertClamorDamageWrite(target, dmg, amp, context) {
-            cdFailFast(!!target, "CLAMOR_DAMAGE_TARGET_INVALID", context);
-            cdFailFast(cdIsVec2Like(target.pos), "CLAMOR_DAMAGE_POS_INVALID", context);
-            cdFailFast(cdIsFiniteNum(dmg) && dmg > 0, "CLAMOR_DAMAGE_DMG_INVALID", context);
-            cdFailFast(cdIsFiniteNum(amp) && amp > 0, "CLAMOR_DAMAGE_AMP_INVALID", context);
-            cdFailFast(typeof _clamorAddCommoXY === "function", "CLAMOR_DAMAGE_WRITE_FN_MISSING", context);
-        }
-        /* === BUILDER_BLOCK: FAIL_FAST_ASSERTS_END === */
+        /* === BUILDER_BLOCK: PREDATOR_FAIL_FAST_ASSERTS_END === */
 
         const HERB_HERDS = new Map();
         let HERB_HERD_SEQ = 0;

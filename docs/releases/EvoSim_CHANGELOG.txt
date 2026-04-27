@@ -1,3 +1,21 @@
+## 27.73 clamor-damage-catch-removal
+Change: Removed legacy empty try/catch guards around hit/death clamor writes in applyDamage and applyDamageResult while keeping unified fail-fast asserts.
+Why: Clamor is a core sensory/ecology signal, and clamor write failures should no longer be silently swallowed.
+Impact: Normal gameplay should be unchanged; clamor write contract violations now fail fast. applyDamageSilent remains a no-clamor path.
+Verify: Re-run predator-human combat, human-predator hit, herbivore hunting, death events, starvation/silent damage, predator-off/herbivore-off, and 5-minute fast smoke tests.
+
+## 27.72 unified-failfast-asserts-clamor-contract
+Change: Consolidated predator fail-fast assert helpers into a unified FAIL_FAST_ASSERTS block and added minimal Clamor/Damage contract checks before hit/death clamor writes.
+Why: Keep fail-fast diagnostics centralized while preventing legacy clamor write catch guards from hiding invalid clamor write inputs.
+Impact: Normal gameplay should be unchanged; predator assert behavior is unchanged, applyDamageSilent remains a no-clamor path, and clamor write catch removal is deferred to 27.73.
+Verify: Re-run predator smoke tests, predator-human combat, human-predator hit, herbivore hunting, death events, starvation/silent damage, predator-off/herbivore-off, and 5-minute fast smoke tests.
+
+## 27.71 predator-core-catch-removal
+Change: Removed predator core catch guards around Predator.update and direwolf pack hardening, removed the leader-death isLeader write guard, and removed the now-redundant internal agentGrid throw covered by assertPredatorUpdateContract.
+Why: 27.70 predator fail-fast asserts should propagate instead of being swallowed by core try/catch wrappers.
+Impact: Normal gameplay should be unchanged; predator/pack contract violations now stop earlier with explicit fail-fast errors.
+Verify: Re-run sabertooth-only, direwolf-only, predator-off, herbivore-off, leader death, pack extinction/respawn, and 5-minute fast smoke tests.
+
 ## 27.70 fix2 config zero-preserve bugfix
 Change: Updated normalizeConfigSnapshot to preserve zero values for predatorCount/herbivoreCount by removing `||` fallback and using finite-check parsing with non-negative integer clamp.
 Why: `parseInt(...) || default` forced valid UI zero values (`min=0`) back to defaults, causing unintended predator/herbivore spawns.

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.73 clamor-damage-catch-removal</title>
+    <title>EvoSim 27.72 unified-failfast-asserts-clamor-contract</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5491,7 +5491,9 @@ Object.assign(EvoSim.modules.Energy, {
   if (dmg > 0 && target.pos) {
     const amp = _clamorAmpFromDamage(dmg);
     assertClamorDamageWrite(target, dmg, amp, { fn: "applyDamage", phase: "hit-clamor" });
-    _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
+    try {
+      _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
+    } catch (_) {}
   }
 
   target.health -= dmg;
@@ -5506,7 +5508,9 @@ Object.assign(EvoSim.modules.Energy, {
     // Phase 19: commotion write (death)
     if (target.pos) {
       assertClamorDamageWrite(target, CLAMOR_DEATH_AMP, CLAMOR_DEATH_AMP, { fn: "applyDamage", phase: "death-clamor" });
-      _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+      try {
+        _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+      } catch (_) {}
     }
 
     return true;
@@ -5537,7 +5541,9 @@ function applyDamageResult(target, dmg) {
             if (dmg > 0 && target.pos) {
                 const amp = _clamorAmpFromDamage(dmg);
                 assertClamorDamageWrite(target, dmg, amp, { fn: "applyDamageResult", phase: "hit-clamor" });
-                _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
+                try {
+                    _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
+                } catch (_) {}
             }
 
             const prevHealth = target.health;
@@ -5572,7 +5578,9 @@ function applyDamageResult(target, dmg) {
                 // Phase 19: commotion write (death)
                 if (target.pos) {
                     assertClamorDamageWrite(target, CLAMOR_DEATH_AMP, CLAMOR_DEATH_AMP, { fn: "applyDamageResult", phase: "death-clamor" });
-                    _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+                    try {
+                        _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+                    } catch (_) {}
                 }
 
                 return { hit:true, killed:true };
@@ -7683,7 +7691,6 @@ const TERRAIN_START_D = 10;
         [PATCH RECORD]
         - 27.70 predator-failfast-assert-scaffold: add predator/pack/respawn contract asserts; no catch removal.
         - 27.72 unified-failfast-asserts-clamor-contract: consolidate predator asserts and add minimal clamor/damage asserts.
-        - 27.73 clamor-damage-catch-removal: remove empty clamor write catch while keeping unified fail-fast asserts.
         === */
         function predIsFiniteNum(v) {
             return (typeof v === "number") && Number.isFinite(v);
