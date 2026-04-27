@@ -1,3 +1,65 @@
+### 27.65 — config-session-closeout (mid)
+- Change: 27.60~27.64 Config/Session hardening 범위를 closeout 기준으로 정적 재검증하고 릴리스 기준을 정리했다(새 기능 추가 없음).
+- Verify: `collectRawConfigFromUI`는 제거 상태를 유지했고 `collectRawConfigFromBoundUI/collectRawConfigForStart/validateBoundConfigCoverage` 단일 수집 경로를 유지했다.
+- Verify: `CONFIG_SCHEMA` key 20개와 `data-cfg` key 20개가 일치하고 `pred2_threatLevel`은 ConfigStore/data-cfg/localStorage direct 대상에서 제외된 상태를 유지했다.
+- Verify: data-cfg missing fail-fast(coverage missing throw + guardedStart start-snapshot 오류 처리) 및 legacy fallback 부재 상태를 유지했다.
+- Verify: `resetRuntimeStateForNewWorld()`가 `disposeWorld` + `guardedStart` 양쪽에서 호출되고, ERA/UI/AutoClan/leader reset 경로를 유지했다.
+- Verify: BENCH(`_benchAutoEnabled/_benchAutoDone/benchStart/benchStop/benchAuto`)와 자동 1회 제한, 수동 재측정 경로, 결과 배열 reset 경로를 유지했다.
+- Verify: `leaderMode`/`pred2_threatLevel` direct localStorage get/set 특례는 없는 상태를 유지했다.
+- Change: 문서 title을 `EvoSim 27.65 config-session-closeout`으로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.65_config-session-closeout.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
+### 27.64 — bench-dev-instrumentation-hygiene (mid)
+- Verify: BENCH 자동 실행 체계(`_benchAutoEnabled/_benchAutoSeconds/_benchAutoDone`, `DEV.benchStart/benchStop/benchAuto`)를 유지했다.
+- Change: `goIngame()` 자동 BENCH 진입부에 one-shot 정책 주석을 추가해 `_benchAutoDone` 기반 1회 제한 의도를 명시했다.
+- Verify: `benchStart()` 시작 시 `_bench_sim.length=0`, `_bench_dt.length=0`, `_bench_long=0`, `_bench_steps=0` reset 경로를 유지했다.
+- Verify: `benchStop()`은 `_bench_running=false` 처리와 `[BENCH] stopped` 로그를 유지했다.
+- Verify: 매프레임 샘플링은 `_bench_running` 조건 내부에서만 수행됨을 유지했다.
+- Verify: `collectRawConfigFromUI` 삭제 상태(27.63)를 유지했고 `resetRuntimeStateForNewWorld` + `disposeWorld/guardedStart` reset 경로도 유지했다.
+- Note: 불필요 자동 로그 후보로 GAIA/RG/HS 계열 콘솔 노이즈 가능성은 있으나 본 패치 범위 밖으로 유지했다.
+- Change: 문서 title을 `EvoSim 27.64 bench-dev-instrumentation-hygiene`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.64_bench-dev-instrumentation-hygiene.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
+### 27.63 — legacy-config-collector-purge (mid)
+- Change: legacy DOM-id collector `collectRawConfigFromUI()` 정의를 제거해 설정 수집 경로를 data-cfg 기반 경로로 단일화했다.
+- Change: `getCrisisRecoverSpeedFromUI()`는 호출처가 없어 함께 제거했다.
+- Verify: `collectRawConfigFromBoundUI()`, `collectRawConfigForStart()`, `validateBoundConfigCoverage()`는 유지했다.
+- Verify: `normalizeConfigSnapshot(raw)`의 `CRISIS_SPEED_PRESETS` 검증 경로를 유지해 `crisisRecoverSpeed` preset 검증이 normalize 단계에서 계속 동작한다.
+- Verify: data-cfg missing fail-fast 정책(coverage missing throw + guardedStart fail handling) 유지.
+- Verify: `pred2_threatLevel`은 CONFIG_SCHEMA/data-cfg 대상에 추가하지 않았다.
+- Verify: `resetRuntimeStateForNewWorld()` 및 `disposeWorld()`/`guardedStart()` reset 호출 경로를 유지했다.
+- Change: 문서 title을 `EvoSim 27.63 legacy-config-collector-purge`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.63_legacy-config-collector-purge.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
+### 27.62 — start-refresh-data-cfg-unification (high)
+- Change: `validateBoundConfigCoverage(raw)`와 `collectRawConfigForStart(root)`를 추가해 Initialize 직전 start snapshot 수집 경로를 data-cfg 기반으로 단일화했다.
+- Change: `hydrateFromDOMOnce()`를 `collectRawConfigForStart(document)` + source `data-cfg-hydrate`로 전환했다.
+- Change: `refreshRawFromDOMForStart()`를 `collectRawConfigForStart(document)` + source `data-cfg-start`로 전환했다.
+- Change: `guardedStart()`에서 `refreshRawFromDOMForStart()` 실패를 명시적으로 처리해 data-cfg 누락 시 fail-fast로 시작을 중단하고 UI 오류 메시지를 출력하도록 했다.
+- Change: `normalizeConfigSnapshot(raw)`에 `CRISIS_SPEED_PRESETS([0.5, 1.0, 2.0])` 검증을 추가해 `crisisRecoverSpeed` preset 검증 책임을 normalize 경로로 이동했다.
+- Verify: `collectRawConfigFromUI()`는 삭제하지 않고 유지했다(27.63 범위).
+- Verify: `pred2_threatLevel`은 CONFIG_SCHEMA/data-cfg 대상에 추가하지 않았다.
+- Verify: `resetRuntimeStateForNewWorld()` 및 `disposeWorld()`/`guardedStart()` reset 호출 경로는 유지했다.
+- Change: 문서 title을 `EvoSim 27.62 start-refresh-data-cfg-unification`으로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.62_start-refresh-data-cfg-unification.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
+### 27.61 — era-autoclan-reset-fix (high)
+- Change: `EvoAutoClan.resetForNewWorld(reason)` helper를 추가해 새 세션 reset에서 agents 배열 의존 없이 mapping/streak/grace(`sidToSlot/slotToSid/promoteStreak/collapseStreak/demoteStreakBySlot/graceUntilTick`)를 초기화하도록 했다.
+- Change: `resetRuntimeStateForNewWorld()`의 AutoClan 경로를 `resetForNewWorld()` 우선 사용으로 보강하고, helper가 없을 때만 `manualReturnPaleolithic(0)` fallback을 사용하도록 조정했다.
+- Change: `resetRuntimeStateForNewWorld()`에서 `CFG._surnamePaletteApplied`가 실제 존재하는 경우 새 세션 기준 `false`로 리셋하도록 추가해 이전 세션 SURNAME_AUTO palette 잔존 가능성을 줄였다.
+- Change: 27.60에서 도입한 `disposeWorld()` + `guardedStart()` 양쪽 reset 호출 계약을 유지했다.
+- Change: 시대 버튼 handler의 사용자 조작 경로(`manualEnterNeolithic`/`manualReturnPaleolithic`) 의미는 변경하지 않았고, reset 함수와 역할을 분리 유지했다.
+- Verify: 시대 버튼 강제 click/event dispatch 코드는 추가하지 않았다.
+- Verify: leader reset 경로(`_ldr_lastRefreshTick/_ldr_lastAnchorTick` 초기화, typed array clear, `_ldr_uidToIdx.clear()`, `_ldrForceRefreshOnClanRecalc(0)`)는 유지됐다.
+- Verify: `collectRawConfigFromUI()`는 유지했고 BENCH 코드는 변경하지 않았다.
+- Change: 문서 title을 `EvoSim 27.61 era-autoclan-reset-fix`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.61_era-autoclan-reset-fix.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
+### 27.60 — session-runtime-reset-contract (high)
+- Change: `resetRuntimeStateForNewWorld(reason, opts)` 중앙 reset 계약을 추가해 `simulatedTicks`, `GENERATION`, `ERA`, 선택/포커스 상태, 시대 UI를 새 세션 기준으로 공통 초기화하도록 했다.
+- Change: `disposeWorld()`에서 엔티티 배열 clear 전에 `resetRuntimeStateForNewWorld('disposeWorld', { syncUI:true, resetAutoClan:true, resetLeadership:true })`를 호출하도록 연결했다.
+- Change: `guardedStart()`에서 Initialize 설정 snapshot 수집 직전에 `resetRuntimeStateForNewWorld('guardedStart', ...)`를 호출하도록 연결하고 기존 분산된 `ERA/simulatedTicks/GENERATION` reset 중복을 중앙 계약으로 치환했다.
+- Change: reset 계약 내부에서 `EvoAutoClan.manualReturnPaleolithic(0)` 경로를 사용해 auto-clan mapping/streak/grace 및 clan0 복귀를 재사용했다(새 게임/세션 폐기 공통 경로).
+- Change: leadership reset 경로로 `_ldr_lastRefreshTick/_ldr_lastAnchorTick` 초기화, leader cache typed array(`_ldr_leaderIdx/_ldr_subIdx/_ldr_topIdx/_ldr_topScore/_ldr_topHIdx/_ldr_topHScore/_ldr_leaderUid/_ldr_subUid/_ldr_clanAlive`) clear, `_ldr_uidToIdx.clear()`, `_ldrForceRefreshOnClanRecalc(0)` 호출을 추가했다.
+- Impact: 신석기 상태에서 세션 폐기 후 재시작 시에도 구석기 상태/버튼/선택 상태가 일관되게 복구되고, 이전 세션의 leadership/auto-clan 잔상이 새 월드 시작에 섞이지 않도록 한다.
+- Verify: `collectRawConfigFromUI()`는 그대로 유지했고 BENCH(`_benchAutoEnabled`, `benchStart/benchStop/benchAuto`) 코드는 변경하지 않았다.
+- Change: 문서 title을 `EvoSim 27.60 session-runtime-reset-contract`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.60_session-runtime-reset-contract.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
 ### 27.59 — config-flow-closeout (mid)
 - Change: 27.50~27.58 구성의 ConfigStore/설정 데이터 흐름 분리 결과를 closeout 기준으로 정적 재검증하고 릴리스 기록을 정리했다.
 - Verify: `guardedStart()`가 Store 경유(`refreshRawFromDOMForStart() -> getStartSnapshot() -> applyStartSnapshot(norm)`) 순서를 유지하고 direct normalize/validate 소유 구조로 회귀하지 않음을 점검했다.

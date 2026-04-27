@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.65 config-session-closeout</title>
+    <title>EvoSim 27.62 start-refresh-data-cfg-unification</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3852,6 +3852,15 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
         });
 
         // 3.1 Crisis recovery speed (Segment: Slow/Normal/Fast)
+        const CRISIS_SPEED_BASE = 1.0; // 'Normal' baseline (no extra multiplier)
+        const CRISIS_SPEED_PRESETS = [0.5, 1.0, 2.0];
+
+        function getCrisisRecoverSpeedFromUI() {
+            const el = document.querySelector('input[name="crisisSpeed"]:checked');
+            const raw = parseFloat(el?.value ?? '1');
+            const v = CRISIS_SPEED_PRESETS.includes(raw) ? raw : 1.0;
+            return CRISIS_SPEED_BASE * v;
+        }
 
         // --- Predator UI Listener ---
         const predSpeciesSelect = document.getElementById('cfg-pred-species');
@@ -10271,8 +10280,6 @@ setSession(EvoSim.consts.SESSION_STATES.PAUSED, reason || 'TO_CONFIG');
         setSession(EvoSim.consts.SESSION_STATES.RUNNING, reason || 'INIT');
         setScreen(EvoSim.consts.UI_SCREENS.INGAME);
         // BENCH (console-only): auto-run once on first INGAME entry
-        // BENCH auto-run is retained for patch-to-patch load comparison.
-        // It must remain one-shot per page/session unless DEV.benchAuto(...) resets it manually.
         try {
           const DEV = window.DEV;
           if (DEV && DEV._benchAutoEnabled && !DEV._benchAutoDone && typeof DEV.benchStart === 'function') {
@@ -10884,6 +10891,35 @@ function collectRawConfigForStart(root) {
   }
 
   return raw;
+}
+
+// Legacy DOM-id collector: do not call from guardedStart for normalize/validate ownership.
+// Retained for start-time DOM refresh and comparison until full config snapshot persistence is designed.
+function collectRawConfigFromUI(){
+  const leaderSel = document.getElementById('cfg-leader-mode');
+  const clanSel = document.getElementById('cfg-clan-mode');
+  return {
+    popSize: document.getElementById('cfg-pop')?.value,
+    foodCount: document.getElementById('cfg-foodcount')?.value,
+    foodEnergy: document.getElementById('cfg-food')?.value,
+    reproMinAgeYr: document.getElementById('cfg-repro-age')?.value,
+    crisisRecoverSpeed: getCrisisRecoverSpeedFromUI(),
+    predatorCount: document.getElementById('cfg-pred')?.value,
+    mutationRate: document.getElementById('cfg-mut')?.value,
+    mapType: document.getElementById('cfg-map')?.value,
+    clanMode: clanSel ? clanSel.value : (document.querySelector('input[name="clanMode"]:checked')?.value || 'SURNAME_AUTO'),
+    leaderMode: leaderSel ? leaderSel.value : (document.querySelector('input[name="leaderMode"]:checked')?.value || 'FOLLOW_BUFF'),
+    predatorSpecies: document.getElementById('cfg-pred-species')?.value,
+    herbivoreSpecies: document.getElementById('cfg-herb-species')?.value,
+    herbivoreCount: document.getElementById('cfg-herb-count')?.value,
+    climateEnabled: document.getElementById('cfg-climate')?.checked === true,
+    riverCount: document.getElementById('cfg-river-count')?.value,
+    altitudeEnabled: document.getElementById('cfg-altitude')?.checked === true,
+    maritimeEnabled: document.getElementById('cfg-maritime')?.checked === true,
+    mountainCount: document.getElementById('cfg-mtn-count')?.value,
+    presetSeedEnabled: document.getElementById('cfg-seed-lock')?.checked === true,
+    presetSeed: document.getElementById('cfg-seed')?.value
+  };
 }
 
 function normalizeConfigSnapshot(raw){
