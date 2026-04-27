@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.54 start-snapshot-lock</title>
+    <title>EvoSim 27.51 guardedstart-store-route</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -2036,7 +2036,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-row">
       <div class="cfg-field">
         <label class="cfg-label">맵 형태 (Map Type)</label>
-        <select id="cfg-map" data-cfg="mapType">
+        <select id="cfg-map">
 <option value="SQUARE">기본 (정사각형 평지)</option>
 <option value="TSL">TSL (유라시아 + 아프리카)</option>
 <option selected="" value="TSL_LARGE">TSL (대형 - 아시아 확장)</option>
@@ -2048,8 +2048,8 @@ BUILDER_BLOCK: CSS_END === */
       <div class="cfg-field">
         <label class="cfg-label">고정 토폴로지</label>
         <div class="cfg-seed-inline">
-          <input id="cfg-seed-lock" data-cfg="presetSeedEnabled" type="checkbox" />
-          <input id="cfg-seed" data-cfg="presetSeed" class="cfg-seed-input" type="number" min="0" step="1" value="12345" />
+          <input id="cfg-seed-lock" type="checkbox" />
+          <input id="cfg-seed" class="cfg-seed-input" type="number" min="0" step="1" value="12345" />
 
         </div>
       </div>
@@ -2068,7 +2068,7 @@ BUILDER_BLOCK: CSS_END === */
             <div class="cfg-label">Climate &amp; Agriculture system</div>
             <label class="cfg-toggle-inline">
               <span id="lbl-climate-status" class="val--accent cfg-toggle-status">ON</span>
-              <input id="cfg-climate" data-cfg="climateEnabled" type="checkbox" checked />
+              <input id="cfg-climate" type="checkbox" checked />
             </label>
           </div>
           <div class="cfg-field-helper">Seasonal climate, rivers, and farmable land.</div>
@@ -2079,7 +2079,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">강 수 (하구) <span id="lbl-river-count" class="val">3</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-river-count" data-cfg="riverCount" type="range" min="0" max="6" value="3" step="1" />
+          <input id="cfg-river-count" type="range" min="0" max="6" value="3" step="1" />
           </div>
           </div>
         </div>
@@ -2096,7 +2096,7 @@ BUILDER_BLOCK: CSS_END === */
             <div class="cfg-label">Altitude &amp; Mountains system</div>
             <label class="cfg-toggle-inline">
               <span id="lbl-altitude-status" class="val--accent cfg-toggle-status">ON</span>
-              <input id="cfg-altitude" data-cfg="altitudeEnabled" type="checkbox" checked />
+              <input id="cfg-altitude" type="checkbox" checked />
             </label>
           </div>
           <div class="cfg-field-helper">Ridges and elevation redirect movement.</div>
@@ -2107,7 +2107,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">산맥 갯수 <span id="lbl-mtn-count" class="val">5</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-mtn-count" data-cfg="mountainCount" type="range" min="1" max="6" value="5" step="1" />
+          <input id="cfg-mtn-count" type="range" min="1" max="6" value="5" step="1" />
           </div>
         </div>
       </div>
@@ -2124,7 +2124,7 @@ BUILDER_BLOCK: CSS_END === */
             <div class="cfg-label">Maritime system</div>
             <label class="cfg-toggle-inline">
               <span id="lbl-maritime-status" class="val--accent cfg-toggle-status">ON</span>
-              <input id="cfg-maritime" data-cfg="maritimeEnabled" type="checkbox" checked />
+              <input id="cfg-maritime" type="checkbox" checked />
             </label>
           </div>
           <div class="cfg-field-helper">Oceanic influence on coastal climate and fishable waters.</div>
@@ -2153,7 +2153,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">신경망 돌연변이 확률 <span class="val" id="lbl-mut">0.10</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-mut" data-cfg="mutationRate" min="0.01" max="0.5" step="0.01" type="range" value="0.10" />
+          <input id="cfg-mut" min="0.01" max="0.5" step="0.01" type="range" value="0.10" />
           </div>
         </div>
       </div>
@@ -2169,7 +2169,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--select">
           <label class="cfg-label cfg-field-label">소속 산정 방식 (Affiliation)</label>
           <div class="cfg-field-control">
-          <select id="cfg-clan-mode" data-cfg="clanMode">
+          <select id="cfg-clan-mode">
             <option value="LINEAGE">지역 기반</option>
             <option value="SURNAME">혈통 기반 (Lineage)</option>
             <option value="SURNAME_AUTO" selected>혈통모드(자동)</option>
@@ -2182,7 +2182,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--select">
           <label class="cfg-label cfg-field-label">리더 시스템</label>
           <div class="cfg-field-control">
-          <select id="cfg-leader-mode" data-cfg="leaderMode">
+          <select id="cfg-leader-mode">
             <option value="OFF">없음</option>
             <option value="FOLLOW">리더 추종</option>
             <option value="FOLLOW_BUFF" selected>리더추종+버프(보류)</option>
@@ -2202,7 +2202,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">초기 인구 수 <span class="val" id="lbl-pop">500</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-pop" data-cfg="popSize" min="50" max="1000" step="20" type="range" value="500" />
+          <input id="cfg-pop" min="50" max="1000" step="20" type="range" value="500" />
           </div>
         </div>
       </div>
@@ -2213,15 +2213,15 @@ BUILDER_BLOCK: CSS_END === */
           <div class="cfg-field-control">
           <div class="cfg-seg" role="radiogroup" aria-label="Crisis Recovery Speed">
             <label class="cfg-seg-item">
-              <input data-cfg="crisisRecoverSpeed" name="crisisSpeed" type="radio" value="0.5" />
+              <input name="crisisSpeed" type="radio" value="0.5" />
               <span class="cfg-seg-item-label">Slow</span>
             </label>
             <label class="cfg-seg-item">
-              <input data-cfg="crisisRecoverSpeed" name="crisisSpeed" type="radio" value="1" checked />
+              <input name="crisisSpeed" type="radio" value="1" checked />
               <span class="cfg-seg-item-label">Normal</span>
             </label>
             <label class="cfg-seg-item">
-              <input data-cfg="crisisRecoverSpeed" name="crisisSpeed" type="radio" value="2" />
+              <input name="crisisSpeed" type="radio" value="2" />
               <span class="cfg-seg-item-label">Fast</span>
             </label>
           </div>
@@ -2242,7 +2242,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">번식 가능 나이(년) <span class="val" id="lbl-repro-age">12</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-repro-age" data-cfg="reproMinAgeYr" min="8" max="16" step="1" type="range" value="12" />
+          <input id="cfg-repro-age" min="8" max="16" step="1" type="range" value="12" />
           </div>
 </div>
 </div>
@@ -2290,7 +2290,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--range">
       <label class="cfg-label cfg-field-label">초기 식량 수 <span class="val" id="lbl-foodcount">2000</span></label>
       <div class="cfg-field-control">
-      <input id="cfg-foodcount" data-cfg="foodCount" max="4000" min="100" type="range" value="2000"/>
+      <input id="cfg-foodcount" max="4000" min="100" type="range" value="2000"/>
       </div>
     </div>
   </div>
@@ -2298,7 +2298,7 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--range">
           <label class="cfg-label cfg-field-label">식량 획득 에너지 <span class="val" id="lbl-food">750</span></label>
           <div class="cfg-field-control">
-          <input id="cfg-food" data-cfg="foodEnergy" min="100" max="1200" type="range" value="750" />
+          <input id="cfg-food" min="100" max="1200" type="range" value="750" />
           </div>
         </div>
       </div>
@@ -2313,7 +2313,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--select">
       <label class="cfg-label cfg-field-label">맹수 종류 (Predator Type)</label>
       <div class="cfg-field-control">
-      <select id="cfg-pred-species" data-cfg="predatorSpecies">
+      <select id="cfg-pred-species">
         <option value="SABERTOOTH">검치호 (단독/영역형)</option>
         <option value="DIREWOLF">다이어울프 (팩/리더센싱)</option>
       </select>
@@ -2325,7 +2325,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--range">
       <label class="cfg-label cfg-field-label"><span id="lbl-pred-title">맹수 수</span> <span class="val val--accent" id="lbl-pred">7</span></label>
       <div class="cfg-field-control">
-      <input id="cfg-pred" data-cfg="predatorCount" max="20" min="0" type="range" value="7"/>
+      <input id="cfg-pred" max="20" min="0" type="range" value="7"/>
       </div>
     </div>
   </div>
@@ -2343,7 +2343,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--select">
       <label class="cfg-label cfg-field-label">초식동물 종류 (Herbivore Type)</label>
       <div class="cfg-field-control">
-      <select id="cfg-herb-species" data-cfg="herbivoreSpecies">
+      <select id="cfg-herb-species">
         <option value="MEGATHERIUM">메가테리움 (온난/대형/무리3)</option>
         <option selected="" value="REINDEER">순록 (한랭/중형/무리7)</option>
       </select>
@@ -2355,7 +2355,7 @@ BUILDER_BLOCK: CSS_END === */
     <div class="cfg-field cfg-field--range">
       <label class="cfg-label cfg-field-label">무리 수 <span class="val val--accent" id="lbl-herb-count">30</span></label>
       <div class="cfg-field-control">
-      <input id="cfg-herb-count" data-cfg="herbivoreCount" max="50" min="0" type="range" value="30"/>
+      <input id="cfg-herb-count" max="50" min="0" type="range" value="30"/>
       </div>
     </div>
   </div>
@@ -9927,15 +9927,6 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
         } catch(e) { console.warn("Failed to restore leaderMode", e); }
 /* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_END === */
 
-        bindConfigUI(document);
-        try {
-            const store = ensureConfigNamespace();
-            store.setRawSnapshot(collectRawConfigFromUI(), 'legacy-dom-bound');
-            store.getNormalizedSnapshot();
-        } catch (e) {
-            console.warn('[config] initial bind snapshot failed', e);
-        }
-
 /* === BUILDER_BLOCK: SIM_SLIDER_BINDINGS_START === */
         const speedSlider = document.getElementById('ctrl-speed');
         const speedLabel = document.getElementById('lbl-sim-speed');
@@ -10730,10 +10721,6 @@ function cloneConfigSnapshot(obj) {
 }
 
 function createConfigStore() {
-  // ConfigStore contract:
-  // raw/draft = editable UI-side config,
-  // normalized = current normalized candidate,
-  // lastApplied = start snapshot used for the initialized world.
   return {
     version: '27.50',
     schema: CONFIG_SCHEMA,
@@ -10765,11 +10752,6 @@ function createConfigStore() {
     getRawSnapshot() {
       if (!this.raw) this.hydrateFromDOMOnce();
       return this.raw;
-    },
-
-    refreshRawFromDOMForStart() {
-      const raw = collectRawConfigFromUI();
-      return this.setRawSnapshot(raw, 'dom-start');
     },
 
     getNormalizedSnapshot() {
@@ -10824,43 +10806,6 @@ function ensureConfigNamespace() {
   EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver: false, touchedMountain: false };
   if (!EvoSim.configStore) EvoSim.configStore = createConfigStore();
   return EvoSim.configStore;
-}
-
-function readConfigElementValue(el) {
-  if (!el) return undefined;
-  if (el.type === 'checkbox') return !!el.checked;
-  if (el.type === 'radio') return el.checked ? el.value : undefined;
-  return el.value;
-}
-
-function writeConfigElementValue(el, value) {
-  if (!el) return;
-  if (el.type === 'checkbox') {
-    el.checked = !!value;
-    return;
-  }
-  if (el.type === 'radio') {
-    el.checked = String(el.value) === String(value);
-    return;
-  }
-  el.value = value;
-}
-
-function bindConfigUI(root) {
-  const store = ensureConfigNamespace();
-  const scope = root || document;
-  const nodes = scope.querySelectorAll('[data-cfg]');
-  nodes.forEach((el) => {
-    if (el.dataset.cfgBound === '1') return;
-    el.dataset.cfgBound = '1';
-    const handler = () => {
-      const raw = collectRawConfigFromUI();
-      store.setRawSnapshot(raw, 'legacy-dom-bound');
-      store.getNormalizedSnapshot();
-    };
-    el.addEventListener('input', handler);
-    el.addEventListener('change', handler);
-  });
 }
 
 function collectRawConfigFromUI(){
@@ -11037,7 +10982,6 @@ async function guardedStart() {
                 await nextFrame();
 
                 const store = ensureConfigNamespace();
-                store.refreshRawFromDOMForStart();
                 const startConfig = store.getStartSnapshot();
                 const norm = startConfig.norm;
                 const verdict = startConfig.verdict;

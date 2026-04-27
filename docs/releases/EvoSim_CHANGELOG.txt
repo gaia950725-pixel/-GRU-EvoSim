@@ -1,3 +1,55 @@
+### 27.54 — start-snapshot-lock (major)
+- Change: `createConfigStore()` 근처에 ConfigStore contract 주석을 추가해 `raw/draft`, `normalized`, `lastApplied`의 역할을 명시적으로 고정했다.
+- Change: start 경로에서 `getStartSnapshot() -> validation -> applyStartSnapshot(norm)` 순서를 유지해, start validation 통과 후에만 `lastApplied`가 기록되도록 점검했다.
+- Change: UI binding handler는 계속 `setRawSnapshot(..., 'legacy-dom-bound')`/`getNormalizedSnapshot()`까지만 수행하고, active CFG 즉시 반영(`applyStartSnapshot`/CFG write)은 하지 않음을 고정했다.
+- Change: 문서 title을 `EvoSim 27.54 start-snapshot-lock`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.54_start-snapshot-lock.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Impact: 실행 중 UI 변경은 다음 Initialize에서만 적용되며, 현재 active world에는 즉시 반영되지 않는다.
+- Verify: ConfigStore contract 주석 존재, guardedStart 경로의 applyStartSnapshot 유지, UI handler에서 applyStartSnapshot 미호출, 27.54 title/archive/latest/changelog 정합성을 점검했다.
+
+### 27.53 — config-ui-binding-adapter (mid)
+- Change: `readConfigElementValue(el)`, `writeConfigElementValue(el)`, `bindConfigUI(root)`를 추가해 `[data-cfg]` 컨트롤 변경 시 ConfigStore raw/draft 갱신 경로를 연결했다.
+- Change: `bindConfigUI` handler는 S4 정책대로 `collectRawConfigFromUI()`를 사용하고 `store.setRawSnapshot(raw, 'legacy-dom-bound')`로 source를 유지한다.
+- Change: `el.dataset.cfgBound === '1'` 가드를 두어 중복 이벤트 리스너 등록을 방지했다.
+- Change: LOCALSTORAGE_RESTORE 이후(UI_STARTUP_CONTROLS_INIT 구간) `bindConfigUI(document)`를 호출하고, 직후 initial sync(`legacy-dom-bound`)를 수행하도록 추가했다.
+- Change: 문서 title을 `EvoSim 27.53 config-ui-binding-adapter`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.53_config-ui-binding-adapter.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Impact: 실행 중 UI 변경은 Store raw/normalized 후보만 갱신하며 active world/CFG 즉시 반영은 하지 않는다.
+- Verify: bind/read/write 함수 존재, handler source `legacy-dom-bound` 확인, `collectRawConfigFromBoundUI` 미구현, 중복 binding 방지 장치 존재를 정적 점검했다.
+
+### 27.52 fix1 — configstore-dom-start-refresh (required)
+- Change: `createConfigStore()`에 `refreshRawFromDOMForStart()`를 추가해 Initialize 직전 `collectRawConfigFromUI()` 결과를 `setRawSnapshot(raw, 'dom-start')`로 주입하도록 했다.
+- Change: `guardedStart()`에서 `store.getStartSnapshot()` 직전에 `store.refreshRawFromDOMForStart()`를 호출하도록 순서를 보강했다.
+- Impact: Initialize now refreshes ConfigStore raw from current config DOM before building the start snapshot.
+- Impact: Fixes stale popSize and other config values after returning to the config screen.
+- Change: 문서 title을 `EvoSim 27.52 fix1 configstore-dom-start-refresh`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.52_fix1_configstore-dom-start-refresh.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Verify: guardedStart DOM-start refresh 선호출, collectRawConfigFromUI/popSize 경로 유지, pred2_threatLevel schema/data-cfg 미포함, 27.52 fix1 title/archive/latest/changelog 정합성을 점검했다.
+
+### 27.52 — data-cfg-coverage (mid)
+- Change: 설정 UI 핵심 컨트롤(`cfg-map`, `cfg-seed-lock`, `cfg-seed`, `cfg-climate`, `cfg-altitude`, `cfg-maritime`, `cfg-river-count`, `cfg-mtn-count`, `cfg-pop`, `cfg-mut`, `cfg-clan-mode`, `cfg-leader-mode`, `cfg-repro-age`, `cfg-foodcount`, `cfg-food`, `cfg-pred-species`, `cfg-pred`, `cfg-herb-species`, `cfg-herb-count`)에 `data-cfg`를 전수 부여했다.
+- Change: crisisSpeed radio 3개 input 모두에 `data-cfg="crisisRecoverSpeed"`를 추가했다.
+- Change: `pred2_threatLevel` 관련 `data-cfg`는 추가하지 않았고 fallback radio DOM을 새로 만들지 않았다(leaderMode/clanMode는 select 기반 유지).
+- Change: 문서 title을 `EvoSim 27.52 data-cfg-coverage`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.52_data-cfg-coverage.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Why: S3 단계에서 data-cfg 커버리지를 먼저 고정해 S4 binding adapter 도입 시 이벤트 바인딩 대상의 누락/불일치를 줄이기 위함.
+- Impact: UI 외형과 기존 id/name/value 계약은 유지되며, 설정 컨트롤에 data-cfg 메타데이터만 추가되었다.
+- Verify: maritimeEnabled/crisisRecoverSpeed data-cfg 존재, pred2_threatLevel data-cfg 미존재, leaderMode/clanMode fallback radio 미생성, guardedStart Store 경유 유지 확인.
+
+### 27.51 — guardedstart-store-route (major)
+- Change: `guardedStart()` 시작 설정 수집 경로를 ConfigStore 기반으로 전환해 `collectRawConfigFromUI()` 직접 호출을 제거하고 `store.getStartSnapshot()`/`store.applyStartSnapshot(norm)`을 사용하도록 변경했다.
+- Change: 기존 warning/fatal 처리 의미와 WORLDGEN idle 전환 메시지를 유지했다.
+- Change: fatal 통과 이후 기존 순서를 유지해 `reconcileConfigUI(norm) -> applyNormalizedConfigToCFG(norm) -> persistConfigPreferences(norm) -> prepareWorldgenFromNormalizedConfig(norm) -> refreshVisionCache()`를 그대로 호출한다.
+- Change: 문서 title을 `EvoSim 27.51 guardedstart-store-route`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.51_guardedstart-store-route.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Why: 시작 파이프라인이 단일 ConfigStore 스냅샷 경유 구조를 사용하도록 정리해 후속 data-cfg binding/collector 단계의 기준 경로를 고정하기 위함.
+- Impact: 경고/치명 에러 처리 의미는 동일하고, PAUSED discard confirm 후 guardedStart 진입 경로를 유지한 채 raw/normalized/lastApplied 기록 지점이 Store로 정렬된다.
+- Verify: guardedStart 본문 direct `collectRawConfigFromUI()` 제거, getStartSnapshot/applyStartSnapshot 존재, 27.51 title/archive/latest/changelog 정합성을 점검했다.
+
+### 27.50 — config-schema-store (major)
+- Change: CONFIG_PIPELINE_CORE에 `CONFIG_SCHEMA`, `cloneConfigSnapshot()`, `createConfigStore()`를 추가해 ConfigStore 최소 골격(`raw/draft/normalized/lastApplied/lastVerdict/source/dirty`)을 도입했다.
+- Change: `ensureConfigNamespace()`가 기존 `EvoSim.config.uiState` 초기화를 유지하면서 `EvoSim.configStore`를 1회 초기화하고 반환하도록 확장했다.
+- Change: `pred2_threatLevel`은 schema/data-cfg 대상으로 포함하지 않았고, S1 범위 정책에 따라 `guardedStart()`와 localStorage 경로는 변경하지 않았다.
+- Change: 문서 title을 `EvoSim 27.50 config-schema-store`로 갱신하고, 산출물을 `docs/releases/archive/EvoSim_27.50_config-schema-store.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Why: guardedStart 전환(S2) 전 단계에서 설정 스냅샷 저장소 계약을 안전하게 도입해 이후 data-cfg/binding/persist 정리를 위한 기반을 마련하기 위함.
+- Impact: 시작 파이프라인 동작은 기존과 동일하며, ConfigStore API 초기 뼈대가 추가되어 코드단위 검증 및 점진 전환 준비가 가능해졌다.
+- Verify: ensureConfigNamespace uiState 보존, CONFIG_SCHEMA maritimeEnabled 포함, pred2_threatLevel schema/data-cfg 미포함, guardedStart direct collect 유지, EvoSim.configStore 존재를 정적 점검했다.
+
 ### 27.46 fix1 — card gap widening (minor)
 - Change: 27.46 closeout 기준 설정 UI의 카드 외부 spacing을 확장하기 위해 `--cfg-gap-col`, `--cfg-gap-row`를 `18px`에서 `22px`로 상향했다.
 - Change: 카드 내부 밀도 계약(`.cfg-card` 하단 padding 8px, min-height 168px), 가이드 폭/명칭, crisisSpeed segmented 스타일, World 토글 inline relayout은 유지했다.

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.54 start-snapshot-lock</title>
+    <title>EvoSim 27.53 config-ui-binding-adapter</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -10730,10 +10730,6 @@ function cloneConfigSnapshot(obj) {
 }
 
 function createConfigStore() {
-  // ConfigStore contract:
-  // raw/draft = editable UI-side config,
-  // normalized = current normalized candidate,
-  // lastApplied = start snapshot used for the initialized world.
   return {
     version: '27.50',
     schema: CONFIG_SCHEMA,
