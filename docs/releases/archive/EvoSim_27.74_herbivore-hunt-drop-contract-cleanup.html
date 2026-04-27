@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.75 herbivore-hunt-drop-catch-removal</title>
+    <title>EvoSim 27.74 herbivore-hunt-drop-contract-cleanup</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5592,7 +5592,9 @@ function _makeHerbivoreHalfDropPlan(target, prevHealth, postHealth) {
                     phase: "herbivore-half-drop"
                 });
 
-                _tryApplyHerbivoreHalfDrop(halfDropPlan);
+                try {
+                    _tryApplyHerbivoreHalfDrop(halfDropPlan);
+                } catch (e) { /* fail safe */ }
             }
 
             if (target.health <= 0) {
@@ -7719,7 +7721,6 @@ const TERRAIN_START_D = 10;
         - 27.72 unified-failfast-asserts-clamor-contract: consolidate predator asserts and add minimal clamor/damage asserts.
         - 27.73 clamor-damage-catch-removal: remove empty clamor write catch while keeping unified fail-fast asserts.
         - 27.74 herbivore-hunt-drop-contract-cleanup: add herbivore hunt-drop contract assert and prevent half-drop partial-state before catch removal.
-        - 27.75 herbivore-hunt-drop-catch-removal: remove legacy half-drop fail-safe catch after 27.74 partial-state cleanup.
         === */
         function predIsFiniteNum(v) {
             return (typeof v === "number") && Number.isFinite(v);
