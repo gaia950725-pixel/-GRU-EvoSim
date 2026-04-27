@@ -1,3 +1,11 @@
+### 27.65 fix1 — config-session-closeout-hotfix
+- Change: `stopSimulation()`과 `window.DEV.benchStop()`의 BENCH 중단 경로를 `_bench_running` 기준으로 정정하고, 중단 시 `endAt/lastUI` 및 필요 상태를 정리하도록 보강했다.
+- Change: `resetRuntimeStateForNewWorld()` 중앙 reset 계약에 `selectedTileIdx`, `selectedTileFarmable`, `hoverTileFarmable`, `_agroSelTouchPending`, `_agroSelTouchLastTick` 초기화를 추가했다(기존 `disposeWorld()` 중복 reset은 유지).
+- Why: BENCH는 패치 전후 부하 비교 장비이므로 HOME/설정 복귀와 수동 중단에서 상태 오염 없이 일관되게 정리되어야 한다.
+- Impact: 시뮬레이션 본체(worldgen/ecology/NN/agent update) 로직 변경 없음. BENCH/세션 reset 안정성만 보강.
+- Verify: `node --check index.html`, BENCH one-shot/manual rerun 경로 정적 점검, ConfigStore collector purge 유지 확인.
+- Change: 문서 title을 `EvoSim 27.65 config-session-closeout fix1`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.65_config-session-closeout_fix1.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
 ### 27.65 — config-session-closeout (mid)
 - Change: 27.60~27.64 Config/Session hardening 범위를 closeout 기준으로 정적 재검증하고 릴리스 기준을 정리했다(새 기능 추가 없음).
 - Verify: `collectRawConfigFromUI`는 제거 상태를 유지했고 `collectRawConfigFromBoundUI/collectRawConfigForStart/validateBoundConfigCoverage` 단일 수집 경로를 유지했다.
