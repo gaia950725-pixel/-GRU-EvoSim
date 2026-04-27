@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.54 start-snapshot-lock</title>
+    <title>EvoSim 27.59 config-flow-closeout</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -9908,33 +9908,9 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
 /* === BUILDER_BLOCK: UI_STARTUP_CONTROLS_INIT_START === */
 
 /* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_START === */
-        try {
-            const storedLeaderMode = localStorage.getItem('leaderMode');
-            if (storedLeaderMode !== null) {
-                const sel = document.getElementById('cfg-leader-mode');
-                if (sel) {
-                    sel.value = storedLeaderMode;
-                } else {
-                    const radios = document.getElementsByName('leaderMode');
-                    // NodeList/HTMLCollection compatibility
-                    const arr = Array.from(radios || []);
-                    for (let i = 0; i < arr.length; i++) {
-                        const r = arr[i];
-                        if (r && r.value === storedLeaderMode) r.checked = true;
-                    }
-                }
-            }
-        } catch(e) { console.warn("Failed to restore leaderMode", e); }
+        // 27.57 policy: standalone leaderMode localStorage restore removed.
+        // Future full config snapshot restore should be designed separately.
 /* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_END === */
-
-        bindConfigUI(document);
-        try {
-            const store = ensureConfigNamespace();
-            store.setRawSnapshot(collectRawConfigFromUI(), 'legacy-dom-bound');
-            store.getNormalizedSnapshot();
-        } catch (e) {
-            console.warn('[config] initial bind snapshot failed', e);
-        }
 
 /* === BUILDER_BLOCK: SIM_SLIDER_BINDINGS_START === */
         const speedSlider = document.getElementById('ctrl-speed');
@@ -10854,8 +10830,9 @@ function bindConfigUI(root) {
     if (el.dataset.cfgBound === '1') return;
     el.dataset.cfgBound = '1';
     const handler = () => {
-      const raw = collectRawConfigFromUI();
-      store.setRawSnapshot(raw, 'legacy-dom-bound');
+      const boundRaw = collectRawConfigFromBoundUI(document);
+      const prevRaw = store.raw || {};
+      store.setRawSnapshot(Object.assign({}, prevRaw, boundRaw), 'data-cfg-bound');
       store.getNormalizedSnapshot();
     };
     el.addEventListener('input', handler);
@@ -10863,6 +10840,22 @@ function bindConfigUI(root) {
   });
 }
 
+function collectRawConfigFromBoundUI(root) {
+  const scope = root || document;
+  const raw = {};
+  const nodes = scope.querySelectorAll('[data-cfg]');
+  nodes.forEach((el) => {
+    const key = el.dataset.cfg;
+    if (!key) return;
+    const value = readConfigElementValue(el);
+    if (value === undefined) return;
+    raw[key] = value;
+  });
+  return raw;
+}
+
+// Legacy DOM-id collector: do not call from guardedStart for normalize/validate ownership.
+// Retained for start-time DOM refresh and comparison until full config snapshot persistence is designed.
 function collectRawConfigFromUI(){
   const leaderSel = document.getElementById('cfg-leader-mode');
   const clanSel = document.getElementById('cfg-clan-mode');
@@ -10994,7 +10987,8 @@ function applyNormalizedConfigToCFG(norm){
 }
 
 function persistConfigPreferences(norm){
-  try { localStorage.setItem('leaderMode', norm.leaderMode); } catch(_) {}
+  // 27.57 policy: standalone leaderMode localStorage preference removed.
+  // Future full config snapshot persistence should be designed separately.
 }
 
 function prepareWorldgenFromNormalizedConfig(norm){
@@ -11028,6 +11022,28 @@ function prepareWorldgenFromNormalizedConfig(norm){
   }
 }
 /* === BUILDER_BLOCK: CONFIG_PIPELINE_CORE_END === */
+
+function initConfigUIBindingOnce() {
+  if (initConfigUIBindingOnce._done) return;
+  initConfigUIBindingOnce._done = true;
+  try {
+    bindConfigUI(document);
+    const store = ensureConfigNamespace();
+    const boundRaw = collectRawConfigFromBoundUI(document);
+    const prevRaw = store.raw || {};
+    store.setRawSnapshot(Object.assign({}, prevRaw, boundRaw), 'data-cfg-bound');
+    store.getNormalizedSnapshot();
+  } catch (e) {
+    initConfigUIBindingOnce._done = false;
+    console.warn('[config] deferred bind init failed', e);
+  }
+}
+
+try {
+  initConfigUIBindingOnce();
+} catch (e) {
+  console.warn('[config] deferred binding bootstrap failed', e);
+}
 
 async function guardedStart() {
             if (WORLDGEN.state === 'generating') return;
@@ -18198,7 +18214,21 @@ function animate(time) {
 /* === BUILDER_BLOCK: DEV_CONSOLE_HELPERS_START === */
 window.DEV = window.DEV || {};
 window.DEV.flags = window.DEV.flags || {};
+if (typeof window.DEV.flags.configTrace === "undefined") window.DEV.flags.configTrace = false;
 
+window.DEV.configStoreDump = function() {
+  const store = window.EvoSim && window.EvoSim.configStore;
+  if (!store) return null;
+  return {
+    raw: store.raw,
+    draft: store.draft,
+    normalized: store.normalized,
+    lastApplied: store.lastApplied,
+    dirty: store.dirty,
+    source: store.source,
+    lastVerdict: store.lastVerdict
+  };
+};
 
 // Console-only bench defaults (safe, no work unless DEV/auto is used)
 if (typeof window.DEV._benchAutoEnabled === "undefined") window.DEV._benchAutoEnabled = true;

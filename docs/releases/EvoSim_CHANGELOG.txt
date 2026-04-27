@@ -1,3 +1,52 @@
+### 27.59 — config-flow-closeout (mid)
+- Change: 27.50~27.58 구성의 ConfigStore/설정 데이터 흐름 분리 결과를 closeout 기준으로 정적 재검증하고 릴리스 기록을 정리했다.
+- Verify: `guardedStart()`가 Store 경유(`refreshRawFromDOMForStart() -> getStartSnapshot() -> applyStartSnapshot(norm)`) 순서를 유지하고 direct normalize/validate 소유 구조로 회귀하지 않음을 점검했다.
+- Verify: deferred binding init(`initConfigUIBindingOnce`)이 `CONFIG_SCHEMA` 이후 호출되며 try-catch로 보호됨을 확인했다.
+- Verify: `maritimeEnabled`는 schema/data-cfg/normalize/CFG 흐름에 포함되고, `pred2_threatLevel`은 schema/data-cfg 및 direct localStorage get/set 대상에서 제외됨을 확인했다.
+- Verify: `leaderMode` standalone localStorage restore/remove 정책(27.57)과 no-op `persistConfigPreferences` 정책이 유지됨을 점검했다.
+- Verify: DEV helper(`window.DEV.configStoreDump`)가 존재하고 config 관련 불필요한 console noise 추가 없이 유지됨을 점검했다.
+- Change: 문서 title을 `EvoSim 27.59 config-flow-closeout`으로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.59_config-flow-closeout.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+
+### 27.58 — persist-restore-cleanup (mid)
+- Change: 설정값 direct localStorage 경로를 재점검해 `leaderMode` standalone get/set 제거 상태를 유지하고 `persistConfigPreferences(norm)` no-op 정책 주석을 유지했다.
+- Change: `pred2_threatLevel` direct localStorage get/set 잔존 여부를 점검했으며 대상 경로가 없어 추가 변경 없이 유지했다.
+- Change: localStorage 사용처는 UI layout/drawer/config tab/API key 범위가 유지되도록 정리 점검했다.
+- Impact: 설정값은 ConfigStore start snapshot 경로를 유지하고, 비설정 상태(UI layout/API key/config tab)는 기존 localStorage 동작을 유지한다.
+- Change: 문서 title을 `EvoSim 27.58 persist-restore-cleanup`으로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.58_persist-restore-cleanup.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Verify: deferred binding init(`initConfigUIBindingOnce`)과 dom-start refresh(`refreshRawFromDOMForStart`) 유지, `bindConfigUI` 이후 `data-cfg-bound` raw 반영 경로 유지를 정적 점검했다.
+
+### 27.57 — remove-leadermode-localstorage (mid)
+- Change: `LOCALSTORAGE_RESTORE`에서 leaderMode 단독 복원 경로(`localStorage.getItem('leaderMode')`)를 제거했다.
+- Change: `persistConfigPreferences(norm)`를 no-op으로 전환하고 정책 주석을 추가해 leaderMode 단독 저장(`localStorage.setItem('leaderMode')`)을 중단했다.
+- Impact: Reloading the page no longer restores leaderMode as a standalone preference.
+- Impact: leaderMode now behaves like other start configuration values and is applied through the ConfigStore start snapshot.
+- Change: stale `leaderMode` key는 읽지 않기만 하고 삭제(`removeItem`)는 하지 않았다.
+- Change: 문서 title을 `EvoSim 27.57 remove-leadermode-localstorage`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.57_remove-leadermode-localstorage.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Verify: deferred binding init(`initConfigUIBindingOnce`) 유지, dom-start refresh(`refreshRawFromDOMForStart`) 유지, pred2_threatLevel localStorage/schema/data-cfg 미변경을 정적 점검했다.
+
+### 27.56 — data-cfg-raw-collector (mid)
+- Change: `collectRawConfigFromBoundUI(root)`를 추가해 `[data-cfg]` 기반으로 raw 스냅샷을 수집하도록 했다(radio checked만 반영, checkbox boolean 반영 포함).
+- Change: `bindConfigUI()` handler를 `collectRawConfigFromBoundUI(document)` + `store.raw` merge 경로로 전환하고 source를 `data-cfg-bound`로 기록하도록 변경했다.
+- Change: `initConfigUIBindingOnce()` 초기 sync도 `data-cfg-bound` 경로로 맞췄다(Initialize 직전 `dom-start` refresh 경로는 유지).
+- Change: `collectRawConfigFromUI()`는 legacy adapter로 유지하고 목적 주석을 추가했다.
+- Impact: UI 변경 직후 Store source는 `data-cfg-bound`, Initialize 직전 refresh 시 source는 `dom-start`가 될 수 있으며 둘 다 정상이다.
+- Change: 문서 title을 `EvoSim 27.56 data-cfg-raw-collector`로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.56_data-cfg-raw-collector.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Verify: deferred binding init 유지, guardedStart의 `refreshRawFromDOMForStart() -> getStartSnapshot()` 순서 유지, pred2_threatLevel data-cfg 미추가를 정적 점검했다.
+
+### 27.55 — configstore-dev-inspection (mid)
+- Change: `DEV_CONSOLE_HELPERS`에 `window.DEV.configStoreDump()`를 추가해 `EvoSim.configStore`의 `raw/draft/normalized/lastApplied/dirty/source/lastVerdict`를 호출 시점에 조회할 수 있도록 했다.
+- Change: `window.DEV.flags.configTrace` 기본값을 `false`로 고정해 config 관련 로그 노이즈가 기본 동작에서 발생하지 않도록 했다.
+- Impact: 실행 중 시뮬레이션 동작은 변경하지 않고, 개발자 콘솔에서 ConfigStore 상태 관찰만 가능해졌다.
+- Change: 문서 title을 `EvoSim 27.55 configstore-dev-inspection`으로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.55_configstore-dev-inspection.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Verify: deferred binding init(`initConfigUIBindingOnce`)과 dom-start refresh(`refreshRawFromDOMForStart`) 경로 유지, `bindConfigUI(document)`의 CONFIG_SCHEMA 이후 호출 구조 유지, configStoreDump 정적 존재를 점검했다.
+
+### 27.54 fix1 — config-binding-deferred-init (required)
+- Change: `bindConfigUI(document)` 및 초기 `legacy-dom-bound` 스냅샷 부팅을 CONFIG_PIPELINE_CORE 이후 deferred init으로 이동했다.
+- Change: `initConfigUIBindingOnce()`를 추가하고 bootstrap 호출부를 try-catch로 감싸 CONFIG_SCHEMA 초기화 이전 접근으로 인한 모듈 중단을 방지했다.
+- Change: 문서 title을 `EvoSim 27.54 fix1 config-binding-deferred-init`으로 갱신하고 산출물을 `docs/releases/archive/EvoSim_27.54_fix1_config-binding-deferred-init.html`로 보존했으며 `docs/releases/EvoSim_latest.html`, `index.html`를 동기화했다.
+- Impact: `bindConfigUI`가 `CONFIG_SCHEMA` 선언 이후에만 실행되어 홈→설정/설정→시작 라우팅 핸들러 등록이 부팅 중단 없이 유지된다.
+- Verify: deferred init 함수/호출 try-catch 존재, guardedStart의 `refreshRawFromDOMForStart() -> getStartSnapshot() -> applyStartSnapshot(norm)` 순서 유지, 27.52 fix1 DOM-start refresh 및 27.54 start snapshot lock 유지, pred2_threatLevel 미포함을 정적 점검했다.
+
 ### 27.54 — start-snapshot-lock (major)
 - Change: `createConfigStore()` 근처에 ConfigStore contract 주석을 추가해 `raw/draft`, `normalized`, `lastApplied`의 역할을 명시적으로 고정했다.
 - Change: start 경로에서 `getStartSnapshot() -> validation -> applyStartSnapshot(norm)` 순서를 유지해, start validation 통과 후에만 `lastApplied`가 기록되도록 점검했다.

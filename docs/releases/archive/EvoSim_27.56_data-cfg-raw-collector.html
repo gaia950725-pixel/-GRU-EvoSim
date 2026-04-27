@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.59 config-flow-closeout</title>
+    <title>EvoSim 27.56 data-cfg-raw-collector</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -9908,8 +9908,23 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
 /* === BUILDER_BLOCK: UI_STARTUP_CONTROLS_INIT_START === */
 
 /* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_START === */
-        // 27.57 policy: standalone leaderMode localStorage restore removed.
-        // Future full config snapshot restore should be designed separately.
+        try {
+            const storedLeaderMode = localStorage.getItem('leaderMode');
+            if (storedLeaderMode !== null) {
+                const sel = document.getElementById('cfg-leader-mode');
+                if (sel) {
+                    sel.value = storedLeaderMode;
+                } else {
+                    const radios = document.getElementsByName('leaderMode');
+                    // NodeList/HTMLCollection compatibility
+                    const arr = Array.from(radios || []);
+                    for (let i = 0; i < arr.length; i++) {
+                        const r = arr[i];
+                        if (r && r.value === storedLeaderMode) r.checked = true;
+                    }
+                }
+            }
+        } catch(e) { console.warn("Failed to restore leaderMode", e); }
 /* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_END === */
 
 /* === BUILDER_BLOCK: SIM_SLIDER_BINDINGS_START === */
@@ -10987,8 +11002,7 @@ function applyNormalizedConfigToCFG(norm){
 }
 
 function persistConfigPreferences(norm){
-  // 27.57 policy: standalone leaderMode localStorage preference removed.
-  // Future full config snapshot persistence should be designed separately.
+  try { localStorage.setItem('leaderMode', norm.leaderMode); } catch(_) {}
 }
 
 function prepareWorldgenFromNormalizedConfig(norm){
