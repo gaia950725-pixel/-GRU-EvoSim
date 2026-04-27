@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.73 clamor-damage-catch-removal</title>
+    <title>EvoSim 27.75 herbivore-hunt-drop-catch-removal</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5530,7 +5530,47 @@ function applyDamageSilent(target, dmg) {
   return false;
 }
 
-function applyDamageResult(target, dmg) {
+function _makeHerbivoreHalfDropPlan(target, prevHealth, postHealth) {
+            if (typeof Herbivore === 'undefined' || !(target instanceof Herbivore)) return null;
+            if (target.halfDropDone) return null;
+
+            const maxHealth = (typeof target.maxHealth === 'number')
+                ? target.maxHealth
+                : ((target.profile && typeof target.profile.maxHealth === 'number') ? target.profile.maxHealth : null);
+            if (!(typeof maxHealth === 'number' && Number.isFinite(maxHealth) && maxHealth > 0)) return null;
+
+            if (!(prevHealth > maxHealth * 0.5 && postHealth <= maxHealth * 0.5)) return null;
+
+            const totalDrop = (target.profile && typeof target.profile.dropFood === 'number')
+                ? target.profile.dropFood
+                : ((typeof target.dropFood === 'number') ? target.dropFood : 0);
+            const halfN = totalDrop > 0 ? Math.max(1, Math.round(totalDrop / 3)) : 0;
+
+            return {
+                target,
+                halfN,
+                pos: target.pos,
+                maxHealth,
+                totalDrop,
+                prevHealth,
+                postHealth
+            };
+        }
+
+        function _tryApplyHerbivoreHalfDrop(plan) {
+            if (!plan) return false;
+
+            if (plan.halfN > 0) {
+                generateFood(plan.halfN, plan.pos, { source: FOOD_SRC_HUNT });
+            }
+
+            plan.target.halfDropDone = true;
+            plan.target.halfDropN = plan.halfN;
+            plan.target.hasCalf = false;
+            return true;
+        }
+
+        function applyDamageResult(target, dmg) {
             if (!target || !dmg) return { hit:false, killed:false };
 
             // Phase 19: commotion write (hit)
@@ -5545,21 +5585,15 @@ function applyDamageResult(target, dmg) {
 
             // --- PATCH: herbivore split drop + calf off at half HP ---
             // Note: applyDamageResult is used for herbivore hunting only in this build.
-            try {
-                if (typeof Herbivore !== 'undefined' && target instanceof Herbivore) {
-                    const maxH = (typeof target.maxHealth === 'number' ? target.maxHealth : (target.profile && typeof target.profile.maxHealth === 'number' ? target.profile.maxHealth : null));
-                    if (maxH && !target.halfDropDone && prevHealth > maxH * 0.5 && target.health <= maxH * 0.5) {
-                        const total = (target.profile && typeof target.profile.dropFood === 'number') ? target.profile.dropFood : 0;
-                        const halfN = total > 0 ? Math.max(1, Math.round(total / 3)) : 0;
+            const halfDropPlan = _makeHerbivoreHalfDropPlan(target, prevHealth, target.health);
+            if (halfDropPlan) {
+                assertHerbivoreHuntDropContract(target, prevHealth, target.health, {
+                    fn: "applyDamageResult",
+                    phase: "herbivore-half-drop"
+                });
 
-                        target.halfDropDone = true;
-                        target.halfDropN = halfN;
-                        target.hasCalf = false; // calf disappears at half HP
-
-                        if (halfN > 0) generateFood(halfN, target.pos, { source: FOOD_SRC_HUNT });
-                    }
-                }
-            } catch (e) { /* fail safe */ }
+                _tryApplyHerbivoreHalfDrop(halfDropPlan);
+            }
 
             if (target.health <= 0) {
                 target.dead = true;
@@ -7684,6 +7718,8 @@ const TERRAIN_START_D = 10;
         - 27.70 predator-failfast-assert-scaffold: add predator/pack/respawn contract asserts; no catch removal.
         - 27.72 unified-failfast-asserts-clamor-contract: consolidate predator asserts and add minimal clamor/damage asserts.
         - 27.73 clamor-damage-catch-removal: remove empty clamor write catch while keeping unified fail-fast asserts.
+        - 27.74 herbivore-hunt-drop-contract-cleanup: add herbivore hunt-drop contract assert and prevent half-drop partial-state before catch removal.
+        - 27.75 herbivore-hunt-drop-catch-removal: remove legacy half-drop fail-safe catch after 27.74 partial-state cleanup.
         === */
         function predIsFiniteNum(v) {
             return (typeof v === "number") && Number.isFinite(v);
@@ -7789,6 +7825,31 @@ const TERRAIN_START_D = 10;
             cdFailFast(cdIsFiniteNum(dmg) && dmg > 0, "CLAMOR_DAMAGE_DMG_INVALID", context);
             cdFailFast(cdIsFiniteNum(amp) && amp > 0, "CLAMOR_DAMAGE_AMP_INVALID", context);
             cdFailFast(typeof _clamorAddCommoXY === "function", "CLAMOR_DAMAGE_WRITE_FN_MISSING", context);
+        }
+        function herbIsFiniteNum(v) {
+            return (typeof v === "number") && Number.isFinite(v);
+        }
+        function herbFailFast(condition, code, context) {
+            if (condition) return;
+            const err = new Error("[EvoSim herbivore-hunt-drop fail-fast] " + code);
+            err.code = code;
+            err.tick = (typeof simulatedTicks === "number" && Number.isFinite(simulatedTicks)) ? simulatedTicks : null;
+            err.context = context || null;
+            throw err;
+        }
+        function assertHerbivoreHuntDropContract(target, prevHealth, postHealth, context) {
+            herbFailFast(!!target, "HERB_HUNT_DROP_TARGET_INVALID", context);
+            herbFailFast(typeof Herbivore !== "undefined", "HERB_HUNT_DROP_TYPE_INVALID", context);
+            herbFailFast(target instanceof Herbivore, "HERB_HUNT_DROP_TYPE_INVALID", context);
+            herbFailFast(!!target.pos && herbIsFiniteNum(target.pos.x) && herbIsFiniteNum(target.pos.y), "HERB_HUNT_DROP_POS_INVALID", context);
+            herbFailFast(herbIsFiniteNum(prevHealth), "HERB_HUNT_DROP_PREV_HEALTH_INVALID", context);
+            herbFailFast(herbIsFiniteNum(postHealth), "HERB_HUNT_DROP_POST_HEALTH_INVALID", context);
+            const maxHealth = (typeof target.maxHealth === "number") ? target.maxHealth : ((target.profile && typeof target.profile.maxHealth === "number") ? target.profile.maxHealth : NaN);
+            herbFailFast(herbIsFiniteNum(maxHealth) && maxHealth > 0, "HERB_HUNT_DROP_MAX_HEALTH_INVALID", context);
+            const dropFood = (target.profile && typeof target.profile.dropFood === "number") ? target.profile.dropFood : ((typeof target.dropFood === "number") ? target.dropFood : NaN);
+            herbFailFast(herbIsFiniteNum(dropFood) && dropFood >= 0, "HERB_HUNT_DROP_DROPFOOD_INVALID", context);
+            herbFailFast(typeof generateFood === "function", "HERB_HUNT_DROP_GENERATE_FOOD_MISSING", context);
+            herbFailFast(typeof FOOD_SRC_HUNT !== "undefined", "HERB_HUNT_DROP_SOURCE_INVALID", context);
         }
         /* === BUILDER_BLOCK: FAIL_FAST_ASSERTS_END === */
 

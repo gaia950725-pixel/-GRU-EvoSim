@@ -1,3 +1,15 @@
+## 27.75 herbivore-hunt-drop-catch-removal
+Change: Removed the legacy fail-safe catch around herbivore half-drop application in applyDamageResult while keeping the 27.74 helper structure and hunt-drop contract assert.
+Why: After 27.74 reordered half-drop state mutation to occur only after successful hunt-food generation, the remaining catch would still hide generateFood or hunt-drop application errors.
+Impact: Normal hunt balance should be unchanged. Invalid herbivore half-drop application now fails fast instead of silently skipping or hiding reward-state problems.
+Verify: Re-run herbivore hunting, half-HP wound, calf-off, kill-after-half-drop, direct kill without half-drop, predator-off/herbivore-on, and 5-minute fast smoke tests.
+
+## 27.74 herbivore-hunt-drop-contract-cleanup
+Change: Refactored herbivore half-HP hunt-drop logic in applyDamageResult into small helpers, added minimal herbivore hunt-drop contract checks, and reordered half-drop state mutation to occur only after successful hunt-food generation.
+Why: The legacy fail-safe catch could hide partial-state bugs where halfDropDone/halfDropN/hasCalf changed before generateFood succeeded, causing later deathDrop calculation to underpay hunt rewards.
+Impact: Normal gameplay and hunt balance should be unchanged. The legacy catch is retained until 27.75, but invalid hunt-drop contracts now fail earlier.
+Verify: Re-run herbivore hunting, half-HP wound, calf-off, kill-after-half-drop, direct kill without half-drop, predator-off/herbivore-on, and 5-minute fast smoke tests.
+
 ## 27.73 clamor-damage-catch-removal
 Change: Removed legacy empty try/catch guards around hit/death clamor writes in applyDamage and applyDamageResult while keeping unified fail-fast asserts.
 Why: Clamor is a core sensory/ecology signal, and clamor write failures should no longer be silently swallowed.
