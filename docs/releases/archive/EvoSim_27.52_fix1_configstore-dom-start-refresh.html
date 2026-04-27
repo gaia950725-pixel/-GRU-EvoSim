@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.54 start-snapshot-lock</title>
+    <title>EvoSim 27.52 fix1 configstore-dom-start-refresh</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -9927,15 +9927,6 @@ function drawLdrCrownMark(ctx, agent, role, clanColor) {
         } catch(e) { console.warn("Failed to restore leaderMode", e); }
 /* === BUILDER_BLOCK: LOCALSTORAGE_RESTORE_END === */
 
-        bindConfigUI(document);
-        try {
-            const store = ensureConfigNamespace();
-            store.setRawSnapshot(collectRawConfigFromUI(), 'legacy-dom-bound');
-            store.getNormalizedSnapshot();
-        } catch (e) {
-            console.warn('[config] initial bind snapshot failed', e);
-        }
-
 /* === BUILDER_BLOCK: SIM_SLIDER_BINDINGS_START === */
         const speedSlider = document.getElementById('ctrl-speed');
         const speedLabel = document.getElementById('lbl-sim-speed');
@@ -10730,10 +10721,6 @@ function cloneConfigSnapshot(obj) {
 }
 
 function createConfigStore() {
-  // ConfigStore contract:
-  // raw/draft = editable UI-side config,
-  // normalized = current normalized candidate,
-  // lastApplied = start snapshot used for the initialized world.
   return {
     version: '27.50',
     schema: CONFIG_SCHEMA,
@@ -10824,43 +10811,6 @@ function ensureConfigNamespace() {
   EvoSim.config.uiState = EvoSim.config.uiState || { touchedRiver: false, touchedMountain: false };
   if (!EvoSim.configStore) EvoSim.configStore = createConfigStore();
   return EvoSim.configStore;
-}
-
-function readConfigElementValue(el) {
-  if (!el) return undefined;
-  if (el.type === 'checkbox') return !!el.checked;
-  if (el.type === 'radio') return el.checked ? el.value : undefined;
-  return el.value;
-}
-
-function writeConfigElementValue(el, value) {
-  if (!el) return;
-  if (el.type === 'checkbox') {
-    el.checked = !!value;
-    return;
-  }
-  if (el.type === 'radio') {
-    el.checked = String(el.value) === String(value);
-    return;
-  }
-  el.value = value;
-}
-
-function bindConfigUI(root) {
-  const store = ensureConfigNamespace();
-  const scope = root || document;
-  const nodes = scope.querySelectorAll('[data-cfg]');
-  nodes.forEach((el) => {
-    if (el.dataset.cfgBound === '1') return;
-    el.dataset.cfgBound = '1';
-    const handler = () => {
-      const raw = collectRawConfigFromUI();
-      store.setRawSnapshot(raw, 'legacy-dom-bound');
-      store.getNormalizedSnapshot();
-    };
-    el.addEventListener('input', handler);
-    el.addEventListener('change', handler);
-  });
 }
 
 function collectRawConfigFromUI(){
