@@ -1,3 +1,21 @@
+## 27.70 fix2 config zero-preserve bugfix
+Change: Updated normalizeConfigSnapshot to preserve zero values for predatorCount/herbivoreCount by removing `||` fallback and using finite-check parsing with non-negative integer clamp.
+Why: `parseInt(...) || default` forced valid UI zero values (`min=0`) back to defaults, causing unintended predator/herbivore spawns.
+Impact: No predator fail-fast scaffold/catch policy change; only config normalization now correctly keeps zero-count settings.
+Verify: predatorCount 0, SABERTOOTH 0, DIREWOLF 0, predatorCount 7, herbivoreCount 0, and no predator fail-fast error in normal run.
+
+## 27.70 fix1 predator profile senseRadius assert correction
+Change: Corrected predator profile assert to validate canonical senseRadius instead of nonexistent senseRange.
+Why: 27.70 smoke test produced a false PRED_PROFILE_SENSE_RANGE_INVALID error on valid predator profiles.
+Impact: No gameplay or balance change; predator fail-fast scaffold now matches existing PRED_PROFILE schema.
+Verify: Re-run sabertooth-only, direwolf-only, predator-off, and 5-minute fast smoke tests.
+
+## 27.70 predator-failfast-assert-scaffold
+Change: Added predator-focused fail-fast assert scaffold for Predator.update, direwolf pack contracts, spawn, and respawn queue validation.
+Why: Prepare safe removal of predator core try/catch guards in 27.71 without hiding pack/grid/profile contract violations.
+Impact: Normal gameplay should be unchanged; invalid predator/pack states now fail early with explicit error codes.
+Verify: Smoke test sabertooth-only, direwolf-only, predator-off, leader death, pack extinction/respawn, and 5-minute fast run.
+
 ### 27.65 fix1 — config-session-closeout-hotfix
 - Change: `stopSimulation()`과 `window.DEV.benchStop()`의 BENCH 중단 경로를 `_bench_running` 기준으로 정정하고, 중단 시 `endAt/lastUI` 및 필요 상태를 정리하도록 보강했다.
 - Change: `resetRuntimeStateForNewWorld()` 중앙 reset 계약에 `selectedTileIdx`, `selectedTileFarmable`, `hoverTileFarmable`, `_agroSelTouchPending`, `_agroSelTouchLastTick` 초기화를 추가했다(기존 `disposeWorld()` 중복 reset은 유지).

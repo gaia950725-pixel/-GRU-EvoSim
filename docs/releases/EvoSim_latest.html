@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.65 config-session-closeout fix1</title>
+    <title>EvoSim 27.70 predator-failfast-assert-scaffold fix2</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -7673,6 +7673,96 @@ const TERRAIN_START_D = 10;
         let PACK_SEQ = 0;
         const PACKS = new Map(); 
 
+        /* === BUILDER_BLOCK: PREDATOR_FAIL_FAST_ASSERTS_START ===
+        [PATCH RECORD]
+        - 27.70 predator-failfast-assert-scaffold: add predator/pack/respawn contract asserts; no catch removal.
+        */
+        function predIsFiniteNum(v) {
+            return (typeof v === "number") && Number.isFinite(v);
+        }
+        function predIsVec2Like(v) {
+            return !!v && predIsFiniteNum(v.x) && predIsFiniteNum(v.y);
+        }
+        function predFailFastAssert(condition, code, context) {
+            if (condition) return;
+            const err = new Error("[EvoSim predator fail-fast] " + code);
+            err.code = code;
+            err.tick = (typeof simulatedTicks === "number" && Number.isFinite(simulatedTicks)) ? simulatedTicks : null;
+            err.context = context || null;
+            throw err;
+        }
+        function assertPredatorProfileContract(kind, context) {
+            predFailFastAssert(typeof kind === "string" && kind.trim().length > 0, "PRED_PROFILE_KIND_INVALID", context);
+            predFailFastAssert(!!PRED_PROFILE && typeof PRED_PROFILE === "object", "PRED_PROFILE_TABLE_MISSING", context);
+            const profile = PRED_PROFILE[kind];
+            const healthVal = (profile && predIsFiniteNum(profile.health)) ? profile.health : (profile ? profile.maxHealth : NaN);
+            const speedVal = (profile && predIsFiniteNum(profile.speed)) ? profile.speed : (profile ? profile.baseSpeed : NaN);
+            predFailFastAssert(!!profile && typeof profile === "object", "PRED_PROFILE_ENTRY_MISSING", context);
+            predFailFastAssert(predIsFiniteNum(healthVal) && healthVal > 0, "PRED_PROFILE_HEALTH_INVALID", context);
+            predFailFastAssert(predIsFiniteNum(speedVal) && speedVal > 0, "PRED_PROFILE_SPEED_INVALID", context);
+            const senseVal = predIsFiniteNum(profile.senseRadius) ? profile.senseRadius : profile.senseRange;
+            predFailFastAssert(predIsFiniteNum(senseVal) && senseVal > 0, "PRED_PROFILE_SENSE_RADIUS_INVALID", context);
+            predFailFastAssert(predIsFiniteNum(profile.territoryRadius) && profile.territoryRadius > 0, "PRED_PROFILE_TERRITORY_RADIUS_INVALID", context);
+            if (kind === "DIREWOLF") {
+                predFailFastAssert(Number.isInteger(profile.packSize) && profile.packSize > 0, "PRED_PROFILE_DIREWOLF_PACK_SIZE_INVALID", context);
+            }
+        }
+        function assertPredatorUpdateContract(pred, agents, agentGrid, context) {
+            predFailFastAssert(!!pred, "PRED_UPDATE_PREDATOR_MISSING", context);
+            predFailFastAssert(predIsVec2Like(pred.pos), "PRED_UPDATE_POS_INVALID", context);
+            predFailFastAssert(predIsVec2Like(pred.homePos), "PRED_UPDATE_HOME_POS_INVALID", context);
+            predFailFastAssert(!!pred.vel && predIsFiniteNum(pred.vel.x) && predIsFiniteNum(pred.vel.y), "PRED_UPDATE_VEL_INVALID", context);
+            predFailFastAssert(typeof pred.kind === "string" && pred.kind.trim().length > 0, "PRED_UPDATE_KIND_INVALID", context);
+            assertPredatorProfileContract(pred.kind, context);
+            predFailFastAssert(Array.isArray(agents), "PRED_UPDATE_AGENTS_INVALID", context);
+            predFailFastAssert(!!agentGrid && typeof agentGrid.get === "function", "PRED_UPDATE_AGENT_GRID_INVALID", context);
+            if (pred.kind === "DIREWOLF") {
+                predFailFastAssert((pred.packId|0) > 0, "PRED_UPDATE_DIREWOLF_PACK_ID_INVALID", context);
+                predFailFastAssert(!!PACKS && typeof PACKS.get === "function", "PRED_UPDATE_PACKS_TABLE_INVALID", context);
+                predFailFastAssert(!!PACKS.get(pred.packId|0), "PRED_UPDATE_DIREWOLF_PACK_MISSING", context);
+            }
+        }
+        function assertDirewolfPackContract(pack, context) {
+            predFailFastAssert(!!pack && typeof pack === "object", "DIREWOLF_PACK_MISSING", context);
+            predFailFastAssert((pack.id|0) > 0, "DIREWOLF_PACK_ID_INVALID", context);
+            predFailFastAssert(Array.isArray(pack.memberPids), "DIREWOLF_PACK_MEMBER_PIDS_INVALID", context);
+            if (pack.homePos != null) {
+                predFailFastAssert(predIsVec2Like(pack.homePos), "DIREWOLF_PACK_HOME_POS_INVALID", context);
+            }
+            const leaderPid = pack.leaderPid|0;
+            if (leaderPid > 0) {
+                predFailFastAssert(pack.memberPids.indexOf(leaderPid) !== -1, "DIREWOLF_PACK_LEADER_NOT_MEMBER", context);
+            }
+            if (pack.reelectAtTick != null) {
+                predFailFastAssert(typeof pack.reelectAtTick === "number" && Number.isFinite(pack.reelectAtTick) && Number.isInteger(pack.reelectAtTick), "DIREWOLF_PACK_REELECT_TICK_INVALID", context);
+            }
+        }
+        function assertDirewolfSpawnContract(homePos, size, context) {
+            predFailFastAssert(predIsVec2Like(homePos), "DIREWOLF_SPAWN_HOME_POS_INVALID", context);
+            predFailFastAssert(!!homePos && typeof homePos.copy === "function", "DIREWOLF_SPAWN_HOME_POS_COPY_MISSING", context);
+            predFailFastAssert(Number.isInteger(size) && size > 0, "DIREWOLF_SPAWN_SIZE_INVALID", context);
+            assertPredatorProfileContract("DIREWOLF", context);
+            predFailFastAssert(typeof Predator === "function", "DIREWOLF_SPAWN_PREDATOR_CLASS_INVALID", context);
+            predFailFastAssert(Array.isArray(predators), "DIREWOLF_SPAWN_PREDATORS_INVALID", context);
+            predFailFastAssert(typeof _e2i_onPredAdded === "function", "DIREWOLF_SPAWN_E2I_HOOK_INVALID", context);
+        }
+        function assertPredatorRespawnArgsContract(tick, packId, packSize, reason, context) {
+            predFailFastAssert(Number.isInteger(tick) && tick >= 0, "PRED_RESPAWN_TICK_INVALID", context);
+            predFailFastAssert((packId|0) > 0, "PRED_RESPAWN_PACK_ID_INVALID", context);
+            predFailFastAssert(Number.isInteger(packSize) && packSize > 0, "PRED_RESPAWN_PACK_SIZE_INVALID", context);
+            predFailFastAssert(typeof reason === "string", "PRED_RESPAWN_REASON_INVALID", context);
+        }
+        function assertPredatorRespawnItemContract(item, context) {
+            predFailFastAssert(!!item && typeof item === "object", "PRED_RESPAWN_ITEM_INVALID", context);
+            predFailFastAssert(Number.isInteger(item.tick) && item.tick >= 0, "PRED_RESPAWN_ITEM_TICK_INVALID", context);
+            predFailFastAssert(item.kind === "SABERTOOTH" || item.kind === "DIREWOLF_PACK", "PRED_RESPAWN_ITEM_KIND_INVALID", context);
+            if (item.kind === "DIREWOLF_PACK") {
+                predFailFastAssert((item.packId|0) > 0, "PRED_RESPAWN_ITEM_PACK_ID_INVALID", context);
+                predFailFastAssert(Number.isInteger(item.packSize) && item.packSize > 0, "PRED_RESPAWN_ITEM_PACK_SIZE_INVALID", context);
+            }
+        }
+        /* === BUILDER_BLOCK: PREDATOR_FAIL_FAST_ASSERTS_END === */
+
         const HERB_HERDS = new Map();
         let HERB_HERD_SEQ = 0;
 
@@ -7686,6 +7776,7 @@ const TERRAIN_START_D = 10;
         let lastHerbHerdUpdateTick = -HERB_HERD_UPDATE_PERIOD_TICKS; 
 
         function spawnDirewolfPack(homePos, size=4) {
+            assertDirewolfSpawnContract(homePos, size, { fn: "spawnDirewolfPack", phase: "pre", size: size });
             const packId = ++PACK_SEQ;
             const memberPids = [];
             const pack = { id: packId, memberPids: [], leaderPid: -1, cachedTarget: null, confusionUntilTick: 0, reelectAtTick: -1, lastLeaderX: homePos.x, lastLeaderY: homePos.y, homePos: homePos.copy() };
@@ -7700,6 +7791,7 @@ const TERRAIN_START_D = 10;
                 if(i===0) pack.leaderPid = p.pid;
             }
             PACKS.set(packId, pack);
+            assertDirewolfPackContract(pack, { fn: "spawnDirewolfPack", phase: "post", packId: packId });
         }
 
         
@@ -7710,8 +7802,8 @@ const TERRAIN_START_D = 10;
 
 // === Phase2 Step2: Predator pack respawn enqueue (dedupe + keep earliest tick) ===
 function _enqueueDirewolfPackRespawn(tick, packId, packSize, reason) {
+  assertPredatorRespawnArgsContract(tick, packId, packSize, reason, { fn: "_enqueueDirewolfPackRespawn", phase: "pre", packId: packId });
   const pid = packId|0;
-  if (pid <= 0) return false;
   const t = tick|0;
   for (let i = 0; i < predatorRespawnQueue.length; i++) {
     const it = predatorRespawnQueue[i];
@@ -7728,6 +7820,8 @@ function _enqueueDirewolfPackRespawn(tick, packId, packSize, reason) {
 
 // === Phase2 Step2: Low-frequency pack hardening (MUST NOT elect leader early) ===
 function _predPackHardeningTick(simulatedTicks) {
+  predFailFastAssert(Array.isArray(predators), "PRED_HARDENING_PREDATORS_INVALID", { fn: "_predPackHardeningTick", phase: "pre" });
+  predFailFastAssert(!!PACKS && typeof PACKS.get === "function", "PRED_HARDENING_PACKS_INVALID", { fn: "_predPackHardeningTick", phase: "pre" });
   const tmp = _predPackHardeningTick._tmp || (_predPackHardeningTick._tmp = new Map());
   tmp.clear();
 
@@ -7747,6 +7841,7 @@ function _predPackHardeningTick(simulatedTicks) {
   const defaultPackSize = ((PRED_PROFILE && PRED_PROFILE.DIREWOLF && PRED_PROFILE.DIREWOLF.packSize)|0) || 4;
 
   for (const [packId, pack] of PACKS) {
+    assertDirewolfPackContract(pack, { fn: "_predPackHardeningTick", phase: "loop", packId: packId, code: "PRED_HARDENING_PACK_INVALID" });
     const arr = tmp.get(packId) || null;
     const n = arr ? arr.length : 0;
 
@@ -10897,6 +10992,10 @@ function collectRawConfigForStart(root) {
 }
 
 function normalizeConfigSnapshot(raw){
+  function parseIntWithDefault(v, fallback) {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? n : fallback;
+  }
   const mapType = (raw.mapType || 'TSL_LARGE');
   const isXL = (mapType === 'TSL_XL_7200x4800');
   const max = isXL ? 8 : 6;
@@ -10924,6 +11023,8 @@ function normalizeConfigSnapshot(raw){
   const CRISIS_SPEED_PRESETS = [0.5, 1.0, 2.0];
   let crisisRecoverSpeed = Number(raw.crisisRecoverSpeed);
   if (!CRISIS_SPEED_PRESETS.includes(crisisRecoverSpeed)) crisisRecoverSpeed = 1.0;
+  const predCount = Math.max(0, parseIntWithDefault(raw.predatorCount, 7));
+  const herbCount = Math.max(0, parseIntWithDefault(raw.herbivoreCount, 30));
 
   const norm = {
     popSize: parseInt(raw.popSize, 10) || 500,
@@ -10931,14 +11032,14 @@ function normalizeConfigSnapshot(raw){
     foodEnergy: parseInt(raw.foodEnergy, 10) || 736,
     reproMinAgeYr: parseInt(raw.reproMinAgeYr, 10) || 12,
     crisisRecoverSpeed,
-    predatorCount: parseInt(raw.predatorCount, 10) || 7,
+    predatorCount: predCount,
     mutationRate: parseFloat(raw.mutationRate) || 0.10,
     mapType,
     clanMode,
     leaderMode: raw.leaderMode || 'FOLLOW_BUFF',
     predatorSpecies: raw.predatorSpecies || 'SABERTOOTH',
     herbivoreSpecies,
-    herbivoreCount: parseInt(raw.herbivoreCount, 10) || 30,
+    herbivoreCount: herbCount,
     climateEnabled,
     riverCount,
     altitudeEnabled,
@@ -12562,6 +12663,13 @@ if (_P_AGENT_TRI) {
 
             update(agents, agentGrid) {
                 try {
+                    assertPredatorUpdateContract(this, agents, agentGrid, {
+                        fn: "Predator.update",
+                        phase: "TS_pre.ecology.predator",
+                        pid: this && this.pid,
+                        kind: this && this.kind,
+                        packId: this && this.packId
+                    });
                     const profile = PRED_PROFILE[this.kind];
                     if (this.pred2_biteCooldown > 0) this.pred2_biteCooldown--;
                     if (this.invulnTimer > 0) this.invulnTimer--;
@@ -15093,6 +15201,7 @@ child.energy = Math.min(2000, Math.max(600, (2 * CFG.reproCost - 100)));
                                         const killed = H.applyDamage(p, HUMAN_HIT_DAMAGE);
                                         p.invulnTimer = CFG.predInvulnTicks;
                                         a.stats.predAttacks++;
+                                        // DEV/TELEMETRY-ONLY GUARD: HS gate failure must not block predator combat resolution.
                                         try{ EvoSim.modules.HS && EvoSim.modules.HS.markGate('human_to_pred'); }catch(_){}
                                         H.markAgentAttack(a);
 
@@ -15123,6 +15232,7 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                                                         if (wasLeader) {
                                                             // Intended behavior: leader death causes a temporary leaderless/confusion period.
                                                             // Re-election happens after a delay (see Predator.update for the delayed election).
+                                                            // TODO 27.71: remove this core state write guard after predator fail-fast smoke test.
                                                             try { p.isLeader = false; } catch(_) {}
                                                             pack.leaderPid = -1;
                                                             pack.reelectAtTick = simulatedTicks + (CFG.packLeaderReselectDelayTicks || 60);
@@ -17500,6 +17610,7 @@ if (
           (simulatedTicks - lastPredRespawnTick) >= PRED_RESPAWN_MIN_INTERVAL_TICKS
       ) {
           const item = predatorRespawnQueue.shift();
+          assertPredatorRespawnItemContract(item, { fn: "SIM_LOOP_CORE.predatorRespawnFlush", phase: "loop" });
           lastPredRespawnTick = simulatedTicks;
         
           if (item.kind === 'DIREWOLF_PACK') {

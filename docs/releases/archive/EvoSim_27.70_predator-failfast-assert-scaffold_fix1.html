@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.70 predator-failfast-assert-scaffold fix2</title>
+    <title>EvoSim 27.70 predator-failfast-assert-scaffold fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -10992,10 +10992,6 @@ function collectRawConfigForStart(root) {
 }
 
 function normalizeConfigSnapshot(raw){
-  function parseIntWithDefault(v, fallback) {
-    const n = parseInt(v, 10);
-    return Number.isFinite(n) ? n : fallback;
-  }
   const mapType = (raw.mapType || 'TSL_LARGE');
   const isXL = (mapType === 'TSL_XL_7200x4800');
   const max = isXL ? 8 : 6;
@@ -11023,8 +11019,6 @@ function normalizeConfigSnapshot(raw){
   const CRISIS_SPEED_PRESETS = [0.5, 1.0, 2.0];
   let crisisRecoverSpeed = Number(raw.crisisRecoverSpeed);
   if (!CRISIS_SPEED_PRESETS.includes(crisisRecoverSpeed)) crisisRecoverSpeed = 1.0;
-  const predCount = Math.max(0, parseIntWithDefault(raw.predatorCount, 7));
-  const herbCount = Math.max(0, parseIntWithDefault(raw.herbivoreCount, 30));
 
   const norm = {
     popSize: parseInt(raw.popSize, 10) || 500,
@@ -11032,14 +11026,14 @@ function normalizeConfigSnapshot(raw){
     foodEnergy: parseInt(raw.foodEnergy, 10) || 736,
     reproMinAgeYr: parseInt(raw.reproMinAgeYr, 10) || 12,
     crisisRecoverSpeed,
-    predatorCount: predCount,
+    predatorCount: parseInt(raw.predatorCount, 10) || 7,
     mutationRate: parseFloat(raw.mutationRate) || 0.10,
     mapType,
     clanMode,
     leaderMode: raw.leaderMode || 'FOLLOW_BUFF',
     predatorSpecies: raw.predatorSpecies || 'SABERTOOTH',
     herbivoreSpecies,
-    herbivoreCount: herbCount,
+    herbivoreCount: parseInt(raw.herbivoreCount, 10) || 30,
     climateEnabled,
     riverCount,
     altitudeEnabled,
