@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.46 fix1 card-gap-widening</title>
+    <title>EvoSim 27.46 guide-width-tightening-and-shortcut-guide-rename</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -1239,8 +1239,8 @@ font-size: 12px;
            - safe additive CSS (no JS changes)
         ============================== */
         :root{
-            --cfg-gap-col: 22px;
-            --cfg-gap-row: 22px;
+            --cfg-gap-col: 14px;
+            --cfg-gap-row: 14px;
             --cfg-radius: 14px;
             --cfg-card-bg: rgba(255,255,255,0.045);
             --cfg-card-border: rgba(255,255,255,0.11);
@@ -1272,14 +1272,14 @@ font-size: 12px;
             background: var(--cfg-card-bg);
             border: 1px solid var(--cfg-card-border);
             border-radius: var(--cfg-radius);
-            padding: 14px 14px 8px;
+            padding: 14px 14px 13px;
             box-shadow: var(--cfg-shadow), 0 0 0 1px rgba(255,255,255,0.02) inset;
             backdrop-filter: blur(2px);
             display: flex;
             flex-direction: column;
             gap: 10px;
             height: 100%;
-            min-height: 168px;
+            min-height: 172px;
             min-width: 0;
         }
         .cfg-card-title{
@@ -1605,39 +1605,22 @@ font-size: 12px;
             border: 1px solid rgba(255,255,255,0.10);
             background: rgba(0,0,0,0.18);
         }
-        .cfg-seg-item{
-            position: relative;
+        .cfg-seg button{
             flex: 1;
-            min-width: 0;
-            cursor: pointer;
-        }
-        .cfg-seg-item input[type="radio"]{
-            position: absolute;
-            opacity: 0;
-            width: 1px;
-            height: 1px;
-            pointer-events: none;
-        }
-        .cfg-seg-item-label{
-            display: block;
+            border: 0;
             border-radius: 999px;
             padding: 6px 10px;
-            text-align: center;
-            background: rgba(255,255,255,0.02);
+            background: transparent;
             color: var(--text-dim, #aaa);
+            cursor: pointer;
             font-weight: 650;
             font-size: 12px;
             letter-spacing: 0.01em;
-            transition: color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
         }
-        .cfg-seg-item:hover .cfg-seg-item-label{
+        .cfg-seg button:hover{
             color: var(--text-main, #eee);
         }
-        .cfg-seg-item input[type="radio"]:focus-visible + .cfg-seg-item-label{
-            outline: 2px solid rgba(0,255,204,0.35);
-            outline-offset: 1px;
-        }
-        .cfg-seg-item input[type="radio"]:checked + .cfg-seg-item-label{
+        .cfg-seg button.active{
             background: rgba(0,255,204,0.14);
             color: var(--accent, #00ffcc);
             box-shadow: 0 0 0 1px rgba(0,255,204,0.20) inset;
@@ -2211,18 +2194,15 @@ BUILDER_BLOCK: CSS_END === */
         <div class="cfg-field cfg-field--seg">
           <label class="cfg-label cfg-field-label">인구위기 복원속도</label>
           <div class="cfg-field-control">
-          <div class="cfg-seg" role="radiogroup" aria-label="Crisis Recovery Speed">
+          <div class="cfg-seg" role="group" aria-label="Crisis Recovery Speed">
             <label class="cfg-seg-item">
-              <input name="crisisSpeed" type="radio" value="0.5" />
-              <span class="cfg-seg-item-label">Slow</span>
+              <input name="crisisSpeed" type="radio" value="0.5"> Slow
             </label>
             <label class="cfg-seg-item">
-              <input name="crisisSpeed" type="radio" value="1" checked />
-              <span class="cfg-seg-item-label">Normal</span>
+              <input name="crisisSpeed" type="radio" value="1" checked> Normal
             </label>
             <label class="cfg-seg-item">
-              <input name="crisisSpeed" type="radio" value="2" />
-              <span class="cfg-seg-item-label">Fast</span>
+              <input name="crisisSpeed" type="radio" value="2"> Fast
             </label>
           </div>
           </div>
