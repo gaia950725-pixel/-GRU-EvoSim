@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.70 predator-failfast-assert-scaffold fix2</title>
+    <title>EvoSim 27.73 clamor-damage-catch-removal</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -5488,9 +5488,11 @@ Object.assign(EvoSim.modules.Energy, {
   if (!target || !dmg) return false;
 
   // Phase 19: commotion write (hit)
-  try {
-    if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
-  } catch (_) {}
+  if (dmg > 0 && target.pos) {
+    const amp = _clamorAmpFromDamage(dmg);
+    assertClamorDamageWrite(target, dmg, amp, { fn: "applyDamage", phase: "hit-clamor" });
+    _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
+  }
 
   target.health -= dmg;
   if (target.health <= 0) {
@@ -5502,9 +5504,10 @@ Object.assign(EvoSim.modules.Energy, {
 
 
     // Phase 19: commotion write (death)
-    try {
-      if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
-    } catch (_) {}
+    if (target.pos) {
+      assertClamorDamageWrite(target, CLAMOR_DEATH_AMP, CLAMOR_DEATH_AMP, { fn: "applyDamage", phase: "death-clamor" });
+      _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+    }
 
     return true;
   }
@@ -5531,9 +5534,11 @@ function applyDamageResult(target, dmg) {
             if (!target || !dmg) return { hit:false, killed:false };
 
             // Phase 19: commotion write (hit)
-            try {
-                if (dmg > 0 && target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, _clamorAmpFromDamage(dmg));
-            } catch (_) {}
+            if (dmg > 0 && target.pos) {
+                const amp = _clamorAmpFromDamage(dmg);
+                assertClamorDamageWrite(target, dmg, amp, { fn: "applyDamageResult", phase: "hit-clamor" });
+                _clamorAddCommoXY(target.pos.x, target.pos.y, amp);
+            }
 
             const prevHealth = target.health;
             target.health -= dmg;
@@ -5565,9 +5570,10 @@ function applyDamageResult(target, dmg) {
 
 
                 // Phase 19: commotion write (death)
-                try {
-                    if (target.pos) _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
-                } catch (_) {}
+                if (target.pos) {
+                    assertClamorDamageWrite(target, CLAMOR_DEATH_AMP, CLAMOR_DEATH_AMP, { fn: "applyDamageResult", phase: "death-clamor" });
+                    _clamorAddCommoXY(target.pos.x, target.pos.y, CLAMOR_DEATH_AMP);
+                }
 
                 return { hit:true, killed:true };
             }
@@ -7673,10 +7679,12 @@ const TERRAIN_START_D = 10;
         let PACK_SEQ = 0;
         const PACKS = new Map(); 
 
-        /* === BUILDER_BLOCK: PREDATOR_FAIL_FAST_ASSERTS_START ===
+        /* === BUILDER_BLOCK: FAIL_FAST_ASSERTS_START ===
         [PATCH RECORD]
         - 27.70 predator-failfast-assert-scaffold: add predator/pack/respawn contract asserts; no catch removal.
-        */
+        - 27.72 unified-failfast-asserts-clamor-contract: consolidate predator asserts and add minimal clamor/damage asserts.
+        - 27.73 clamor-damage-catch-removal: remove empty clamor write catch while keeping unified fail-fast asserts.
+        === */
         function predIsFiniteNum(v) {
             return (typeof v === "number") && Number.isFinite(v);
         }
@@ -7761,7 +7769,28 @@ const TERRAIN_START_D = 10;
                 predFailFastAssert(Number.isInteger(item.packSize) && item.packSize > 0, "PRED_RESPAWN_ITEM_PACK_SIZE_INVALID", context);
             }
         }
-        /* === BUILDER_BLOCK: PREDATOR_FAIL_FAST_ASSERTS_END === */
+        function cdIsFiniteNum(v) {
+            return (typeof v === "number") && Number.isFinite(v);
+        }
+        function cdIsVec2Like(v) {
+            return !!v && cdIsFiniteNum(v.x) && cdIsFiniteNum(v.y);
+        }
+        function cdFailFast(condition, code, context) {
+            if (condition) return;
+            const err = new Error("[EvoSim clamor-damage fail-fast] " + code);
+            err.code = code;
+            err.tick = (typeof simulatedTicks === "number" && Number.isFinite(simulatedTicks)) ? simulatedTicks : null;
+            err.context = context || null;
+            throw err;
+        }
+        function assertClamorDamageWrite(target, dmg, amp, context) {
+            cdFailFast(!!target, "CLAMOR_DAMAGE_TARGET_INVALID", context);
+            cdFailFast(cdIsVec2Like(target.pos), "CLAMOR_DAMAGE_POS_INVALID", context);
+            cdFailFast(cdIsFiniteNum(dmg) && dmg > 0, "CLAMOR_DAMAGE_DMG_INVALID", context);
+            cdFailFast(cdIsFiniteNum(amp) && amp > 0, "CLAMOR_DAMAGE_AMP_INVALID", context);
+            cdFailFast(typeof _clamorAddCommoXY === "function", "CLAMOR_DAMAGE_WRITE_FN_MISSING", context);
+        }
+        /* === BUILDER_BLOCK: FAIL_FAST_ASSERTS_END === */
 
         const HERB_HERDS = new Map();
         let HERB_HERD_SEQ = 0;
@@ -12626,7 +12655,10 @@ if (_P_AGENT_TRI) {
         
         /* === BUILDER_BLOCK: AGENT_DRAW_TAIL_END === */
 
-/* === BUILDER_BLOCK: PREDATOR_CLASS_CORE_START === */
+/* === BUILDER_BLOCK: PREDATOR_CLASS_CORE_START
+   [PATCH RECORD]
+   - 27.71 predator-core-catch-removal: remove Predator.update outer catch so predator fail-fast asserts propagate.
+   === */
         class Predator {
             constructor(x, y, opts = {}) {
                 this.pos = new Vec2(x, y);
@@ -12662,7 +12694,6 @@ if (_P_AGENT_TRI) {
             }
 
             update(agents, agentGrid) {
-                try {
                     assertPredatorUpdateContract(this, agents, agentGrid, {
                         fn: "Predator.update",
                         phase: "TS_pre.ecology.predator",
@@ -12759,11 +12790,6 @@ let canSense = (!confusion);
                             };
 
                             // Agent candidate scan (AGENTGRID required; fail-fast)
-
-                            if (!agentGrid) {
-                                throw new Error("[AgentGrid] agentGrid missing in Predator.update (sim loop wiring). Expect agentGrid to be built and passed into Predator.update every tick.");
-                            }
-
                             _forAgentCellsInRadius(this.pos.x, this.pos.y, this.territoryRadius, (key) => {
                                 const arr = agentGrid.get(key);
                                 if (!arr) return;
@@ -12909,9 +12935,6 @@ let canSense = (!confusion);
                     } else {
                         this.pos.add(this.vel);
                     }
-                } catch (err) {
-                    console.error("PRED Update Error", err);
-                }
             }
 
             draw(ctx, isSelected) {
@@ -15001,6 +15024,7 @@ function _pendCollisionNewborns(ctx, newborns, agentGrid) {
 /* === BUILDER_BLOCK: COLLISION_CHECK_FN_START
    [PATCH RECORD]
    - 27.24 (builder block refactor 3C): wrapper for checkCollisions function
+   - 27.71 predator-core-catch-removal: remove leader death isLeader write guard after 27.70 smoke test.
    === */
 function checkCollisions(foodGrid, agentGrid, herbivoreGrid) {
             if (!foodGrid) foodGrid = _buildFoodGrid();
@@ -15232,8 +15256,7 @@ const targetTick = simulatedTicks + Math.round(PRED2_SETTINGS[CFG.pred2_threatLe
                                                         if (wasLeader) {
                                                             // Intended behavior: leader death causes a temporary leaderless/confusion period.
                                                             // Re-election happens after a delay (see Predator.update for the delayed election).
-                                                            // TODO 27.71: remove this core state write guard after predator fail-fast smoke test.
-                                                            try { p.isLeader = false; } catch(_) {}
+                                                            p.isLeader = false;
                                                             pack.leaderPid = -1;
                                                             pack.reelectAtTick = simulatedTicks + (CFG.packLeaderReselectDelayTicks || 60);
                                                             pack.confusionUntilTick = Math.max(pack.confusionUntilTick || 0, pack.reelectAtTick);
@@ -17124,6 +17147,7 @@ if (GRIDDBG.enabled && selectedAgent) {
 /* === BUILDER_BLOCK: SIM_LOOP_CORE_START
    [PATCH RECORD]
    - 27.21 (builder block refactor): renamed from HS_FITTER_P4_1_SIM_LOOP
+   - 27.71 predator-core-catch-removal: remove pack hardening catch so direwolf pack contract errors propagate.
    === */
 /* [PATCH RECORD]
  - 26.22 (CM patch record): add patch record header (see inline comments for details)
@@ -17408,8 +17432,7 @@ try {
         }
 
         // pack hardening (low-frequency; MUST NOT elect leader early)
-        try { _predPackHardeningTick(simulatedTicks); }
-        catch (e) { console.error("Pred pack hardening failed", e); }
+        _predPackHardeningTick(simulatedTicks);
 
       }
 
