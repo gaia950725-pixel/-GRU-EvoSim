@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.65 config-session-closeout</title>
+    <title>EvoSim 27.65 config-session-closeout fix1</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -10324,10 +10324,20 @@ function stopSimulation() {
   } catch (e) {}
   // If bench is running, cancel it cleanly.
   try {
-    if (typeof bench !== 'undefined' && bench && bench.running) {
-      bench.running = false;
-      bench.done = true;
-      // keep last results visible
+    if (typeof _bench_running !== 'undefined' && _bench_running) {
+      _bench_running = false;
+      if (typeof _bench_endAt !== 'undefined') _bench_endAt = 0;
+      if (typeof _bench_lastUI !== 'undefined') _bench_lastUI = 0;
+      if (typeof _bench_steps !== 'undefined') _bench_steps = 0;
+      if (typeof _bench_long !== 'undefined') _bench_long = 0;
+      if (typeof _bench_sim !== 'undefined' && _bench_sim && typeof _bench_sim.length === 'number') _bench_sim.length = 0;
+      if (typeof _bench_dt !== 'undefined' && _bench_dt && typeof _bench_dt.length === 'number') _bench_dt.length = 0;
+
+      const benchBtn = document.getElementById('bench-btn');
+      if (benchBtn) benchBtn.textContent = 'BENCH 30s';
+
+      const benchStateEl = document.getElementById('bench-state');
+      if (benchStateEl) benchStateEl.textContent = 'idle';
     }
   } catch (e) {}
 }
@@ -11079,6 +11089,11 @@ function resetRuntimeStateForNewWorld(reason, opts) {
             try { selectedHerbivore = null; } catch(_) {}
             try { hoverTileIdx = -1; } catch(_) {}
             try { followEnabled = false; } catch(_) {}
+            try { selectedTileIdx = -1; } catch(_) {}
+            try { selectedTileFarmable = false; } catch(_) {}
+            try { hoverTileFarmable = false; } catch(_) {}
+            try { _agroSelTouchPending = false; } catch(_) {}
+            try { _agroSelTouchLastTick = -1e15; } catch(_) {}
 
             if (resetAutoClan) {
                 try {
@@ -18446,6 +18461,14 @@ window.DEV.benchStart = function(seconds) {
 window.DEV.benchStop = function() {
   try {
     if (typeof _bench_running !== "undefined") _bench_running = false;
+    if (typeof _bench_endAt !== "undefined") _bench_endAt = 0;
+    if (typeof _bench_lastUI !== "undefined") _bench_lastUI = 0;
+
+    const benchBtn = document.getElementById('bench-btn');
+    if (benchBtn) benchBtn.textContent = 'BENCH 30s';
+
+    const benchStateEl = document.getElementById('bench-state');
+    if (benchStateEl) benchStateEl.textContent = 'idle';
   } catch (e) {
     console.warn("benchStop failed", e);
     return false;
