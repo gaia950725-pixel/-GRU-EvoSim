@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.65 config-session-closeout</title>
+    <title>EvoSim 27.63 legacy-config-collector-purge</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -10271,8 +10271,6 @@ setSession(EvoSim.consts.SESSION_STATES.PAUSED, reason || 'TO_CONFIG');
         setSession(EvoSim.consts.SESSION_STATES.RUNNING, reason || 'INIT');
         setScreen(EvoSim.consts.UI_SCREENS.INGAME);
         // BENCH (console-only): auto-run once on first INGAME entry
-        // BENCH auto-run is retained for patch-to-patch load comparison.
-        // It must remain one-shot per page/session unless DEV.benchAuto(...) resets it manually.
         try {
           const DEV = window.DEV;
           if (DEV && DEV._benchAutoEnabled && !DEV._benchAutoDone && typeof DEV.benchStart === 'function') {

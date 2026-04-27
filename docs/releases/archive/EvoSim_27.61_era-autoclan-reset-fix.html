@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EvoSim 27.65 config-session-closeout</title>
+    <title>EvoSim 27.61 era-autoclan-reset-fix</title>
     <!-- === BUILDER_BLOCK: STYLES_START === -->
     <style>
 /* === BUILDER_BLOCK: CSS_START (edit CSS only inside this block) === */
@@ -3852,6 +3852,15 @@ window.__evoRebuildClanStrokeCache = window.__evoRebuildClanStrokeCache || funct
         });
 
         // 3.1 Crisis recovery speed (Segment: Slow/Normal/Fast)
+        const CRISIS_SPEED_BASE = 1.0; // 'Normal' baseline (no extra multiplier)
+        const CRISIS_SPEED_PRESETS = [0.5, 1.0, 2.0];
+
+        function getCrisisRecoverSpeedFromUI() {
+            const el = document.querySelector('input[name="crisisSpeed"]:checked');
+            const raw = parseFloat(el?.value ?? '1');
+            const v = CRISIS_SPEED_PRESETS.includes(raw) ? raw : 1.0;
+            return CRISIS_SPEED_BASE * v;
+        }
 
         // --- Predator UI Listener ---
         const predSpeciesSelect = document.getElementById('cfg-pred-species');
@@ -10271,8 +10280,6 @@ setSession(EvoSim.consts.SESSION_STATES.PAUSED, reason || 'TO_CONFIG');
         setSession(EvoSim.consts.SESSION_STATES.RUNNING, reason || 'INIT');
         setScreen(EvoSim.consts.UI_SCREENS.INGAME);
         // BENCH (console-only): auto-run once on first INGAME entry
-        // BENCH auto-run is retained for patch-to-patch load comparison.
-        // It must remain one-shot per page/session unless DEV.benchAuto(...) resets it manually.
         try {
           const DEV = window.DEV;
           if (DEV && DEV._benchAutoEnabled && !DEV._benchAutoDone && typeof DEV.benchStart === 'function') {
@@ -10723,8 +10730,8 @@ function createConfigStore() {
     dirty: false,
 
     hydrateFromDOMOnce() {
-      const raw = collectRawConfigForStart(document);
-      return this.setRawSnapshot(raw, 'data-cfg-hydrate');
+      const raw = collectRawConfigFromUI();
+      return this.setRawSnapshot(raw, 'dom-hydrate');
     },
 
     setRawSnapshot(raw, source) {
@@ -10745,8 +10752,8 @@ function createConfigStore() {
     },
 
     refreshRawFromDOMForStart() {
-      const raw = collectRawConfigForStart(document);
-      return this.setRawSnapshot(raw, 'data-cfg-start');
+      const raw = collectRawConfigFromUI();
+      return this.setRawSnapshot(raw, 'dom-start');
     },
 
     getNormalizedSnapshot() {
@@ -10855,35 +10862,33 @@ function collectRawConfigFromBoundUI(root) {
   return raw;
 }
 
-function validateBoundConfigCoverage(raw) {
-  const missing = [];
-  const extra = [];
-  const schemaKeys = new Set(Object.keys(CONFIG_SCHEMA));
-
-  for (const key of schemaKeys) {
-    if (!(key in (raw || {}))) missing.push(key);
-  }
-
-  for (const key of Object.keys(raw || {})) {
-    if (!schemaKeys.has(key)) extra.push(key);
-  }
-
-  return { missing, extra };
-}
-
-function collectRawConfigForStart(root) {
-  const raw = collectRawConfigFromBoundUI(root || document);
-  const coverage = validateBoundConfigCoverage(raw);
-
-  if (coverage.missing.length) {
-    throw new Error('[ConfigStore] missing data-cfg keys for start snapshot: ' + coverage.missing.join(', '));
-  }
-
-  if (coverage.extra.length) {
-    try { console.warn('[ConfigStore] extra data-cfg keys ignored:', coverage.extra); } catch (_) {}
-  }
-
-  return raw;
+// Legacy DOM-id collector: do not call from guardedStart for normalize/validate ownership.
+// Retained for start-time DOM refresh and comparison until full config snapshot persistence is designed.
+function collectRawConfigFromUI(){
+  const leaderSel = document.getElementById('cfg-leader-mode');
+  const clanSel = document.getElementById('cfg-clan-mode');
+  return {
+    popSize: document.getElementById('cfg-pop')?.value,
+    foodCount: document.getElementById('cfg-foodcount')?.value,
+    foodEnergy: document.getElementById('cfg-food')?.value,
+    reproMinAgeYr: document.getElementById('cfg-repro-age')?.value,
+    crisisRecoverSpeed: getCrisisRecoverSpeedFromUI(),
+    predatorCount: document.getElementById('cfg-pred')?.value,
+    mutationRate: document.getElementById('cfg-mut')?.value,
+    mapType: document.getElementById('cfg-map')?.value,
+    clanMode: clanSel ? clanSel.value : (document.querySelector('input[name="clanMode"]:checked')?.value || 'SURNAME_AUTO'),
+    leaderMode: leaderSel ? leaderSel.value : (document.querySelector('input[name="leaderMode"]:checked')?.value || 'FOLLOW_BUFF'),
+    predatorSpecies: document.getElementById('cfg-pred-species')?.value,
+    herbivoreSpecies: document.getElementById('cfg-herb-species')?.value,
+    herbivoreCount: document.getElementById('cfg-herb-count')?.value,
+    climateEnabled: document.getElementById('cfg-climate')?.checked === true,
+    riverCount: document.getElementById('cfg-river-count')?.value,
+    altitudeEnabled: document.getElementById('cfg-altitude')?.checked === true,
+    maritimeEnabled: document.getElementById('cfg-maritime')?.checked === true,
+    mountainCount: document.getElementById('cfg-mtn-count')?.value,
+    presetSeedEnabled: document.getElementById('cfg-seed-lock')?.checked === true,
+    presetSeed: document.getElementById('cfg-seed')?.value
+  };
 }
 
 function normalizeConfigSnapshot(raw){
@@ -10911,16 +10916,12 @@ function normalizeConfigSnapshot(raw){
   if (!altitudeEnabled) mountainCount = 0;
   else mountainCount = Math.max(1, Math.min(max, mountainCount|0));
 
-  const CRISIS_SPEED_PRESETS = [0.5, 1.0, 2.0];
-  let crisisRecoverSpeed = Number(raw.crisisRecoverSpeed);
-  if (!CRISIS_SPEED_PRESETS.includes(crisisRecoverSpeed)) crisisRecoverSpeed = 1.0;
-
   const norm = {
     popSize: parseInt(raw.popSize, 10) || 500,
     foodCount: parseInt(raw.foodCount, 10) || 1000,
     foodEnergy: parseInt(raw.foodEnergy, 10) || 736,
     reproMinAgeYr: parseInt(raw.reproMinAgeYr, 10) || 12,
-    crisisRecoverSpeed,
+    crisisRecoverSpeed: Number(raw.crisisRecoverSpeed) || 1.0,
     predatorCount: parseInt(raw.predatorCount, 10) || 7,
     mutationRate: parseFloat(raw.mutationRate) || 0.10,
     mapType,
@@ -11130,13 +11131,7 @@ async function guardedStart() {
                 });
 
                 const store = ensureConfigNamespace();
-                try {
-                    store.refreshRawFromDOMForStart();
-                } catch (e) {
-                    try { console.error('[config] start snapshot collection failed', e); } catch (_) {}
-                    setWorldGenState('idle', null, 'Configuration UI binding incomplete. Please review settings.', 0);
-                    return;
-                }
+                store.refreshRawFromDOMForStart();
                 const startConfig = store.getStartSnapshot();
                 const norm = startConfig.norm;
                 const verdict = startConfig.verdict;
